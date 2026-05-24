@@ -101,23 +101,17 @@ emits the user-visible warning pline + "Program in disorder!" pline.
 
 ## Proposed patch
 
-See `proposed-fix.patch`. Two options offered, primary + fallback:
+See `proposed-fix.patch`. Add a silent no-op for `(0,0)` in
+`newsym()` (`src/display.c:929`). The adjacent existing comment
+"misuse of column 0 is less severe" already acknowledges that
+`newsym` is reached with `x==0`; this patch finishes that thought
+by skipping the `impossible()` call entirely for the documented
+sentinel case. Minimal-impact, doesn't touch game logic.
 
-**Option A (preferred, root cause):** Don't overwrite `ogx`/`ogy`
-with `(0,0)` in `parkguard()`. Leave them at the guard's last on-map
-values. The earlier `remove_monster + newsym` in `parkguard` already
-redrew the guard's prior map cell, so any subsequent code that reads
-`ogx/ogy` and calls `newsym` will redraw an already-empty cell — a
-harmless no-op.
-
-**Option B (defense in depth, in `newsym()`):** Recognize `(0,0)`
-explicitly as the vault-guard parking sentinel and return silently
-without `impossible()`. Targeted, conservative; doesn't change any
-game state.
-
-Both are included so reviewers can choose. Option A removes the root
-cause and is more conservative behaviorally; Option B is a one-line
-safety net at the display layer.
+The `parkguard()` setup is correct by design — `gd_move_cleanup`'s
+kludge comment (`vault.c:843-851`) explains that `ogx,ogy = mx,my =
+0,0` is deliberately required for `gd_move()`'s
+`abs(egrd->ogx - grd->mx) > 1` sanity check at line 930 to pass.
 
 ## Test session
 
