@@ -51,12 +51,8 @@
         just sets EGD(grd)->ogx,ogy to 0,0 too; is that what we want?] */
      EGD(grd)->ogx = grd->mx;
      EGD(grd)->ogy = grd->my;
-+    /* Mark the parked guard as off-map so mon_offmap() returns TRUE
-+       for it. Without this, postmov() in monmove.c falls through
-+       its mon_offmap early-return at line 1514 and reaches the
-+       newsym(mtmp->mx, mtmp->my) call at line 1656, which is
-+       newsym(0, 0) — tripping the isok() check and firing the
-+       impossible("newsym: attempting screen update for <0,0>")
-+       + "Program in disorder!" cascade. */
++    /* Mark parked guard as off-map so mon_offmap() returns TRUE,
++       which lets postmov() early-return at monmove.c:1514 instead
++       of falling through to a newsym(0,0) that fires impossible(). */
 +    grd->mstate |= MON_OFFMAP;
  }
