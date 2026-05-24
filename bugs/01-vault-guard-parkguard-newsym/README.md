@@ -69,58 +69,96 @@ Scrub to step 164–167 to see the message cascade.
 
 ## Root cause
 
-`src/vault.c:155` — `parkguard()`:
+Traced via backtrace instrumentation; full call chain:
+
+```
+moveloop_core → movemon → iter_mons_safe → movemon_singlemon
+              → dochugw → dochug → m_move → postmov → newsym(0, 0)
+```
+
+`parkguard()` in `src/vault.c:155` sets the guard's coords to `(0,0)`
+via `place_monster(grd, 0, 0)`, parking it off-map between guard-
+action turns:
 
 ```c
 staticfn void
 parkguard(struct monst *grd)
 {
-    if (grd == svc.context.polearm.hitmon)
-        svc.context.polearm.hitmon = 0;
+    ...
     if (grd->mx) {
         remove_monster(grd->mx, grd->my);
-        newsym(grd->mx, grd->my);
+        newsym(grd->mx, grd->my);          // redraw old cell (now empty)
     }
     if (m_at(0, 0) != grd)
-        place_monster(grd, 0, 0);          // ← guard parked at (0,0)
-    /* [grd->mx,my just got set to 0,0 by place_monster(), so this
-       just sets EGD(grd)->ogx,ogy to 0,0 too; is that what we want?] */
-    EGD(grd)->ogx = grd->mx;               // ← ogx = 0
-    EGD(grd)->ogy = grd->my;               // ← ogy = 0
+        place_monster(grd, 0, 0);          // ← park at (0,0), sets mx=0,my=0
+    EGD(grd)->ogx = grd->mx;               // (intentional — see kludge
+    EGD(grd)->ogy = grd->my;               //  comment at vault.c:843-851)
 }
 ```
 
-NetHack uses `(0,0)` as a "parked" off-map sentinel for the vault
-guard between guard-action turns. `place_monster(grd, 0, 0)` sets
-`grd->mx = grd->my = 0`. The subsequent lines then propagate `(0,0)`
-into `EGD(grd)->ogx, ogy` — and **the inline comment on line 167-168
-already flags this as suspect** ("is that what we want?").
+What `parkguard()` DOESN'T do: update the guard's `mstate` field.
+The guard ends up with `mx=0, my=0, mstate=MON_FLOOR (0)`.
 
-On the very next moveloop iteration, some downstream display pass
-(vision recalc / postmov / movemon iteration) reads the guard's
-coords and calls `newsym(grd->mx, grd->my)` = `newsym(0, 0)`.
-`newsym()` in `src/display.c:929` checks `isok(x, y)`, which rejects
-column 0 (it's reserved for the status bar), routes to `impossible()`,
-and fires the warning cascade.
+`postmov()` in `monmove.c:1455` has the right early-return guard
+for off-map monsters at line 1514:
 
-The comment in `display.c:934` calls out the same situation: "misuse
-of column 0 is less severe" — the author already knew `x==0` calls
-happen and chose `impossible` over `panic`. But `impossible` still
-emits the user-visible warning pline + "Program in disorder!" pline.
+```c
+} else if (mon_offmap(mtmp)) {
+    return MMOVE_DONE;
+}
+```
+
+but the `mon_offmap()` macro in `monst.h:255` is:
+
+```c
+#define mon_offmap(mon) ((mon)->mstate != MON_FLOOR)
+```
+
+For the parked guard, `mstate == MON_FLOOR == 0`, so `mon_offmap()`
+returns FALSE, the check at line 1514 doesn't fire, and `postmov`
+falls through to line 1656:
+
+```c
+} else {
+    newsym(mtmp->mx, mtmp->my);            // ← newsym(0, 0)
+}
+```
+
+`newsym()` in `display.c:929` checks `isok(x, y)`, which rejects
+column 0 (reserved for the status bar), routes to `impossible()`,
+and fires the user-visible warning cascade. The comment in
+`display.c:934` ("misuse of column 0 is less severe") shows the
+author already knew `x==0` calls happen — they're real, just
+disclaimed as "less severe" — but they still trigger `impossible()`.
 
 ## Proposed patch
 
-See `proposed-fix.patch`. Add a silent no-op for `(0,0)` in
-`newsym()` (`src/display.c:929`). The adjacent existing comment
-"misuse of column 0 is less severe" already acknowledges that
-`newsym` is reached with `x==0`; this patch finishes that thought
-by skipping the `impossible()` call entirely for the documented
-sentinel case. Minimal-impact, doesn't touch game logic.
+See `proposed-fix.patch`. **In `parkguard()`, OR `MON_OFFMAP` into
+the guard's `mstate`** when parking. This makes `mon_offmap(grd)`
+correctly return TRUE for parked guards — and the existing
+`mon_offmap()` infrastructure throughout the codebase (`monmove.c`,
+`mon.c`, `mhitm.c`, `muse.c`, `dogmove.c`) all correctly skip
+them, including the existing `else if (mon_offmap(mtmp)) return
+MMOVE_DONE;` in `postmov` that this patch was missing.
 
-The `parkguard()` setup is correct by design — `gd_move_cleanup`'s
-kludge comment (`vault.c:843-851`) explains that `ogx,ogy = mx,my =
-0,0` is deliberately required for `gd_move()`'s
-`abs(egrd->ogx - grd->mx) > 1` sanity check at line 930 to pass.
+The earlier `movemon_singlemon` check at `mon.c:1233` still works
+correctly — it checks `(mtmp->mstate & MON_MIGRATING)` specifically
+(bit 0x04), not full `mstate` equality. `MON_OFFMAP=0x01` and
+`MON_MIGRATING=0x04` don't conflict.
+
+The `parkguard()` setup at vault.c:155 is otherwise correct by
+design — `gd_move_cleanup`'s kludge comment (`vault.c:843-851`)
+explains that `ogx,ogy = mx,my = 0,0` is deliberately required for
+`gd_move()`'s `abs(egrd->ogx - grd->mx) > 1` sanity check at line
+930 to pass. Don't touch ogx/ogy.
+
+**Verified locally:** applying this patch and replaying
+`session.json` produces the "Suddenly, the guard disappears."
+message correctly (still appears at step 117), but eliminates the
+spurious `newsym: attempting screen update for <0,0>` →
+`Program in disorder!` → `Please report these messages to
+devteam@nethack.org.` cascade — 3 fewer plines, 3 fewer `--More--`
+dismissals required from the player.
 
 ## Test session
 
