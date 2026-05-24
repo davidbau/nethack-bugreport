@@ -1,0 +1,36 @@
+#
+# Minimal macOS hints for TTY-only NetHack build (counterpart of linux-minimal)
+#
+#-PRE
+# This hints file provides the base for a minimal tty build for macOS
+
+PREFIX=__NETHACK_PREFIX__
+HACKDIR=$(PREFIX)/games/lib/$(GAME)dir
+SHELLDIR=$(PREFIX)/games
+INSTDIR=$(HACKDIR)
+VARDIR=$(HACKDIR)
+
+# NO_TIMED_DELAY: suppress macOS auto-enable of TIMED_DELAY in unixconf.h.
+# timed_delay is irrelevant for HTML (we use JS timers) and its presence
+# in the options menu breaks session parity with Linux builds.
+CFLAGS=-g -I../include -DNOTPARMDECL -DNO_TIMED_DELAY
+
+# when building liblua.a, avoid warning that use of tmpnam() should be
+# replaced by mkstemp(); the lua code doesn't use nethack's config.h so
+# this needs to be passed via make rather than defined in unixconf.h
+SYSCFLAGS=-DLUA_USE_MACOSX
+
+LINK=$(CC)
+
+WINSRC = $(WINTTYSRC)
+WINOBJ = $(WINTTYOBJ)
+WINLIB = $(WINTTYLIB)
+
+WINTTYLIB=-lncurses
+
+CHOWN=true
+CHGRP=true
+
+VARDIRPERM = 0755
+VARFILEPERM = 0600
+GAMEPERM = 0755

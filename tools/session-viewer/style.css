@@ -1,0 +1,342 @@
+/* Session Viewer — Garamond on parchment, with a black 80x24 game grid. */
+
+:root {
+    /* Parchment palette (matches contest/template/index.html and spoilers/) */
+    --bg:           #f9f7f1;     /* parchment */
+    --bg-2:         #f4ecd8;     /* slightly darker parchment for chrome */
+    --bg-3:         #ede1c4;     /* deeper tan for inputs / panels */
+    --rule:         #c4a882;     /* sepia rule (used sparingly) */
+    --fg:           #1a1a1a;
+    --fg-2:         #6b5a40;     /* muted brown */
+    --fg-3:         #8a7a5c;     /* even more muted */
+    --accent:       #6b2c2c;     /* maroon */
+    --accent-dark:  #4a2020;
+    --ok:           #4a6b3a;
+    --warn:         #b8651b;
+    --err:          #a02020;
+
+    /* Diff colors on the 80x24 grid (kept high-contrast on black) */
+    --diff-char:    #c0392b;
+    --diff-attr:    #b8860b;
+    --diff-cursor:  #2563eb;
+
+    /* Timeline status colors (canon/js bars) — readable on parchment */
+    --tl-match:     #6b5a40;     /* muted dark sepia — quiet "everything ok" */
+    --tl-diff:      #c0392b;     /* red — value mismatch */
+    --tl-canon-only:#b8651b;     /* brown-orange — call only on canon side */
+    --tl-js-only:   #7b3fa3;     /* purple — call only on js side */
+    --tl-step-ok:   rgba(196, 168, 130, 0.18);
+    --tl-step-diff: rgba(192, 57, 43, 0.10);
+    --tl-canvas-bg: #f4ecd8;     /* parchment */
+    --tl-row-label: #6b5a40;     /* dark text on parchment */
+    --tl-grid:      rgba(0, 0, 0, 0.10);
+    --tl-segdiv:    rgba(0, 0, 0, 0.30);
+    --tl-inactive:  rgba(0, 0, 0, 0.05);
+
+    --font-serif: 'EB Garamond', 'Garamond', Georgia, serif;
+    --font-mono:  "DejaVu Sans Mono","Liberation Mono",monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+    font: 16px/1.4 var(--font-serif);
+    background: var(--bg);
+    color: var(--fg);
+    display: flex;
+    flex-direction: column;
+}
+
+/* The whole top chrome (header → status → timeline) shares the same
+   slightly-darker parchment so the layout reads as one band, then the
+   main map area sits on the lighter parchment. No explicit borders. */
+header,
+#status,
+#timeline-pane {
+    background: var(--bg-2);
+}
+
+header {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 12px 22px 8px;
+}
+.title strong {
+    font-size: 1.45em;
+    font-weight: 600;
+    color: var(--accent-dark);
+    margin-right: 14px;
+    letter-spacing: 0.01em;
+}
+.hint {
+    color: var(--fg-2);
+    font-size: 0.95em;
+    font-style: italic;
+}
+
+.picker { display: flex; gap: 14px; align-items: center; }
+.picker select {
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--rule);
+    padding: 3px 8px;
+    font-family: var(--font-mono);   /* monospace for ✓/✗ alignment */
+    font-size: 12px;
+    border-radius: 2px;
+    max-width: 60ch;                 /* don't let long names blow out chrome */
+}
+/* macOS-native popups don't inherit font/size from the <select>;
+   set them explicitly on <option> so the dropdown list matches the
+   collapsed control. */
+.picker select option {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--bg);
+    color: var(--fg);
+}
+.picker select option[data-result="pass"] { color: var(--ok); }
+.picker select option[data-result="fail"] { color: var(--err); }
+.file-picker input { display: none; }
+.file-picker span {
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.9em;
+    text-decoration: underline;
+    text-decoration-color: var(--rule);
+}
+.file-picker span:hover { color: var(--accent-dark); }
+
+#status {
+    flex: 0 0 auto;
+    padding: 2px 22px;
+    color: var(--fg-2);
+    font-size: 0.9em;
+    font-style: italic;
+    min-height: 22px;
+}
+#status.error { color: var(--err); font-style: normal; }
+#status.ok    { color: var(--ok); font-style: normal; }
+
+#timeline-pane {
+    flex: 0 0 auto;
+    padding: 4px 22px 10px;
+}
+#timeline-wrap { position: relative; }
+#timeline {
+    display: block;
+    width: 100%;
+    height: 130px;
+    background: var(--tl-canvas-bg);
+    border-radius: 2px;
+    cursor: crosshair;
+}
+.row-labels {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 56px;
+    height: 130px;
+    pointer-events: none;
+    color: var(--tl-row-label);
+    font: 11px var(--font-mono);
+    text-align: right;
+    padding-right: 6px;
+    user-select: none;
+}
+.row-labels .row-label {
+    display: block;
+    position: absolute;
+    right: 6px;
+}
+.row-labels .row-label.canon  { top: 23px; }   /* mid of 0..54  */
+.row-labels .row-label.js     { top: 81px; }   /* mid of 56..110 */
+.row-labels .row-label.screen { top: 116px; }  /* mid of 112..126 */
+
+/* Legend + step readout share one line, in Garamond, under the timeline.
+   Left padding matches the timeline canvas's row-label gutter
+   (ROW_LABEL_W in viz.mjs) so the legend starts under the data area,
+   not under the canon/js/screen labels. */
+.timeline-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-left: 56px;
+    color: var(--fg-2);
+    font-family: var(--font-serif);
+    font-size: 0.92em;
+}
+#step-readout {
+    color: var(--fg-2);
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.95em;
+}
+.nowrap { white-space: nowrap; }
+
+main {
+    flex: 1 1 auto;
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Map pane: grid + its header are wrapped in an inner column whose width
+   collapses to the natural width of the 80x24 grid. The wrap is centered
+   in the pane via auto margins. The view-mode buttons therefore align
+   automatically with the right edge of the grid. */
+#map-pane {
+    flex: 1 1 auto;
+    padding: 16px 22px;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+}
+.map-pane-inner {
+    width: max-content;
+}
+.map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+.step-key {
+    color: var(--fg-2);
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+}
+
+.view-modes {
+    display: inline-flex;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--bg);
+}
+.view-modes button {
+    background: transparent;
+    color: var(--fg-2);
+    border: none;
+    border-right: 1px solid var(--rule);
+    padding: 3px 14px;
+    font: inherit;
+    font-family: var(--font-serif);
+    font-size: 0.92em;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+}
+.view-modes button:last-child { border-right: none; }
+.view-modes button:hover { background: var(--bg-3); color: var(--fg); }
+.view-modes button.active {
+    background: var(--accent);
+    color: #fdf6e3;
+}
+
+.legend {
+    color: var(--fg-2);
+    font-family: var(--font-serif);
+    font-size: 0.92em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+/* Each legend-group is a no-wrap unit. The first group (match / diff /
+   canon-only / js-only) and the second group (char / attr / cursor wrong)
+   each stay together when the screen narrows; only the gap between
+   groups can wrap. */
+.legend-group {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: center;
+    white-space: nowrap;
+}
+.legend-item { white-space: nowrap; }
+.swatch {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    margin-right: 4px;
+    vertical-align: middle;
+    border-radius: 2px;
+    border: 1px solid rgba(0,0,0,0.15);
+}
+.swatch.ch-diff       { background: var(--diff-char); }
+.swatch.attr-diff     { background: var(--diff-attr); }
+.swatch.cursor-diff   { background: var(--diff-cursor); }
+.swatch.sw-match      { background: var(--tl-match); }
+.swatch.sw-diff       { background: var(--tl-diff); }
+.swatch.sw-canon-only { background: var(--tl-canon-only); }
+.swatch.sw-js-only    { background: var(--tl-js-only); }
+.legend-sep {
+    display: inline-block;
+    width: 1px;
+    height: 11px;
+    background: var(--rule);
+    margin: 0 6px;
+}
+
+/* The 80x24 grid stays black-background — high-contrast game viewport
+   set against the parchment chrome. */
+#map-grid {
+    margin: 0;
+    font: 16px/1.0 var(--font-mono);
+    background: #000;
+    padding: 6px;
+    border-radius: 2px;
+    width: max-content;
+    color: #c0c0c0;
+    user-select: text;
+}
+.map-row { display: block; height: 1.0em; }
+.map-cell {
+    display: inline-block;
+    width: 1ch;
+    text-align: center;
+    white-space: pre;
+    background: transparent;
+}
+.map-cell.ch-diff   { background: rgba(192, 57, 43, 0.55); }
+.map-cell.attr-diff { background: rgba(184, 134, 11, 0.40); }
+.map-cell.cursor-diff::after {
+    content: '';
+    position: relative;
+    display: inline-block;
+}
+.map-cell.cursor-canon { box-shadow: inset 0 0 0 2px var(--diff-cursor); }
+.map-cell.cursor-js    { outline: 2px dashed rgba(110, 168, 254, 0.85); outline-offset: -2px; }
+
+#detail-pane {
+    flex: 0 0 360px;
+    background: var(--bg-2);
+    padding: 16px 18px;
+    overflow: auto;
+    font-size: 0.9em;
+}
+.detail-block { margin-bottom: 16px; }
+.detail-label {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.72em;
+    font-weight: 600;
+    color: var(--accent-dark);
+    margin-bottom: 5px;
+}
+#rng-detail, #cursor-detail, #msg-detail {
+    font-family: var(--font-mono);
+    background: var(--bg-3);
+    padding: 7px 9px;
+    border-radius: 2px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 0.95em;
+}
+.rng-line { display: block; }
+.rng-line.match    { color: var(--fg-3); }
+.rng-line.diff     { color: var(--err); }
+.rng-line.missing  { color: var(--tl-canon-only); }
+.rng-line.extra    { color: var(--tl-js-only); }

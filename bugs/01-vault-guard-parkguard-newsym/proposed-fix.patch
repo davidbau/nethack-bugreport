@@ -1,0 +1,68 @@
+# Proposed fix for "impossible: newsym attempting screen update for <0,0>" on vault-guard park
+#
+# Two options, both against NetHack/NetHack@HEAD as of 2026-05-24.
+# Pick one (Option A preferred — root cause) or apply both
+# (defense in depth).
+
+# =====================================================================
+# Option A — Root-cause fix in src/vault.c (preferred)
+# =====================================================================
+# Don't overwrite EGD->ogx/ogy with the (0,0) park sentinel. Leave them
+# at the guard's last on-map values. The remove_monster + newsym above
+# already redrew the old map cell, so any downstream display pass that
+# reads ogx/ogy will land on an empty cell — harmless redraw.
+
+--- a/src/vault.c
++++ b/src/vault.c
+@@ -159,11 +159,13 @@ parkguard(struct monst *grd)
+     if (grd == svc.context.polearm.hitmon)
+         svc.context.polearm.hitmon = 0;
+     if (grd->mx) {
+         remove_monster(grd->mx, grd->my);
+         newsym(grd->mx, grd->my);
+     }
+     if (m_at(0, 0) != grd)
+         place_monster(grd, 0, 0);
+-    /* [grd->mx,my just got set to 0,0 by place_monster(), so this
+-       just sets EGD(grd)->ogx,ogy to 0,0 too; is that what we want?] */
+-    EGD(grd)->ogx = grd->mx;
+-    EGD(grd)->ogy = grd->my;
++    /* Do NOT propagate the (0,0) park sentinel into ogx/ogy.
++       Downstream display passes (vision recalc, movemon iteration)
++       read ogx/ogy and call newsym(); with (0,0) coords newsym's
++       isok() check fires impossible("newsym: attempting screen
++       update for <0,0>") + "Program in disorder!". Leaving ogx/ogy
++       at the prior on-map values is safe — the explicit
++       remove_monster + newsym above already redrew that cell empty. */
+ }
+
+
+# =====================================================================
+# Option B — Defense-in-depth in src/display.c (also OK)
+# =====================================================================
+# Recognize (0,0) as the documented vault-guard parking sentinel
+# (see vault.c parkguard) and return silently. Adjacent existing
+# comment "misuse of column 0 is less severe" already acknowledges
+# that newsym is reached with x==0; just stop emitting impossible()
+# in the case we know about.
+
+--- a/src/display.c
++++ b/src/display.c
+@@ -926,12 +926,17 @@ newsym(coordxy x, coordxy y)
+     if (_suppress_map_output())
+         return;
+     /* should never happen; same error handling as u_on_newpos() */
+     if (!isok(x, y)) {
++        /* (0,0) is the documented off-map parking sentinel used by
++           vault.c parkguard() for the vault guard between guard-action
++           turns. Silently no-op for that case; impossible() for
++           genuinely-invalid coords. */
++        if (x == 0 && y == 0)
++            return;
+         void (*errfunc)(const char *, ...) PRINTF_F_PTR(1, 2);
+
+         errfunc = (x < 0 || y < 0 || x > COLNO - 1 || y > ROWNO - 1) ? panic
+                   : impossible; /* misuse of column 0 is less severe */
+         (*errfunc)("newsym: attempting screen update for <%d,%d>", x, y);
+         return;
+     }

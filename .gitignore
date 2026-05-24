@@ -1,0 +1,7 @@
+node_modules/
+.cache/
+nethack-c/recorder/
+nethack-c/recorder-install/
+nethack-c/install/
+*.log
+.DS_Store

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Session Viewer — Teleport Coding Challenge</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+    <div class="title">
+        <strong>Session Viewer</strong>
+        <span class="hint"><span class="nowrap">PRNG + Screen divergence</span> — <span class="nowrap">drag the timeline, watch the map</span></span>
+    </div>
+    <div class="picker">
+        <select id="session-select">
+            <option value="">Pick a session…</option>
+        </select>
+        <label class="file-picker">
+            <input type="file" id="session-file" accept=".json">
+            <span class="nowrap">or load file…</span>
+        </label>
+    </div>
+</header>
+
+<section id="status">Pick a session to begin.</section>
+
+<section id="timeline-pane">
+    <div id="timeline-wrap">
+        <canvas id="timeline" width="2400" height="130"></canvas>
+        <div class="row-labels">
+            <span class="row-label canon">canon</span>
+            <span class="row-label js">js</span>
+            <span class="row-label screen">screen</span>
+        </div>
+    </div>
+    <div class="timeline-meta">
+        <span class="legend">
+            <span class="legend-group">
+                <span class="legend-item"><span class="swatch sw-match"></span> match</span>
+                <span class="legend-item"><span class="swatch sw-diff"></span> value diff</span>
+                <span class="legend-item"><span class="swatch sw-canon-only"></span> canon-only call</span>
+                <span class="legend-item"><span class="swatch sw-js-only"></span> js-only call</span>
+            </span>
+            <span class="legend-sep"></span>
+            <span class="legend-group">
+                <span class="legend-item"><span class="swatch ch-diff"></span> char wrong</span>
+                <span class="legend-item"><span class="swatch attr-diff"></span> attr wrong</span>
+                <span class="legend-item"><span class="swatch cursor-diff"></span> cursor wrong</span>
+            </span>
+        </span>
+        <span id="step-readout">step 0 / 0</span>
+    </div>
+</section>
+
+<main>
+    <div id="map-pane">
+        <div class="map-pane-inner">
+            <div class="map-header">
+                <span id="step-key" class="step-key">—</span>
+                <div class="view-modes" id="view-modes">
+                    <button data-view="canon">canon</button>
+                    <button data-view="js" class="active">js</button>
+                    <button data-view="diff">diff</button>
+                </div>
+            </div>
+            <pre id="map-grid"><!-- 24×80 cells injected here --></pre>
+        </div>
+    </div>
+    <aside id="detail-pane">
+        <div class="detail-block">
+            <div class="detail-label">cursor</div>
+            <div id="cursor-detail">—</div>
+        </div>
+        <div class="detail-block">
+            <div class="detail-label">prng (this step)</div>
+            <div id="rng-detail">—</div>
+        </div>
+        <div class="detail-block">
+            <div class="detail-label">message line</div>
+            <div id="msg-detail">—</div>
+        </div>
+    </aside>
+</main>
+
+<script type="module" src="viz.mjs"></script>
+</body>
+</html>
