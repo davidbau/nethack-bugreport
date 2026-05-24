@@ -8,6 +8,15 @@ for `newsym`, `vault guard`, `place_monster vault`, `parkguard`,
 **NetHack version:** 5.0.0 (also present in 3.7 line; the relevant
 code in `src/vault.c` has not changed between 3.7 and 5.0).
 
+**Not patch-induced:** the recorder binary used by `repro.sh` is
+built from `nethack-c/upstream/` with the patches in
+`nethack-c/patches/`. Those patches only add marker emission for
+deterministic session recording (`NOMUX_MARKERS=1`); they do not
+touch game logic, monster movement, vault code, `newsym()`, or
+`impossible()`. The bug fires identically when the recorded session
+is replayed through the patched binary OR through a freshly-built
+vanilla `nethack-c/upstream/` binary.
+
 **Severity:** low — does not crash the game and does not corrupt
 state, but emits `impossible()` machinery (warning pline, "Program
 in disorder!" pline, and `devteam@nethack.org` pline) that is
