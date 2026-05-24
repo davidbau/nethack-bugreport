@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>nethack-bugreport</title>
+<style>
+:root {
+    --bg:           #f9f7f1;
+    --bg-2:         #f4ecd8;
+    --bg-3:         #ede1c4;
+    --rule:         #c4a882;
+    --fg:           #1a1a1a;
+    --fg-2:         #6b5a40;
+    --fg-3:         #8a7a5c;
+    --accent:       #6b2c2c;
+    --accent-dark:  #4a2020;
+    --font-serif: 'EB Garamond', 'Garamond', Georgia, serif;
+    --font-mono:  "DejaVu Sans Mono","Liberation Mono",monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+body { font: 17px/1.55 var(--font-serif); }
+.wrap { max-width: 880px; margin: 0 auto; padding: 40px 28px 60px; }
+h1 {
+    font-size: 2.0em;
+    margin: 0 0 6px 0;
+    color: var(--accent-dark);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+.tagline {
+    color: var(--fg-2);
+    font-style: italic;
+    margin-bottom: 30px;
+    font-size: 1.05em;
+}
+h2 {
+    font-size: 1.25em;
+    color: var(--accent-dark);
+    margin-top: 36px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 4px;
+}
+a { color: var(--accent); }
+a:hover { color: var(--accent-dark); }
+code, pre {
+    font-family: var(--font-mono);
+    background: var(--bg-3);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 0.88em;
+}
+pre {
+    padding: 10px 14px;
+    overflow: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 14px 0;
+    font-size: 0.97em;
+}
+th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+}
+th {
+    background: var(--bg-2);
+    color: var(--fg-2);
+    font-weight: 600;
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+td.num { font-family: var(--font-mono); white-space: nowrap; }
+.bug-title { font-weight: 600; }
+.bug-meta {
+    display: block;
+    color: var(--fg-3);
+    font-size: 0.88em;
+    margin-top: 3px;
+}
+.actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+.actions a {
+    display: inline-block;
+    background: var(--bg-2);
+    border: 1px solid var(--rule);
+    padding: 2px 10px;
+    border-radius: 3px;
+    text-decoration: none;
+    font-size: 0.88em;
+    color: var(--accent);
+}
+.actions a:hover { background: var(--bg-3); color: var(--accent-dark); }
+.footer {
+    margin-top: 50px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    color: var(--fg-3);
+    font-size: 0.88em;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>nethack-bugreport</h1>
+<p class="tagline">
+    Reproducible <a href="https://github.com/NetHack/NetHack">NetHack</a>
+    bugs as recorded sessions — each bundled with a session JSON,
+    a one-shot <code>repro.sh</code>, a proposed patch against upstream
+    HEAD, and a browser-based replay viewer.
+</p>
+
+<p>
+    Source repo:
+    <a href="https://github.com/davidbau/nethack-bugreport">github.com/davidbau/nethack-bugreport</a>
+</p>
+
+<h2>Bugs</h2>
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Description</th>
+            <th>Severity</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="num">01</td>
+            <td>
+                <div class="bug-title">
+                    <code>impossible("newsym: attempting screen update for &lt;0,0&gt;")</code>
+                    when vault guard parks
+                </div>
+                <span class="bug-meta">seed 8666 · tourist · 187 steps · bug fires at step 165</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/01-vault-guard-parkguard-newsym/session.json#step=165">▶ replay (jump to bug)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/01-vault-guard-parkguard-newsym">README + patch</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/01-vault-guard-parkguard-newsym/proposed-fix.patch">fix.patch</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>unreported<br>upstream</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Reproducing a bug locally</h2>
+<pre>git clone --recursive https://github.com/davidbau/nethack-bugreport.git
+cd nethack-bugreport
+bash setup.sh                                       # build the recorder once
+bash bugs/01-vault-guard-parkguard-newsym/repro.sh  # run a bug repro</pre>
+
+<p>
+    Each <code>repro.sh</code> re-runs the session JSON through a
+    freshly-built NetHack 5.0 recorder binary and asserts the expected
+    error text appears in the captured output. Exit 0 = bug
+    reproduced; exit 1 = upstream may have fixed it.
+</p>
+
+<h2>Visualizing a session in-browser</h2>
+<p>
+    Open the
+    <a href="tools/session-viewer/">session viewer</a>
+    and load any session via the file picker, or deep-link to a
+    specific session with a URL like:
+</p>
+<pre>tools/session-viewer/?session=bugs/01-vault-guard-parkguard-newsym/session.json#step=165</pre>
+<p>
+    The viewer shows each step's TTY frame as a colored 24×80 grid,
+    plus the full keystream, seed, datetime, and <code>.nethackrc</code>
+    used by the recorder. Pure HTML/JS — no build, no server-side,
+    no JS port needed.
+</p>
+
+<h2>Filing a new bug</h2>
+<p>
+    See
+    <a href="https://github.com/davidbau/nethack-bugreport#filing-a-new-bug">the README</a>
+    for the workflow. Briefly: record a session, drop it into
+    <code>bugs/NN-slug/session.json</code>, write a README + repro.sh
+    + proposed-fix.patch, add a row to the table above.
+</p>
+
+<div class="footer">
+    Bug reports + infrastructure code: MIT.
+    Bundled NetHack source: <a href="https://github.com/NetHack/NetHack/blob/NetHack-3.7/dat/license">NGPL</a>.
+</div>
+
+</div>
+</body>
+</html>

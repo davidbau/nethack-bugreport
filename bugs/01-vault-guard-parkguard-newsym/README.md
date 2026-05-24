@@ -56,9 +56,14 @@ bash bugs/01-vault-guard-parkguard-newsym/repro.sh
 asserts the impossible-message text appears in the output. The
 session is 187 steps; the bug fires at step 165.
 
-To watch the run visually, open `tools/session-viewer/index.html`
-and point it at `bugs/01-vault-guard-parkguard-newsym/session.json`.
-Scrub to step 164–167 to see the message cascade.
+To watch the run visually with no setup, open the hosted viewer:
+
+  https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/01-vault-guard-parkguard-newsym/session.json#step=165
+
+The viewer is also available locally via
+`tools/session-viewer/index.html` (serve over HTTP, then load
+`session.json` via the file picker). Scrub to step 164–167 to
+see the message cascade.
 
 ## Character / seed
 

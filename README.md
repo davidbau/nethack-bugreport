@@ -14,9 +14,15 @@ files. Each bug ships with:
    what the fix does.
 
 Bug recordings can be **visualized in-browser** without rebuilding
-anything: open `tools/session-viewer/index.html` and load any
-session JSON. The viewer renders the recorded TTY frames step-by-step
-with a scrubber, so reviewers can see exactly what the player saw.
+anything. The viewer is hosted as a GitHub Pages site, and each bug
+gets a deep-link URL that shows the recorded TTY frames step-by-step
+with a scrubber:
+
+  https://davidbau.github.io/nethack-bugreport/
+
+You can also serve `tools/session-viewer/` locally over HTTP
+(`python3 -m http.server` from the repo root) and load any session
+JSON via the file picker — no build, no JS port, no dependencies.
 
 This repo is a derivative of
 [davidbau/teleport-contest](https://github.com/davidbau/teleport-contest)
@@ -60,9 +66,18 @@ has fixed it — please open a PR to mark the entry resolved).
 
 ## Visualizing a session
 
-Open `tools/session-viewer/index.html` in any modern browser; load
-a session JSON via the file picker. Use the scrubber to step through
-the recorded frames. No build, no server, no network needed.
+Hosted: https://davidbau.github.io/nethack-bugreport/. Each bug in
+the index table on that page links into the viewer with the
+session pre-loaded. Direct-link form:
+
+```
+https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=<RELATIVE_PATH_TO_SESSION_JSON>#step=<N>
+```
+
+Locally: serve the repo root over HTTP (e.g. `python3 -m http.server`)
+and open `http://localhost:8000/tools/session-viewer/` — load any
+session JSON via the file picker. `file://` won't work because the
+viewer `fetch()`s the session by relative URL.
 
 ## Filing a new bug
 
