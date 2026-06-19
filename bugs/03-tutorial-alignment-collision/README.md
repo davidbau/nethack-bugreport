@@ -20,77 +20,100 @@ the relevant macros verbatim from
 same expression `init_level()` uses, with no linking, no recorder
 binary, and no patches.
 
-**Severity:** MEDIUM. Not a crash or data-corrupt; the Tutorial is
-still playable. The visible effect is a uniform upward bias in
-random monster spawn weights on tut-1 and tut-2 — see "Downstream
-effect" below for the exact numbers.
+**Severity:** LOW / LATENT. The bug is a real defect — `init_level`
+reads from the wrong field — but on every stock NetHack 5.0
+dungeon today it is **fully suppressed downstream**.  Worth fixing
+for future-proofing (the next dungeon author who adds
+`UNCONNECTED` without an explicit `alignment` key would silently
+inherit chaotic alignment), not for any present-day in-game symptom.
+
+## Why it doesn't fire on the Tutorial today
+
+The Tutorial is the only stock dungeon that hits the bit collision
+(it is the only dungeon with `UNCONNECTED` set but no `alignment`
+key).  But three independent gates in `tut-1.lua` / `tut-2.lua`
+prevent the buggy `flags.align` from ever being read:
+
+1. **`nomongen` is set on both Tutorial levels.**
+   `tut-1.lua:30-31` and `tut-2.lua:3-4` both call
+   `des.level_flags("mazelevel", "noflip", "nomongen", ...)`.
+   The `nomongen` token sets `svl.level.flags.rndmongen = 0` at
+   `sp_lev.c:3813`.  `makemon.c:1168` then short-circuits every
+   random monster request:
+   ```c
+   if (iflags.debug_mongen || (!svl.level.flags.rndmongen && !ptr))
+       return (struct monst *) 0;
+   ```
+   No random monsters means no `rndmonst()` call means no
+   `align_shift()` call means no read of `lev->flags.align`.
+2. **Every corpse-bearing object in the Tutorial specifies an
+   explicit `montype`.**  The Lua loader takes the specific path
+   at `sp_lev.c:2262` (`set_corpsenm(otmp, o->corpsenm)`) instead
+   of the random path at line 2260 (`set_corpsenm(otmp,
+   rndmonnum())`).  `rndmonnum()` is the other route into
+   `rndmonst_adj()` → `align_shift()`, so this gate closes too.
+3. **No `des.altar` and no `AM_SPLEV_RANDOM` placements on
+   Tutorial levels.**  Those are the only callers of
+   `induced_align()`, the second consumer of `flags.align`.
+
+Result: zero observable in-game symptoms.  The bug was originally
+surfaced during the JavaScript port of NetHack 3.7
+([davidbau/teleport](https://github.com/davidbau/teleport)) by
+**direct test invocation** of `rndmonst_adj()` against a Tutorial
+level — not by gameplay.  The JS port produced cumulative weights
+of `3,4,5,…,21`, the C recorder produced `5,8,11,…,39` (+2 per
+monster from `align_shift` under AM_CHAOTIC), and the discrepancy
+traced back through dungeon init to this bit collision.
+
+## Why it's still worth fixing
+
+The bug is in `init_level`'s logic — not in the data files that
+happen to neutralize its effect.  Any of the gates above could be
+removed by a future contributor with no idea this collision
+exists, and the chaotic alignment would silently leak into a
+random-monster-bearing dungeon:
+
+- A new dungeon (mod, future expansion) with `UNCONNECTED` and no
+  explicit `alignment` would inherit `AM_CHAOTIC`.
+- Removing `nomongen` from `tut-1.lua` to make the Tutorial more
+  dynamic would expose the bias.
+- A `des.altar({ alignment = "random" })` or
+  `AM_SPLEV_RANDOM`-tagged monster placement in Tutorial Lua
+  would inherit `AM_CHAOTIC`.
+
+`flags.align`'s two consumers and what they do (for reference):
+
+| Consumer | C ref | What it does |
+|---|---|---|
+| `align_shift()` | `makemon.c:1621` | Biases `rndmonst()`'s spawn-weight table |
+| `induced_align()` | `dungeon.c:2004` | Picks alignment for random altars / `AM_SPLEV_RANDOM` placements |
+
+`align_shift`'s per-monster weight bonus under `AM_CHAOTIC`
+(formula: `alshift = -(ptr->maligntyp - 20) / (2 * ALIGNWEIGHT)`,
+`ALIGNWEIGHT = 4` from `global.h:411`) — if any of the gates above
+were removed, this is what would leak through:
+
+| Monster `maligntyp` | `AM_NONE` bonus | `AM_CHAOTIC` (buggy) bonus |
+|---|---|---|
+| −10 (strongly chaotic) | 0 | **+3** |
+| −5  (chaotic)          | 0 | **+3** |
+|  0  (neutral)          | 0 | **+2** |
+| +5  (lawful)           | 0 | **+1** |
+| +10 (strongly lawful)  | 0 | **+1** |
+| +15+ (very lawful)     | 0 | 0 |
+
+Peace/hostility is unaffected either way — `peace_minded()`
+(`makemon.c:2270`) compares monster alignment to the player's
+`u.ualign.type`, not the level's.
 
 ## What you see in-game
 
-No message tells the player the level is treated as chaotic-aligned.
-A single Tutorial run is too short to surface the bias plainly; the
-effect is statistical, and a player has no reference for what the
-"correct" monster distribution should look like.
-
-It IS observable with any of these tools:
-
-- **Instrumentation**: dump `rndmonst()`'s computed weights on entry
-  to tut-1 and compare against an `AM_NONE` baseline. The
-  per-monster shift table appears in "Downstream effect" below.
-- **Empirical comparison**: record many Tutorial runs, count
-  monster species frequencies, compare against `dat/dungeon.lua`'s
-  declared (unaligned) intent. Chaotic-aligned monsters are
-  over-represented by roughly the spawn-weight shift.
-- **Source inspection**: this bug's `repro.c` (no NetHack build
-  needed).
-
-The bug was originally surfaced this way: the JavaScript port of
-NetHack 3.7
-([davidbau/teleport](https://github.com/davidbau/teleport))
-initially produced cumulative monster weights of `3, 4, 5, …, 21`
-on tut-1, while the C recorder produced `5, 8, 11, …, 39` — exactly
-`+2` per monster, totalling a `+18` mismatch at the end. Tracing
-the discrepancy through `align_shift()` and then back through
-dungeon init pinpointed the bit collision.
-
-## Downstream effect (the only one)
-
-`flags.align` has exactly **two** consumers in all of NetHack:
-
-| Consumer | C ref | Fires for Tutorial? |
-|---|---|---|
-| `align_shift()` — biases monster spawn weights | `makemon.c:1621` | **Yes**, on every `rndmonst()` call |
-| `induced_align()` — random-altar / `AM_SPLEV_RANDOM` alignment | `dungeon.c:2004` | **No** — Tutorial Lua scripts have no random-altar generation or `AM_SPLEV_RANDOM` placements; both callers (`mkroom.c:616` random rooms; `sp_lev.c:1917` Lua `random` alignment) are dormant on Tutorial levels |
-
-So the only visible effect is `align_shift`'s spawn-weight bias.
-With `ALIGNWEIGHT = 4` (`global.h:411`) and `AM_CHAOTIC`'s formula
-`alshift = -(ptr->maligntyp - 20) / (2 * ALIGNWEIGHT)`, the per-monster
-weight bonus relative to the `AM_NONE` baseline is:
-
-| Monster `maligntyp` | Example | `AM_NONE` bonus | `AM_CHAOTIC` (buggy) bonus |
-|---|---|---|---|
-| −10 (strongly chaotic) | ogre | 0 | **+3** |
-| −5  (chaotic)          | orc  | 0 | **+3** |
-|  0  (neutral)          | lichen | 0 | **+2** |
-| +5  (lawful)           | dwarf | 0 | **+1** |
-| +10 (strongly lawful)  | paladin | 0 | **+1** |
-| +15+ (very lawful)     | — | 0 | 0 |
-
-`rndmonst()` selects from the per-difficulty pool weighted by
-`G_FREQ + align_shift(ptr)`. Base `G_FREQ` for difficulty-1
-monsters is typically 2-3, so a `+2`-`+3` shift roughly doubles
-the relative selection probability of chaotic and neutral
-monsters at the player's expense of lawful ones.
-
-The cumulative weight totals quoted above
-(`3,4,5,…,21` AM_NONE vs `5,8,11,…,39` AM_CHAOTIC)
-make this concrete: the buggy table is nearly 2× the size,
-shifting the rolled threshold into chaotic territory more often.
-
-No other gameplay effect changes — peace/hostility uses the
-PLAYER's alignment (`u.ualign.type`, `makemon.c:2270`), not the
-level's; altar generation on Tutorial doesn't fire; sp_lev random
-alignment doesn't fire.
+**Nothing.**  Three Lua-level gates suppress the buggy
+`flags.align` from ever being read on every stock NetHack 5.0
+dungeon.  The bug is detectable only by static analysis
+(`repro.c`) or by direct invocation of the dungeon-init code in
+test infrastructure.  No screen-visible symptom exists in current
+gameplay.
 
 ## Repro
 
