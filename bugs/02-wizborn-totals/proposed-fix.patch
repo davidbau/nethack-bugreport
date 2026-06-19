@@ -1,0 +1,34 @@
+From: David Bau <davidbau@csail.mit.edu>
+Date: 2026-06-19
+Subject: [PATCH] doborn: emit the totals row that Sprintf already builds
+
+`doborn()` formats a totals row into `buf` via Sprintf at the end of
+its per-PM loop, then immediately calls `display_nhwindow` without a
+matching `putstr` — so the buffer is computed and abandoned, and the
+displayed `#wizborn` window is missing its summary row.
+
+The per-PM loop above uses the same fmt template with a matching
+Sprintf/putstr pair, the empty-separator `putstr` directly above the
+trailing Sprintf only has visual purpose if a totals row was meant
+to follow, and Sprintf with no consumer has no other rationale. The
+most parsimonious explanation is a missed `putstr` call.
+
+Fix: insert the missing `putstr(datawin, 0, buf);` between the
+Sprintf and the display_nhwindow.
+
+---
+ src/insight.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/insight.c b/src/insight.c
+index 0000000..0000001 100644
+--- a/src/insight.c
++++ b/src/insight.c
+@@ -3167,6 +3167,7 @@ doborn(void)
+
+     putstr(datawin, 0, "");
+     Sprintf(buf, fmt, ndied, nborn, ' ', "");
++    putstr(datawin, 0, buf);
+
+     display_nhwindow(datawin, FALSE);
+     destroy_nhwindow(datawin);

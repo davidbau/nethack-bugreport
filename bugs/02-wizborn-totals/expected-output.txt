@@ -1,0 +1,27 @@
+Side-by-side text comparison of the `#wizborn` page-rendered screen,
+captured at step 10 of `seed7160-wizmode-diagnostics.session.json`.
+Left column is the current (broken) output; right column is the output
+after `proposed-fix.patch` is applied.
+
+For this seed, only two species have ever appeared (kitten and lichen),
+each born once.  With the patch applied, the trailing totals row shows
+`   0    2  ` (deaths = 0, births = 2, no extinction mark, no species
+name) — the same fmt template the per-species rows use, with the global
+totals plugged in.
+
+  CURRENT (BROKEN)                  WITH PROPOSED FIX
+  ──────────────────────────────    ──────────────────────────────
+  died born                         died born
+     0    1   kitten                   0    1   kitten
+     0    1   lichen                   0    1   lichen
+                                       0    2
+  (16 blank lines)                  (15 blank lines)
+  --More--                          --More--
+
+The fixed version replaces the topmost trailing blank line with the
+totals row.  All other content is byte-identical.
+
+A secondary effect: the `NHW_TEXT` window's `maxrow` count grows from
+4 to 5, so the trailing `erase_menu_or_text` call's metadata changes
+(`maxrow=4` → `maxrow=5`).  This is reflected in the recorded event
+stream and is the only other observable change.
