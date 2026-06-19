@@ -1,0 +1,44 @@
+From: David Bau <davidbau@csail.mit.edu>
+Date: 2026-06-19
+Subject: [PATCH] init_level: read parsed .align field, not bit-colliding .flags
+
+`init_level()` derives a level's fallback alignment from the
+dungeon by extracting bits 4-6 of `tmpdungeon[dgn].flags & D_ALIGN_MASK`.
+The `UNCONNECTED` flag (0x10, in `dgn_file.h:60`) occupies the same bit
+position as `D_ALIGN_CHAOTIC` (`AM_CHAOTIC << 4 = 0x10`, in
+`dgn_file.h:63`). Any dungeon with the `UNCONNECTED` flag is therefore
+silently treated as chaotic-aligned by the fallback path.
+
+`struct tmpdungeon` already has a separately-parsed `align` field
+(`dgn_file.h:26`) which the Lua loader correctly populates at
+`dungeon.c:1057` from the `alignment = "..."` table key. Reading that
+field — not re-extracting from `.flags` — avoids the collision.
+
+The visible effect today: the Tutorial dungeon (the only stock dungeon
+with `UNCONNECTED` set but no `alignment` key) silently inherits
+`AM_CHAOTIC`, and `align_shift()` (`makemon.c:1611`) returns +2 for
+most difficulty-1 monsters under that alignment, biasing the
+Tutorial's monster spawn weights uniformly upward.
+
+Fix: replace the `.flags` re-extraction with a read of the
+already-parsed `.align` field, shifted into the raw AM_* layout
+`flags.align` expects.
+
+---
+ src/dungeon.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/src/dungeon.c b/src/dungeon.c
+index 0000000..0000001 100644
+--- a/src/dungeon.c
++++ b/src/dungeon.c
+@@ -587,8 +587,7 @@ init_level(int dgn, int proto_index, struct proto_dungeon *pd)
+
+     new_level->flags.align = ((tlevel->flags & D_ALIGN_MASK) >> 4);
+     if (!new_level->flags.align)
+-        new_level->flags.align =
+-            ((pd->tmpdungeon[dgn].flags & D_ALIGN_MASK) >> 4);
++        new_level->flags.align = pd->tmpdungeon[dgn].align >> 4;
+
+     new_level->rndlevs = tlevel->rndlevs;
+     new_level->next = (s_level *) 0;
