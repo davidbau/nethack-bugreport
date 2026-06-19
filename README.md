@@ -36,6 +36,9 @@ infrastructure.
 | # | Title | Severity | Status |
 |---|---|---|---|
 | [01](bugs/01-vault-guard-parkguard-newsym/) | `impossible("newsym: attempting screen update for <0,0>")` when vault guard parks | low (cosmetic + extra `--More--`s, no state corruption) | unreported upstream as of 2026-05-24 |
+| [02](bugs/02-wizborn-totals/) | `#wizborn` totals row computed via `Sprintf` but never `putstr`'d (wizmode summary row missing) | low (wizmode-only cosmetic) | unreported upstream as of 2026-06-19 |
+| [03](bugs/03-tutorial-alignment-collision/) | Tutorial dungeon silently inherits `AM_CHAOTIC` via `UNCONNECTED` ↔ `D_ALIGN_CHAOTIC` bit collision in `init_level` | low (latent — suppressed downstream by `tut-1.lua`'s `nomongen`) | unreported upstream as of 2026-06-19 |
+| [04](bugs/04-make-glib-xor-typo/) | `make_glib` botl-dirty XOR is inverted by a one-`!` typo (`(!Glib ^ !!xtime)` should be `(!!Glib ^ !!xtime)`) | low (latent — masked by per-turn `bot()` refresh) | unreported upstream as of 2026-06-19 |
 
 ## Setup (once)
 
@@ -81,18 +84,69 @@ viewer `fetch()`s the session by relative URL.
 
 ## Filing a new bug
 
-1. Record a session that triggers the bug. Easiest method: replay
+There are two bundle shapes that work, depending on whether the
+bug has a screen-visible symptom or is pure C-source math:
+
+### Shape A: session-replay (visible symptom)
+
+Use this when the bug produces a screen-visible plinediff a player
+would notice in normal play (bug 01 vault-guard `--More--`
+cascade; bug 02 `#wizborn` missing totals row).
+
+1. Record a session that triggers the bug.  Easiest method: replay
    in the [Teleport browser port](https://mazesofmenace.ai/play/)
    with the live parity-check server enabled, which writes a
    candidate session JSON on every divergence.
 2. `mkdir bugs/NN-slug/` (next number, descriptive slug).
 3. Copy the session into `bugs/NN-slug/session.json`.
-4. Write `README.md` with: symptom, repro steps, root-cause analysis
-   referencing specific files/lines in `nethack-c/upstream/src/`.
+4. *(Optional but recommended)* re-record the same session against
+   a C binary with `proposed-fix.patch` applied and ship the result
+   as `session-fixed.json`.  See the staging-area
+   [workflow notes](https://github.com/davidbau/teleport/blob/main/docs/upstream-reports/README.md)
+   for the rebuild loop (~30s round-trip for a one-`.c` change).
+5. Write `README.md` with: symptom, repro steps, root-cause
+   analysis referencing specific files/lines in
+   `nethack-c/upstream/src/`.
+6. Write `proposed-fix.patch` against upstream HEAD.
+7. Write `repro.sh` that runs the session and asserts the bug.
+8. Add a `<tr>` row to `index.html` with a `▶ replay` link into the
+   viewer (and `▶ replay (after fix)` if `session-fixed.json` is
+   included).
+9. Add a row to this README's "Bugs" table above.
+
+### Shape B: static C reproducer (math-only or invisible symptom)
+
+Use this when the bug is in pure expression math whose semantics
+don't depend on game state (bug 03 Tutorial alignment bit
+collision; bug 04 `make_glib` XOR typo).  These bugs are
+typically *latent* — real defects whose visible effect is masked
+by other safety nets in stock 5.0 play — but still worth filing
+for code-quality and future-proofing reasons.
+
+1. `mkdir bugs/NN-slug/`.
+2. Write `repro.c` — self-contained C program that hard-codes the
+   relevant macros from `nethack-c/upstream/include/`, exercises
+   both the buggy and proposed-fix expressions, prints a truth
+   table, and exits 0 if the bug fires / 1 if it doesn't.
+3. Write `repro.sh` that just `${CC:-cc} -o repro repro.c && ./repro`
+   and reports the exit status.  No NetHack build required.
+4. Write `README.md` explaining the bug, citing the C file:line,
+   listing downstream consumers (and which ones, if any, would
+   fire if the bug weren't suppressed by an overlapping safety net).
 5. Write `proposed-fix.patch` against upstream HEAD.
-6. Write `repro.sh` that runs the session and asserts the bug.
-7. Add a row to the top-level README table.
-8. Open a PR (or push directly if you have access).
+6. Add a `<tr>` row to `index.html` with a `view repro.c` link
+   (no `▶ replay` since there's no session).
+7. Add a row to this README's table.
+
+### Shared steps
+
+- Open a PR (or push directly if you have access).
+- Before pushing: search NetHack/NetHack issues + PRs for the
+  bug; if already reported, link the existing issue in the
+  README's "Status" line rather than adding a new bundle.
+- Severity convention: `low (cosmetic)` for visible-but-harmless;
+  `low (latent — <why>)` for masked-in-practice; `medium`+ for
+  state-affecting; `high` for crash / corruption.
 
 ## Conventions
 
