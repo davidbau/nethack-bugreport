@@ -21,30 +21,76 @@ same expression `init_level()` uses, with no linking, no recorder
 binary, and no patches.
 
 **Severity:** MEDIUM. Not a crash or data-corrupt; the Tutorial is
-still playable. But it silently biases the Tutorial's monster
-spawn weights uniformly upward by `align_shift = +2` for most
-difficulty-1 monsters under the spurious `AM_CHAOTIC` alignment,
-making the teaching level slightly tougher than the data file
-asks for.
+still playable. The visible effect is a uniform upward bias in
+random monster spawn weights on tut-1 and tut-2 — see "Downstream
+effect" below for the exact numbers.
 
 ## What you see in-game
 
-Nothing user-visible. The Tutorial's monster spawns are slightly
-shifted, but no message tells the player the level is treated as
-chaotic-aligned. The bug surfaces only under static analysis
-(`repro.c`) or by instrumenting the running game to dump
-`flags.align` for a Tutorial level.
+No message tells the player the level is treated as chaotic-aligned.
+A single Tutorial run is too short to surface the bias plainly; the
+effect is statistical, and a player has no reference for what the
+"correct" monster distribution should look like.
 
-The bug WAS surfaced empirically during the JavaScript port of
-NetHack 3.7 (
-[davidbau/teleport](https://github.com/davidbau/teleport)): the
-JS rewrite of `rndmonst_adj` initially produced cumulative monster
-weights for tut-1 of `3, 4, 5, …, 21`, while the C recorder produced
-`5, 8, 11, …, 39` — exactly `+2` per monster, accumulating to a `+18`
-mismatch at the end. Tracing the discrepancy to
-`align_shift = +2` for AM_CHAOTIC, then back through the dungeon
-init code, surfaced the bit collision between `UNCONNECTED` and
-`D_ALIGN_CHAOTIC`.
+It IS observable with any of these tools:
+
+- **Instrumentation**: dump `rndmonst()`'s computed weights on entry
+  to tut-1 and compare against an `AM_NONE` baseline. The
+  per-monster shift table appears in "Downstream effect" below.
+- **Empirical comparison**: record many Tutorial runs, count
+  monster species frequencies, compare against `dat/dungeon.lua`'s
+  declared (unaligned) intent. Chaotic-aligned monsters are
+  over-represented by roughly the spawn-weight shift.
+- **Source inspection**: this bug's `repro.c` (no NetHack build
+  needed).
+
+The bug was originally surfaced this way: the JavaScript port of
+NetHack 3.7
+([davidbau/teleport](https://github.com/davidbau/teleport))
+initially produced cumulative monster weights of `3, 4, 5, …, 21`
+on tut-1, while the C recorder produced `5, 8, 11, …, 39` — exactly
+`+2` per monster, totalling a `+18` mismatch at the end. Tracing
+the discrepancy through `align_shift()` and then back through
+dungeon init pinpointed the bit collision.
+
+## Downstream effect (the only one)
+
+`flags.align` has exactly **two** consumers in all of NetHack:
+
+| Consumer | C ref | Fires for Tutorial? |
+|---|---|---|
+| `align_shift()` — biases monster spawn weights | `makemon.c:1621` | **Yes**, on every `rndmonst()` call |
+| `induced_align()` — random-altar / `AM_SPLEV_RANDOM` alignment | `dungeon.c:2004` | **No** — Tutorial Lua scripts have no random-altar generation or `AM_SPLEV_RANDOM` placements; both callers (`mkroom.c:616` random rooms; `sp_lev.c:1917` Lua `random` alignment) are dormant on Tutorial levels |
+
+So the only visible effect is `align_shift`'s spawn-weight bias.
+With `ALIGNWEIGHT = 4` (`global.h:411`) and `AM_CHAOTIC`'s formula
+`alshift = -(ptr->maligntyp - 20) / (2 * ALIGNWEIGHT)`, the per-monster
+weight bonus relative to the `AM_NONE` baseline is:
+
+| Monster `maligntyp` | Example | `AM_NONE` bonus | `AM_CHAOTIC` (buggy) bonus |
+|---|---|---|---|
+| −10 (strongly chaotic) | ogre | 0 | **+3** |
+| −5  (chaotic)          | orc  | 0 | **+3** |
+|  0  (neutral)          | lichen | 0 | **+2** |
+| +5  (lawful)           | dwarf | 0 | **+1** |
+| +10 (strongly lawful)  | paladin | 0 | **+1** |
+| +15+ (very lawful)     | — | 0 | 0 |
+
+`rndmonst()` selects from the per-difficulty pool weighted by
+`G_FREQ + align_shift(ptr)`. Base `G_FREQ` for difficulty-1
+monsters is typically 2-3, so a `+2`-`+3` shift roughly doubles
+the relative selection probability of chaotic and neutral
+monsters at the player's expense of lawful ones.
+
+The cumulative weight totals quoted above
+(`3,4,5,…,21` AM_NONE vs `5,8,11,…,39` AM_CHAOTIC)
+make this concrete: the buggy table is nearly 2× the size,
+shifting the rolled threshold into chaotic territory more often.
+
+No other gameplay effect changes — peace/hostility uses the
+PLAYER's alignment (`u.ualign.type`, `makemon.c:2270`), not the
+level's; altar generation on Tutorial doesn't fire; sp_lev random
+alignment doesn't fire.
 
 ## Repro
 
