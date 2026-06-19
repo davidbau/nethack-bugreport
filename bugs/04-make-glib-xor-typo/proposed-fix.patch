@@ -1,0 +1,56 @@
+From: David Bau <davidbau@csail.mit.edu>
+Date: 2026-06-19
+Subject: [PATCH] make_glib: mark disp.botl dirty on transition, not no-transition
+
+`make_glib()` writes the wrong half of the "Slippery state changed?"
+expression: `disp.botl |= (!Glib ^ !!xtime)`.  The intended idiom is
+`(was_Slippery) ^ (will_be_Slippery)`, where each side is the
+boolean coercion of a `long`.  Coerce-to-bool is `!!`; the existing
+code uses `!` on the left half.  Truth-tabling all four
+(old, new) state pairs confirms the expression returns the
+*inverse* of the real boolean transition — it marks `disp.botl`
+dirty exactly when Slippery does NOT change, and leaves it clean
+when Slippery does change.
+
+Self-correcting in normal play: `bot()` runs every turn driven by
+other status changes that correctly mark `disp.botl`.  The
+visible symptom is at most a one-turn lag in `Slippery` appearing
+on or leaving the status line, and only when no other status
+change happens in the same turn as the Glib transition.
+
+Direct evidence the intended idiom is `!!`, not `!`: the sibling
+function `make_deaf` at `potion.c:443-456`, twelve lines above
+`make_glib`, writes exactly the same boolean-transition
+predicate, but spelled in the more verbose form that elides the
+typo risk:
+
+    set_itimeout(&HDeaf, xtime);
+    if ((xtime != 0L) ^ (old != 0L)) {
+        disp.botl = TRUE;
+        ...
+    }
+
+`(x != 0L) ^ (old != 0L)` is mathematically identical to
+`(!!Glib) ^ (!!xtime)`.  The author of `make_glib` clearly knew
+the right pattern; it's just a missed `!` keystroke.
+
+Fix: insert the missing `!` so the left half is also a coerced
+boolean.
+
+---
+ src/potion.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/potion.c b/src/potion.c
+index 0000000..0000001 100644
+--- a/src/potion.c
++++ b/src/potion.c
+@@ -460,7 +460,7 @@ make_glib(int xtime)
+ void
+ make_glib(int xtime)
+ {
+-    disp.botl |= (!Glib ^ !!xtime);
++    disp.botl |= (!!Glib ^ !!xtime);
+     set_itimeout(&Glib, xtime);
+     /* may change "(being worn)" to "(being worn; slippery)" or vice versa */
+     if (uarmg)
