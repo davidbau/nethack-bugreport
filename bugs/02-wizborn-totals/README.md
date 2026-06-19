@@ -86,7 +86,9 @@ To watch the run visually with no setup, open the hosted viewer:
 
 - Seed: `7160`
 - Datetime: `20000110090000`
-- Character: Diag the Evoker (Wizard, neutral, human, male; wizmode)
+- Character: Wizard the Evoker (Wizard, neutral, human, male;
+  wizmode; OPTIONS sets `name:Diag` but the status line shows the
+  class title since `Diag` is just stashed in `plname`)
 - Bug fires: step 10 (`#wizborn` page render).
 
 The same bug fires for any character, any seed, any starting
