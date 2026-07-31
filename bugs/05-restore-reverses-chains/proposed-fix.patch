@@ -1,0 +1,141 @@
+From: David Bau <david.bau@gmail.com>
+Subject: [PATCH] restore: keep trap/stair/engraving/exclusion chains in saved
+ order
+
+Four restore-side read loops rebuild linked chains by prepending each
+entry as it is read, so every trip through a save file (or a per-level
+temp file) reverses the chain relative to the order it was written:
+
+  - traps       getlev() trap loop, src/restore.c
+  - stairways   rest_stairs() via stairway_add(), src/restore.c
+  - engravings  rest_engravings(), src/engrave.c
+  - exclusions  load_exclusions(), src/dungeon.c
+
+Because levels are written out and read back every time the hero
+leaves and revisits them, the reversal is not limited to save/restore:
+each revisit flips these chains.  The object chain does not have this
+problem -- restobjchn() appends, and find_lev_obj() performs a
+deliberate double reversal so floor piles keep their order.
+
+The flip is observable wherever code takes the FIRST chain entry
+matching a predicate.  The stairway finders (stairway_find_dir,
+stairway_find_type_dir) match direction only, not branch, so on a
+level with two same-direction stairways -- the Sokoban entrance has
+two up staircases, mines-entrance levels have two down staircases --
+"the stairs" flips identity on every revisit.  Affected callers:
+choose_stairs() (covetous monsters retreating to heal; Keystone Kops
+congregating), Kop respawn placement, the Sokoban web-spinning check,
+and Wizard of Yendor tactics.  A wounded covetous monster camps on
+the Sokoban branch staircase, and after the hero hops away one level
+and back, the same monster camps on the main staircase instead.
+
+Fix: after each prepend-built read loop completes, reverse the chain
+once, restoring the order that was saved.  This keeps the simple
+read-loop shape (no tail-pointer bookkeeping inside the loops) and
+makes chain order stable across saves and revisits.  Generation-time
+behavior is untouched: stairway_add() still prepends, and the
+mklev.c place_branch() head-marking trick still sees the most
+recently created stairway at the chain head.
+
+---
+  src/dungeon.c | 12 ++++++++++++
+  src/engrave.c | 13 ++++++++++++-
+  src/restore.c | 24 ++++++++++++++++++++++++
+  3 files changed, 48 insertions(+), 1 deletion(-)
+
+diff --git a/src/dungeon.c b/src/dungeon.c
+index 89afa002b..788f18353 100644
+--- a/src/dungeon.c
++++ b/src/dungeon.c
+@@ -2631,6 +2631,18 @@ load_exclusions(NHFILE *nhfp)
+         ez->next = sve.exclusion_zones;
+         sve.exclusion_zones = ez;
+     }
++    /* the loop above prepends, reversing saved order; reverse once so
++       the restored chain matches the order that was written */
++    {
++        struct exclusion_zone *zprev = (struct exclusion_zone *) 0,
++                              *zcur = sve.exclusion_zones, *znxt;
++
++        while (zcur) {
++            znxt = zcur->next, zcur->next = zprev;
++            zprev = zcur, zcur = znxt;
++        }
++        sve.exclusion_zones = zprev;
++    }
+ }
+ 
+ #ifndef SFCTOOL
+diff --git a/src/engrave.c b/src/engrave.c
+index 2e06ebc12..0219da692 100644
+--- a/src/engrave.c
++++ b/src/engrave.c
+@@ -1591,7 +1591,7 @@ rest_engravings(NHFILE *nhfp)
+     while (1) {
+         Sfi_unsigned(nhfp, &lth, "engraving-engr_alloc");
+         if (lth == 0)
+-            return;
++            break;
+         ep = newengr(lth);
+         Sfi_engr(nhfp, ep, "engraving");
+         szeach = ep->engr_szeach;
+@@ -1616,6 +1616,17 @@ rest_engravings(NHFILE *nhfp)
+          * to be able to move again */
+         ep->engr_time = svm.moves;
+     }
++    /* the loop above prepends, reversing saved order; reverse once so
++       the restored chain matches the order that was written */
++    {
++        struct engr *eprev = (struct engr *) 0, *ecur = head_engr, *enxt;
++
++        while (ecur) {
++            enxt = ecur->nxt_engr, ecur->nxt_engr = eprev;
++            eprev = ecur, ecur = enxt;
++        }
++        head_engr = eprev;
++    }
+ }
+ 
+ #ifndef SFCTOOL
+diff --git a/src/restore.c b/src/restore.c
+index fab825de3..87b624036 100644
+--- a/src/restore.c
++++ b/src/restore.c
+@@ -982,6 +982,19 @@ rest_stairs(NHFILE *nhfp)
+             newst->u_traversed = stway.u_traversed;
+ #endif
+     }
++#ifndef SFCTOOL
++    /* stairway_add() prepends; reverse once so the rebuilt chain
++       keeps the order that was saved */
++    {
++        stairway *sprev = (stairway *) 0, *scur = gs.stairs, *snxt;
++
++        while (scur) {
++            snxt = scur->next, scur->next = sprev;
++            sprev = scur, scur = snxt;
++        }
++        gs.stairs = sprev;
++    }
++#endif
+ }
+ 
+ void
+@@ -1162,6 +1175,17 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
+             break;
+     }
+     dealloc_trap(trap);
++    /* the loop above prepends, reversing saved order; reverse once so
++       the restored chain matches the order that was written */
++    {
++        struct trap *tprev = (struct trap *) 0, *tcur = gf.ftrap, *tnxt;
++
++        while (tcur) {
++            tnxt = tcur->ntrap, tcur->ntrap = tprev;
++            tprev = tcur, tcur = tnxt;
++        }
++        gf.ftrap = tprev;
++    }
+ 
+     fobj = restobjchn(nhfp, FALSE);
+ #ifndef SFCTOOL

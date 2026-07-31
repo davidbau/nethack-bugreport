@@ -38,7 +38,8 @@ infrastructure.
 | [01](bugs/01-vault-guard-parkguard-newsym/) | `impossible("newsym: attempting screen update for <0,0>")` when vault guard parks | low (cosmetic + extra `--More--`s, no state corruption) | unreported upstream as of 2026-05-24 |
 | [02](bugs/02-wizborn-totals/) | `#wizborn` totals row computed via `Sprintf` but never `putstr`'d (wizmode summary row missing) | low (wizmode-only cosmetic) | unreported upstream as of 2026-06-19 |
 | [03](bugs/03-tutorial-alignment-collision/) | Tutorial dungeon silently inherits `AM_CHAOTIC` via `UNCONNECTED` ↔ `D_ALIGN_CHAOTIC` bit collision in `init_level` | low (latent — suppressed downstream by `tut-1.lua`'s `nomongen`) | unreported upstream as of 2026-06-19 |
-| [04](bugs/04-make-glib-xor-typo/) | `make_glib` botl-dirty XOR is inverted by a one-`!` typo (`(!Glib ^ !!xtime)` should be `(!!Glib ^ !!xtime)`) | low (latent — masked by per-turn `bot()` refresh) | unreported upstream as of 2026-06-19 |
+| [04](bugs/04-make-glib-xor-typo/) | The "Slip" status condition never displays — `make_glib` botl-dirty test inverted by a one-`!` typo | low (visible with `OPTIONS=cond_slip`; gameplay unaffected) | unreported upstream as of 2026-07-31 |
+| [05](bugs/05-restore-reverses-chains/) | Leaving and revisiting a level reverses its trap/stairway/engraving/exclusion lists — "first staircase" flips identity, moving covetous-monster retreats and Kop spawn points on two-staircase levels | low (visible on Sokoban/Mines entrance levels) | unreported upstream as of 2026-07-31 |
 
 ## Setup (once)
 
@@ -118,10 +119,13 @@ cascade; bug 02 `#wizborn` missing totals row).
 
 Use this when the bug is in pure expression math whose semantics
 don't depend on game state (bug 03 Tutorial alignment bit
-collision; bug 04 `make_glib` XOR typo).  These bugs are
-typically *latent* — real defects whose visible effect is masked
-by other safety nets in stock 5.0 play — but still worth filing
-for code-quality and future-proofing reasons.
+collision).  These bugs are typically *latent* — real defects
+whose visible effect is masked by other safety nets in stock 5.0
+play — but still worth filing for code-quality and future-proofing
+reasons.  Prefer Shape A whenever an in-game symptom can be
+provoked at all: bug 04 started life as Shape B ("no visible
+symptom") until enabling the opt-in `OPTIONS=cond_slip` status
+condition turned it into a screen-visible Shape A recording.
 
 1. `mkdir bugs/NN-slug/`.
 2. Write `repro.c` — self-contained C program that hard-codes the

@@ -193,17 +193,36 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
             <td class="num">04</td>
             <td>
                 <div class="bug-title">
-                    <code>make_glib</code> botl-dirty XOR is inverted by a
-                    one-<code>!</code> typo
+                    The "Slip" status condition never displays
+                    (one-<code>!</code> typo in <code>make_glib</code>)
                 </div>
-                <span class="bug-meta">latent · masked by per-turn <code>bot()</code> refresh · static C reproducer</span>
+                <span class="bug-meta">status line never told to refresh on slippery-fingers transitions · visible with <code>OPTIONS=cond_slip</code></span>
                 <div class="actions">
-                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/04-make-glib-xor-typo/repro.c">view repro.c</a>
+                    <a href="tools/session-viewer/?session=bugs/04-make-glib-xor-typo/session.json#step=22">▶ replay (no Slip shown)</a>
+                    <a href="tools/session-viewer/?session=bugs/04-make-glib-xor-typo/session-fixed.json#step=22">▶ replay (after fix)</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/04-make-glib-xor-typo">README + patch</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/04-make-glib-xor-typo/proposed-fix.patch">fix.patch</a>
                 </div>
             </td>
-            <td>low<br>(latent)</td>
+            <td>low<br>(visible)</td>
+            <td>unreported<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">05</td>
+            <td>
+                <div class="bug-title">
+                    Leaving and revisiting a level reverses its trap,
+                    stairway, engraving, and exclusion-zone lists
+                </div>
+                <span class="bug-meta">"first staircase" flips identity per revisit · wounded covetous monster switches retreat staircases · Sokoban entrance demo</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/05-restore-reverses-chains/session.json#step=99">▶ replay (jump to the flip)</a>
+                    <a href="tools/session-viewer/?session=bugs/05-restore-reverses-chains/session-fixed.json#step=99">▶ replay (after fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/05-restore-reverses-chains">README + patch</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/05-restore-reverses-chains/proposed-fix.patch">fix.patch</a>
+                </div>
+            </td>
+            <td>low<br>(visible)</td>
             <td>unreported<br>upstream</td>
         </tr>
     </tbody>
