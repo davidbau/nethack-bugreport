@@ -35,7 +35,7 @@ infrastructure.
 
 | # | Title | Severity | Status |
 |---|---|---|---|
-| [01](bugs/01-vault-guard-parkguard-newsym/) | `impossible("newsym: attempting screen update for <0,0>")` when vault guard parks | low (cosmetic + extra `--More--`s, no state corruption) | unreported upstream as of 2026-05-24 |
+| [01](bugs/01-vault-guard-parkguard-newsym/) | `impossible("newsym: attempting screen update for <0,0>")` when vault guard parks — via `postmov()` | low (cosmetic + extra `--More--`s, no state corruption) | **fixed upstream in `c42d35eac`**; a second path remains, see [09](bugs/09-see-monsters-parked-guard/) |
 | [02](bugs/02-wizborn-totals/) | `#wizborn` totals row computed via `Sprintf` but never `putstr`'d (wizmode summary row missing) | low (wizmode-only cosmetic) | unreported upstream as of 2026-06-19 |
 | [03](bugs/03-tutorial-alignment-collision/) | Tutorial dungeon silently inherits `AM_CHAOTIC` via `UNCONNECTED` ↔ `D_ALIGN_CHAOTIC` bit collision in `init_level` | low (latent — suppressed downstream by `tut-1.lua`'s `nomongen`) | unreported upstream as of 2026-06-19 |
 | [04](bugs/04-make-glib-xor-typo/) | The "Slip" status condition never displays — `make_glib` botl-dirty test inverted by a one-`!` typo | low (visible with `OPTIONS=cond_slip`; gameplay unaffected) | unreported upstream as of 2026-07-31 |
@@ -43,6 +43,7 @@ infrastructure.
 | [06](bugs/06-polymon-nested-rehumanize/) | `polymon()` runs on past a nested `rehumanize()`, so `retouch_equipment()` runs twice for one polymorph (duplicate artifact blast + damage roll) | low (player-visible; two DevTeam `FIXME?`s already mark it) | unreported upstream as of 2026-09-14 |
 | [07](bugs/07-polyself-light-delete-before-create/) | `del_light_source()` asked to remove a hero light source that was never created — light ownership is split from form installation (`impossible()` + "Program in disorder!") | low (`impossible()`; also leaks a source permanently on the `were.c` path) | unreported upstream as of 2026-09-14 |
 | [08](bugs/08-break-armor-stale-form/) | `break_armor()` keeps stripping gear by the old form's rules after a nested `rehumanize()` — removes a human's water walking boots while they stand in lava | **medium (fatal)** | unreported upstream as of 2026-09-14 |
+| [09](bugs/09-see-monsters-parked-guard/) | Same `newsym(0,0)` assertion as 01, but via `see_monsters()` — the loop is missing the off-map guard that `monmove.c`, `minion.c`, `sp_lev.c` and `wizard.c` all have | low (`impossible()`; hard stop under the DevTeam's fuzzer) | unreported upstream as of 2026-09-14 |
 
 ## Setup (once)
 
