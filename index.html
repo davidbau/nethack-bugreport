@@ -225,6 +225,45 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
             <td>low<br>(visible)</td>
             <td>unreported<br>upstream</td>
         </tr>
+        <tr>
+            <td class="num">06</td>
+            <td>
+                <div class="bug-title">
+                    <code>polymon()</code> runs on past a nested
+                    <code>rehumanize()</code>, so <code>retouch_equipment()</code>
+                    runs twice for one polymorph
+                </div>
+                <span class="bug-meta">seed 4242 · valkyrie · wizmode · 180 steps · second blast at step 178</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session.json#step=178">▶ replay (jump to bug)</a>
+                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-fixed.json#step=177">▶ replay (after fix)</a>
+                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-expels.json#step=247">▶ replay (expels route)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/06-polymon-nested-rehumanize">README + patch</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/06-polymon-nested-rehumanize/proposed-fix.patch">fix.patch</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>unreported<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">07</td>
+            <td>
+                <div class="bug-title">
+                    <code>del_light_source()</code> asked to remove a hero light
+                    source that was never created
+                </div>
+                <span class="bug-meta">seed 4250 · valkyrie · wizmode · 131 steps · bug fires at step 127</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session.json#step=127">▶ replay (jump to bug)</a>
+                    <a href="tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session-fixed.json#step=127">▶ replay (after fix)</a>
+                    <a href="tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session-transition-matrix-fixed.json">▶ replay (transition matrix, fixed)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/07-polyself-light-delete-before-create">README + patch</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/07-polyself-light-delete-before-create/proposed-fix.patch">fix.patch</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>unreported<br>upstream</td>
+        </tr>
     </tbody>
 </table>
 
