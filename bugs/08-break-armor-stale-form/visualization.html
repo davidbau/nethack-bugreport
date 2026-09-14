@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><title>NetHack break_armor uses a stale form after a nested rehumanize</title>
+<style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+h1{font-size:1.25rem;line-height:1.4}h2{font-size:1.05rem;margin-top:1.6rem}
+.term{font-family:ui-monospace,Menlo,monospace;background:#111;color:#ddd;padding:.5rem .6rem;border-radius:5px;line-height:1.6;font-size:12.5px;overflow-x:auto}
+.term div{white-space:pre}
+.term .bad{background:#c22;color:#fff;font-weight:bold}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start}
+.lbl{font-weight:600;margin:.3rem 0}.buggy .lbl{color:#c22}.fixed .lbl{color:#161}
+.step{color:#7a7a7a;font-size:11px}
+figcaption{color:#444;font-size:13px;margin-top:.7rem;line-height:1.55}
+code{background:#eee;padding:0 3px;border-radius:3px}</style></head><body>
+<h1>NetHack 5.0: <code>break_armor()</code> strips a <b>human's</b> gear by a <b>newt's</b> rules &mdash; and kills them</h1>
+<div class="grid">
+<div class="buggy"><div class="lbl">BUGGY &mdash; stock NetHack 5.0</div><div class="term">
+<div><span class="step"> 195</span>  Become what kind of monster? [type the name] newt</div>
+<div><span class="step"> 196</span>  You turn into a male newt!  You drop your gloves and weapon!</div>
+<div><span class="step"> 197</span>  The lava here burns you!  You return to human form!</div>
+<div><span class="step"> 198</span>  The lava here burns you!</div>
+<div><span class="step"> 199</span>  You see a +0 pair of leather gloves hit lava and burn up!</div>
+<div><span class="step"> 200</span>  <span class="bad">You can no longer hold your shield!</span></div>
+<div><span class="step"> 201</span>  You see a blessed +3 small shield hit lava and burn up!</div>
+<div><span class="step"> 202</span>  <span class="bad">Your boots slide off your feet!  You fall into the molten lava!</span></div>
+<div><span class="step"> 203</span>  <span class="bad">An item in your inventory has been destroyed.  You burn to a crisp...</span></div>
+<div><span class="step"> 204</span>  <span class="bad">Die? [yn] (n)</span></div>
+</div></div>
+<div class="fixed"><div class="lbl">FIXED &mdash; with proposed-fix.patch</div><div class="term">
+<div><span class="step"> 195</span>  Become what kind of monster? [type the name] newt</div>
+<div><span class="step"> 196</span>  You turn into a male newt!  You drop your gloves and weapon!</div>
+<div><span class="step"> 197</span>  The lava here burns you!  You return to human form!</div>
+<div><span class="step"> 198</span>  The lava here burns you!</div>
+<div><span class="step"> 199</span>  You see a +0 pair of leather gloves hit lava and burn up!</div>
+<div><span class="step"> 200</span>  The lava here burns you!  The lava here burns you!</div>
+</div></div>
+</div>
+<figcaption>Hero levitating on an <em>invoked</em>, wielded Heart of Ahriman, wearing gloves and fireproof water walking boots, over lava, polymorphs under control into a newt. <code>break_armor()</code>'s gloves block calls <code>drop_weapon(0)</code>, which releases the artifact; <code>freeinv()</code> ends the invoked levitation and <code>float_down()</code> drops the hero onto the lava. The boots are still on, so <code>lava_effects()</code> takes its survivable <code>losehp()</code> branch &mdash; which kills the 1&nbsp;hp newt and triggers <code>rehumanize()</code>. <code>break_armor()</code> then resumes with its cached <code>uptr</code> still pointing at the newt.</figcaption>
+<h2>Why the patched run survives</h2><p>The hero does not die of lava damage &mdash; a level-30 Valkyrie absorbs <code>d(6,6)</code> indefinitely. They die because the game removed their <b>water walking boots</b> while they stood in lava, using a newt's body plan to decide what a human can wear. Without the boots, <code>lava_effects()</code> skips <code>losehp()</code> entirely and goes straight to <code>u.uhp = -1; done(BURNING)</code>. The guard <code>if (gy.youmonst.data != uptr) return;</code> stops <code>break_armor()</code> at the revert; the boots stay on, <code>Wwalking</code> stays true, and every later <code>lava_effects()</code> keeps taking the survivable branch.</p><p><b>Note:</b> <code>uptr</code> is stale but not dangling &mdash; <code>gy.youmonst.data</code> always points into the static <code>mons[]</code> table. This is a logic error, not memory unsafety.</p>
+</body></html>

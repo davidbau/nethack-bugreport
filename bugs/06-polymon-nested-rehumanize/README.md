@@ -28,6 +28,12 @@ d(2,10)=5     @ touch_artifact(artifact.c:953)   <- blast 1: rehumanize's :1415
 d(2,10)=12    @ touch_artifact(artifact.c:953)   <- blast 2: polymon's :1021
 ```
 
+**No assertion fires.**  Unlike its sibling
+[bug 07](../07-polyself-light-delete-before-create/), this defect never calls
+`impossible()` — verified across the recorded sessions.  A player sees a
+repeated blast message and takes a second damage roll, with nothing in
+paniclog.  A maintainer triaging by paniclog would never see it.
+
 ## Root cause
 
 `polymon()` (`polyself.c:735-1071`) has exactly one early exit — the "cannot

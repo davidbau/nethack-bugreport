@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><title>NetHack del_light_source called before the source is created</title>
+<style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+h1{font-size:1.25rem;line-height:1.4}h2{font-size:1.05rem;margin-top:1.6rem}
+.term{font-family:ui-monospace,Menlo,monospace;background:#111;color:#ddd;padding:.5rem .6rem;border-radius:5px;line-height:1.6;font-size:12.5px;overflow-x:auto}
+.term div{white-space:pre}
+.term .bad{background:#c22;color:#fff;font-weight:bold}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start}
+.lbl{font-weight:600;margin:.3rem 0}.buggy .lbl{color:#c22}.fixed .lbl{color:#161}
+.step{color:#7a7a7a;font-size:11px}
+figcaption{color:#444;font-size:13px;margin-top:.7rem;line-height:1.55}
+code{background:#eee;padding:0 3px;border-radius:3px}</style></head><body>
+<h1>NetHack 5.0: <code>del_light_source()</code> asked to remove a hero light source that was <b>never created</b></h1>
+<div class="grid">
+<div class="buggy"><div class="lbl">BUGGY &mdash; stock NetHack 5.0</div><div class="term">
+<div><span class="step"> 122</span>  Become what kind of monster? [type the name] yellow ligh</div>
+<div><span class="step"> 123</span>  Become what kind of monster? [type the name] yellow light</div>
+<div><span class="step"> 124</span>  You turn into a yellow light!  You can no longer hold your shield!</div>
+<div><span class="step"> 125</span>  You find you must drop your spear!</div>
+<div><span class="step"> 126</span>  You are blasted by the gray stone named the Heart of Ahriman&#x27;s power!</div>
+<div><span class="step"> 127</span>  <span class="bad">del_light_source: not found type=2, id=0x99dd90</span></div>
+<div><span class="step"> 128</span>  <span class="bad">Program in disorder!  (Saving and reloading may fix this problem.)</span></div>
+<div><span class="step"> 129</span>  Please report these messages to devteam@nethack.org.</div>
+<div><span class="step"> 130</span>  You return to human form!  You can see again.</div>
+</div></div>
+<div class="fixed"><div class="lbl">FIXED &mdash; with proposed-fix.patch</div><div class="term">
+<div><span class="step"> 122</span>  Become what kind of monster? [type the name] yellow ligh</div>
+<div><span class="step"> 123</span>  Become what kind of monster? [type the name] yellow light</div>
+<div><span class="step"> 124</span>  You turn into a yellow light!  You can no longer hold your shield!</div>
+<div><span class="step"> 125</span>  You find you must drop your spear!</div>
+<div><span class="step"> 126</span>  You are blasted by the gray stone named the Heart of Ahriman&#x27;s power!</div>
+<div><span class="step"> 127</span>  You return to human form!  You can see again.</div>
+</div></div>
+</div>
+<figcaption>One controlled polymorph into a yellow light &mdash; a light-emitting form with <code>u.mhmax = d(3,8)</code>. <code>polymon()</code>'s own <code>retouch_equipment(2)</code> blasts for <code>d(4,10)</code>, the form dies, and <code>rehumanize()</code> (<code>polyself.c:1393</code>) deletes on the basis of the current form. The only creator, <code>polyself.c:728</code>, runs <em>after</em> <code>polymon()</code> returns &mdash; so there is nothing to delete and the DevTeam's own assertion fires.</figcaption>
+<h2>The false invariant</h2><p><b>Being in a light-emitting form does not imply that a light source exists.</b> Between <code>set_uasmon()</code> (<code>polyself.c:815</code>) and <code>made_change:</code> the hero is a glowing monster with no light source. The fix moves the transition to the form-installation boundary, which also covers the ~20 <code>polymon()</code> callers outside <code>polyself.c</code> that never reach <code>made_change:</code> at all.</p><p><b>Note:</b> the <code>id=0x…</code> in the message is <code>fmt_ptr()</code> printing a pointer <em>value</em>; nothing invalid is dereferenced. This is a logic error, not memory unsafety.</p>
+</body></html>

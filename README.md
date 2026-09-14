@@ -42,6 +42,7 @@ infrastructure.
 | [05](bugs/05-restore-reverses-chains/) | Leaving and revisiting a level reverses its trap/stairway/engraving/exclusion lists — "first staircase" flips identity, moving covetous-monster retreats and Kop spawn points on two-staircase levels | low (visible on Sokoban/Mines entrance levels) | unreported upstream as of 2026-07-31 |
 | [06](bugs/06-polymon-nested-rehumanize/) | `polymon()` runs on past a nested `rehumanize()`, so `retouch_equipment()` runs twice for one polymorph (duplicate artifact blast + damage roll) | low (player-visible; two DevTeam `FIXME?`s already mark it) | unreported upstream as of 2026-09-14 |
 | [07](bugs/07-polyself-light-delete-before-create/) | `del_light_source()` asked to remove a hero light source that was never created — light ownership is split from form installation (`impossible()` + "Program in disorder!") | low (`impossible()`; also leaks a source permanently on the `were.c` path) | unreported upstream as of 2026-09-14 |
+| [08](bugs/08-break-armor-stale-form/) | `break_armor()` keeps stripping gear by the old form's rules after a nested `rehumanize()` — removes a human's water walking boots while they stand in lava | **medium (fatal)** | unreported upstream as of 2026-09-14 |
 
 ## Setup (once)
 

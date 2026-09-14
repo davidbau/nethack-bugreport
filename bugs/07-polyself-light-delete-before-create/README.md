@@ -21,6 +21,29 @@ You return to human form!  You can see again.
 
 `type=2` is `LS_MONSTER`; the id is the hero-as-monster.
 
+### It is an `impossible()`, not a crash — but it stops the fuzzer
+
+`impossible()` (`pline.c:584`) is a soft assertion: it writes to paniclog,
+prints the message as an urgent pline plus "Program in disorder!", and
+**returns**.  `panic()` is the one that calls `nh_terminate(EXIT_FAILURE)`.
+
+It escalates in exactly two cases, and one of them matters here:
+
+```c
+    if (program_state.in_impossible)
+        panic("impossible called impossible");
+    ...
+    if (iflags.debug_fuzzer == fuzzer_impossible_panic)
+        panic("%s", pbuf);
+```
+
+So under the DevTeam's own fuzzer this is a hard stop, even though a player
+just gets an extra `--More--`.
+
+Nothing invalid is dereferenced.  The `id=0x…` in the message is
+`fmt_ptr((genericptr_t) id->a_obj)` (`alloc.c:125`) printing a pointer *value*
+into a static buffer; the pointer is `monst_to_any(&gy.youmonst)`, a global.
+
 ## Root cause: light ownership is split from form installation
 
 The hero's form is installed by `set_uasmon()`. The hero's `LS_MONSTER` light

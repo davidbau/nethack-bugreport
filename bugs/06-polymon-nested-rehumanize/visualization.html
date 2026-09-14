@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><title>NetHack polymon() duplicate retouch_equipment</title>
+<style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+h1{font-size:1.25rem;line-height:1.4}h2{font-size:1.05rem;margin-top:1.6rem}
+.term{font-family:ui-monospace,Menlo,monospace;background:#111;color:#ddd;padding:.5rem .6rem;border-radius:5px;line-height:1.6;font-size:12.5px;overflow-x:auto}
+.term div{white-space:pre}
+.term .bad{background:#c22;color:#fff;font-weight:bold}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start}
+.lbl{font-weight:600;margin:.3rem 0}.buggy .lbl{color:#c22}.fixed .lbl{color:#161}
+.step{color:#7a7a7a;font-size:11px}
+figcaption{color:#444;font-size:13px;margin-top:.7rem;line-height:1.55}
+code{background:#eee;padding:0 3px;border-radius:3px}</style></head><body>
+<h1>NetHack 5.0: <code>polymon()</code> runs on past a nested <code>rehumanize()</code>, so the artifact touch-test fires <b>twice</b> for one polymorph</h1>
+<div class="grid">
+<div class="buggy"><div class="lbl">BUGGY &mdash; stock NetHack 5.0</div><div class="term">
+<div><span class="step"> 174</span>  Become what kind of monster? [type the name] kobold</div>
+<div><span class="step"> 175</span>  You turn into a kobold!  The lava here burns you!</div>
+<div><span class="step"> 176</span>  You return to human form!</div>
+<div><span class="step"> 177</span>  <span class="bad">You are blasted by the cubical amulet named the Eye of the Aethiopica&#x27;s power!</span></div>
+<div><span class="step"> 178</span>  <span class="bad">You are blasted by the cubical amulet named the Eye of the Aethiopica&#x27;s power!</span></div>
+<div><span class="step"> 179</span>  The goblin hits!  The lava here burns you!</div>
+</div></div>
+<div class="fixed"><div class="lbl">FIXED &mdash; with proposed-fix.patch</div><div class="term">
+<div><span class="step"> 174</span>  Become what kind of monster? [type the name] kobold</div>
+<div><span class="step"> 175</span>  You turn into a kobold!  The lava here burns you!</div>
+<div><span class="step"> 176</span>  You return to human form!</div>
+<div><span class="step"> 177</span>  <span class="bad">You are blasted by the cubical amulet named the Eye of the Aethiopica&#x27;s power!</span></div>
+<div><span class="step"> 178</span>  The goblin hits!  The lava here burns you!</div>
+</div></div>
+</div>
+<figcaption>Highlighted rows are the steps that actually roll <code>d(2,10) @ touch_artifact(artifact.c:953)</code>. The message text is identical both times, so the duplication is only visible as <em>two separate steps</em> carrying it &mdash; and as a second damage roll. Left: steps 177 and 178. Right: step 177 only.</figcaption>
+<h2>Why the existing recursion guard does not catch it</h2><p><code>retouch_equipment()</code> opens with <code>if (!nesting++) clear_bypasses();</code>, which works when the two calls <em>nest</em>. Here they are <em>sequential</em>: <code>rehumanize()</code> ran its own <code>retouch_equipment(2)</code> (<code>polyself.c:1415</code>) and returned, decrementing <code>nesting</code> back to 0, so <code>polymon()</code>'s call at <code>polyself.c:1021</code> clears the bypass bits again and re-scans all of <code>gi.invent</code>.</p>
+</body></html>
