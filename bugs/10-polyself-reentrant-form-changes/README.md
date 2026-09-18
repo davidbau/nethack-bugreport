@@ -14,32 +14,31 @@ and when `u.mh` reaches zero the game reverts you to human, by calling
 and the rest of the sequence runs to completion, still configuring the monster
 you are no longer.
 
-Three things go wrong in that window, and they look nothing alike from a
+Three distinct bugs arise in that window, and they look nothing alike from a
 player's chair:
 
 | | what you see | bundle |
 |---|---|---|
 | A light source is deleted that was never created | `del_light_source: not found`, `Program in disorder!`, a request to mail the DevTeam | [bug 07](../07-polyself-light-delete-before-create/) |
 | Cleanup runs twice for one polymorph | one polymorph, **two** artifact blasts and two damage rolls | [bug 06](../06-polymon-nested-rehumanize/) |
-| Decisions keep being made by the old form's rules | a **human** is stripped of their water walking boots because a *newt* could not wear them, while standing in lava; fatal | [bug 08](../08-break-armor-stale-form/) |
+| Decisions keep being made by the superseded form's rules | a **human** is stripped of their water walking boots because a *newt* could not wear them, while standing in lava; fatal | [bug 08](../08-break-armor-stale-form/) |
 
-Each has its own bundle, its own recordings and its own patch. This one
-explains them together, because they have a single shape and the three patches
-are three applications of one rule.
+Each has its own bundle, with its own recordings and its own patch; this one
+covers all three.
 
-|  |  |
-|---|---|
-| Affects | `src/polyself.c` (`polymon()`, `polyself()`, `break_armor()`), `src/timeout.c` |
-| Severity | Bug 08 is **fatal**. Bug 07 trips an `impossible()` and is a hard stop under the DevTeam's fuzzer. Bug 06 is player-visible duplicate damage. |
-| Upstream status | all three still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
-| Recorded against | `NetHack/NetHack@16ff59115` (NetHack 5.0.0 as released) |
-| Unified fix | branch [`bugreport/10-polyself-reentrancy`](https://github.com/davidbau/NetHack/compare/16ff59115315917b93185d026aeefea06db9b0f4...bugreport/10-polyself-reentrancy), three commits |
+The affected code is `src/polyself.c` (`polymon()`, `polyself()` and
+`break_armor()`) plus one line in `src/timeout.c`. All three are present at
+the `NetHack-5.0` tip
+[`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0),
+checked 2026-09-18, and all three were recorded against
+`NetHack/NetHack@16ff59115`, NetHack 5.0.0 as released. The branch
+[`bugreport/10-polyself-reentrancy`](https://github.com/davidbau/NetHack/compare/16ff59115315917b93185d026aeefea06db9b0f4...bugreport/10-polyself-reentrancy)
+holds three proposed commits, one per defect, which together fix all of them.
 
 ## The three scenarios
 
-Every one of these is a recorded game you can step through in the browser, with
-the same keystrokes replayed against a patched build alongside. No build
-required.
+Below are recorded session repros for each of the three problems, and for the
+fixed behaviour, viewable in a browser.
 
 ### 1. The light source that was never created (bug 07)
 
@@ -70,7 +69,7 @@ itself. The artifact blasts you a second time, for a second roll of damage.
 ·
 [second route, fixed](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-expels-fixed.json#step=246)
 
-### 3. The decisions made by the wrong form (bug 08)
+### 3. The decisions made by the superseded form (bug 08)
 
 Polymorph into a newt while levitating over lava on an `#invoke`d artifact.
 `break_armor()` decides what to strip by asking the form it captured when it
@@ -83,18 +82,18 @@ the water walking boots off a human standing in lava.
 ·
 [**Fixed**, hero survives](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/08-break-armor-stale-form/session-fixed.json#step=200)
 
-## The rule the code is missing
-
-Stated once, in the form that covers all three:
+## The proposed invariant for polymorphs
 
 > Every effect applied during a form change must be appropriate to the form the
 > hero has **now**, not to the form the code was told to install.
 
-The existing code is not wrong because it is re-entrant. Re-entrancy here is
-unavoidable: dropping armour can put you in water, dropping an artifact can end
-levitation, and being hurt while polymorphed reverts you. The code is wrong
-because it decides once, at the top, and then acts on that decision after
-something else has invalidated it.
+Re-entrancy itself is not what causes these bugs, and it is not avoidable
+here: dropping armour can put the hero in water, dropping an artifact can end
+levitation, and damage taken while polymorphed reverts the form. What causes
+them is that state captured before a nested form change is still used after
+it: the form `polymon()` was asked to install, the form `break_armor()`
+decided to strip by, and the caller that still owes the new form a light
+source.
 
 Two obligations follow, one for each side of the boundary.
 
@@ -307,8 +306,8 @@ in "The three scenarios" above are the same seed, the same datetime and the same
 keys, replayed against an unpatched and a patched build. In each pair the runs
 are identical up to the moment of the defect. The RNG stream is identical too:
 bug 06's witnesses draw the same `rnd(4)=1` and `d(2,8)=10` form hit points on
-both sides, so the patches remove the wrong behaviour without perturbing the
-game.
+both sides, so each patch changes only the behaviour it targets and leaves the
+rest of the game untouched.
 
 **Each patch has a control.** Bug 06 ships two routes into the same defect
 (`expels()` and `spoteffects()`) and two controls that differ by one ingredient
