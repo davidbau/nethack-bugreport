@@ -82,6 +82,16 @@ session pre-loaded. Direct-link form:
 https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=<RELATIVE_PATH_TO_SESSION_JSON>#step=<N>
 ```
 
+For example, [bug 07 at the step the assertion
+fires](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session.json#step=127):
+
+```
+https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session.json#step=127
+```
+
+`#step` is read on load and rewritten as you scrub, so every frame has
+its own shareable URL.
+
 Locally: serve the repo root over HTTP (e.g. `python3 -m http.server`)
 and open `http://localhost:8000/tools/session-viewer/` — load any
 session JSON via the file picker. `file://` won't work because the

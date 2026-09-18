@@ -327,7 +327,11 @@ bash bugs/01-vault-guard-parkguard-newsym/repro.sh  # run a bug repro</pre>
     and load any session via the file picker, or deep-link to a
     specific session with a URL like:
 </p>
-<pre>tools/session-viewer/?session=bugs/01-vault-guard-parkguard-newsym/session.json#step=165</pre>
+<pre>tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session.json#step=127</pre>
+<p>
+    The <code>#step</code> fragment is read on load and rewritten as you
+    scrub, so every frame has its own shareable URL.
+</p>
 <p>
     The viewer shows each step's TTY frame as a colored 24×80 grid,
     plus the full keystream, seed, datetime, and <code>.nethackrc</code>
