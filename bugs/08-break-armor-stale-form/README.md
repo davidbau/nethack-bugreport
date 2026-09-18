@@ -56,8 +56,9 @@ step 199. Then:
 Scrub back to step 196 to see the polymorph, and 197 to see the revert that
 should have stopped the stripping.
 
-There is also a [static side-by-side view](visualization.html) of the same
-frames.
+There is also a [static side-by-side
+view](https://davidbau.github.io/nethack-bugreport/bugs/08-break-armor-stale-form/visualization.html)
+of the same frames.
 
 ## Reproducing it from scratch
 

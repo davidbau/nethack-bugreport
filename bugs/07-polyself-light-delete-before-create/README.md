@@ -57,8 +57,9 @@ pointer is the address of the `gy.youmonst` global, and the recorder is built
 as a position-independent executable, so the address moves on every run.
 `0x99dd90` is just what it was on the machine that recorded this.
 
-There is also a [static side-by-side view](visualization.html) of the same
-frames, and a third recording,
+There is also a [static side-by-side
+view](https://davidbau.github.io/nethack-bugreport/bugs/07-polyself-light-delete-before-create/visualization.html)
+of the same frames, and a third recording,
 [`session-transition-matrix-fixed.json`](session-transition-matrix-fixed.json)
 ([replay](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session-transition-matrix-fixed.json#step=115)),
 which walks a patched build through every combination of glowing and

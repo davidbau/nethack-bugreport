@@ -52,7 +52,9 @@ build moves on to the goblin's attack.
 Again the runs agree through the first blast at step 245 (227 to 215) and part
 company at the second (215 to 206).
 
-There is also a [static side-by-side view](visualization.html) of route A.
+There is also a [static side-by-side
+view](https://davidbau.github.io/nethack-bugreport/bugs/06-polymon-nested-rehumanize/visualization.html)
+of route A.
 
 ## What is in the recordings
 
