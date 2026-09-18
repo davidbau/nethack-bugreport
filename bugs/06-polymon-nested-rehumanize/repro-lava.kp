@@ -1,0 +1,41 @@
+# Bug 06, witness A (the spoteffects() FIXME): polymon() keeps running
+# after a nested rehumanize(), so retouch_equipment(2) runs twice for one
+# polymorph.  This is the keystream recorded in session.json.
+#
+# A level-0 form gets only rnd(4) hit points (polyself.c:866) while lava
+# does d(6,6), so the poly form always dies inside polymon()'s own
+# spoteffects() call (polyself.c:972).  lava_effects() reaches losehp()
+# only via `Wwalking && dmg < u.uhp` -- and that test reads the HUMAN hp
+# while losehp() decrements u.mh, which is why a healthy hero in a frail
+# form passes it and then loses the form.
+#
+# Fireproof boots are required: lava_effects() burns organic boots away
+# BEFORE testing Wwalking, which would drop the hero into the lava.
+# A wand (not a potion) of polymorph is required: destroyable() lets fire
+# destroy potions/scrolls/spellbooks but not wands.
+#
+# The Eye of the Aethiopica makes the duplicate pass visible.  It is a
+# quest artifact of the WRONG role (Wizard) but the RIGHT alignment
+# (neutral), so badclass is true and badalign is false: touch_artifact()
+# blasts unconditionally yet retouch_object() still returns 1, leaving
+# the amulet worn for the second pass to blast again.
+#
+# Evidence in the recording: TWO d(2,10) @ touch_artifact(artifact.c:953)
+# after one polymorph.  Control: seed4247 (same but no lava) has ONE.
+
+seed: 4242
+datetime: 20000110090000
+nethackrc: |
+  OPTIONS=name:r,role:Valkyrie,race:human,gender:female,align:neutral
+  OPTIONS=playmode:debug
+  OPTIONS=!autopickup
+  OPTIONS=!tutorial
+  OPTIONS=pettype:none
+  OPTIONS=time,showexp
+
+"\x1b#levelchange\n30\n                             "
+"\x17fireproof water walking boots\n"
+"\x17The Eye of the Aethiopica\n "
+"\x17ring of polymorph control\n"
+"\x17wand of polymorph\nWePf Pgr"
+"\x17lava\nzh.kobold\n    "

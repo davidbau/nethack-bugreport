@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>nethack-bugreport</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23111'/><text x='8' y='12.5' font-family='monospace' font-size='13' fill='%23e8e8e8' text-anchor='middle'>@</text></svg>">
 <style>
 :root {
     --bg:           #f9f7f1;
@@ -233,11 +234,12 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
                     <code>rehumanize()</code>, so <code>retouch_equipment()</code>
                     runs twice for one polymorph
                 </div>
-                <span class="bug-meta">seed 4242 · valkyrie · wizmode · 180 steps · second blast at step 178</span>
+                <span class="bug-meta">seed 4242 · valkyrie · wizmode · 180 steps · first blast at step 177, duplicate at 178</span>
                 <div class="actions">
-                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session.json#step=178">▶ replay (jump to bug)</a>
-                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-fixed.json#step=177">▶ replay (after fix)</a>
-                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-expels.json#step=247">▶ replay (expels route)</a>
+                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session.json#step=178">▶ replay (second blast)</a>
+                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-fixed.json#step=178">▶ replay (after fix, same step)</a>
+                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-expels.json#step=247">▶ replay (expels route, second blast)</a>
+                    <a href="tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-expels-fixed.json#step=246">▶ replay (expels route, after fix)</a>
                     <a href="https://davidbau.github.io/nethack-bugreport/bugs/06-polymon-nested-rehumanize/visualization.html">static before/after</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/06-polymon-nested-rehumanize">README + patch</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/06-polymon-nested-rehumanize/proposed-fix.patch">fix.patch</a>
@@ -256,8 +258,8 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
                 <span class="bug-meta">seed 4250 · valkyrie · wizmode · 131 steps · bug fires at step 127</span>
                 <div class="actions">
                     <a href="tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session.json#step=127">▶ replay (jump to bug)</a>
-                    <a href="tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session-fixed.json#step=127">▶ replay (after fix)</a>
-                    <a href="tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session-transition-matrix-fixed.json">▶ replay (transition matrix, fixed)</a>
+                    <a href="tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session-fixed.json#step=127">▶ replay (after fix, same step)</a>
+                    <a href="tools/session-viewer/?session=bugs/07-polyself-light-delete-before-create/session-transition-matrix-fixed.json#step=115">▶ replay (every form transition, fixed)</a>
                     <a href="https://davidbau.github.io/nethack-bugreport/bugs/07-polyself-light-delete-before-create/visualization.html">static before/after</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/07-polyself-light-delete-before-create">README + patch</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/07-polyself-light-delete-before-create/proposed-fix.patch">fix.patch</a>
@@ -273,10 +275,10 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
                     <code>break_armor()</code> strips a <b>human's</b> water walking
                     boots by a <b>newt's</b> rules, in lava
                 </div>
-                <span class="bug-meta">seed 5150 · valkyrie · wizmode · 206 steps · revert at step 197, death at step 203</span>
+                <span class="bug-meta">seed 5150 · valkyrie · wizmode · 205 steps · revert at step 197, boots removed at 202, death at 203</span>
                 <div class="actions">
-                    <a href="tools/session-viewer/?session=bugs/08-break-armor-stale-form/session.json#step=200">▶ replay (jump to bug)</a>
-                    <a href="tools/session-viewer/?session=bugs/08-break-armor-stale-form/session-fixed.json#step=200">▶ replay (after fix)</a>
+                    <a href="tools/session-viewer/?session=bugs/08-break-armor-stale-form/session.json#step=202">▶ replay (the fatal strip)</a>
+                    <a href="tools/session-viewer/?session=bugs/08-break-armor-stale-form/session-fixed.json#step=200">▶ replay (after fix, survives)</a>
                     <a href="https://davidbau.github.io/nethack-bugreport/bugs/08-break-armor-stale-form/visualization.html">static before/after</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/08-break-armor-stale-form">README + patch</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/08-break-armor-stale-form/proposed-fix.patch">fix.patch</a>

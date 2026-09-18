@@ -1,0 +1,45 @@
+# Bug 07: del_light_source() is asked to remove a hero light source that was
+# never created.  This is the keystream recorded in session.json.
+#
+# 130 keys. A neutral Valkyrie CARRIES The Heart of Ahriman -- a quest
+# artifact of the wrong role (Barbarian) but the right alignment, so
+# touch_artifact() blasts on every touch-test yet retouch_object() still
+# returns 1 and the stone is kept.  It is carried rather than worn because
+# its cspfx (SPFX_STLTH) makes carryeffect true, so untouchable() tests it
+# even though a yellow light can wear nothing; and unlike a wielded artifact
+# it is not dropped by drop_weapon(1).  It grants no magic resistance, so the
+# blast is the full d(4,10) rather than d(2,10).
+#
+# Polymorphing (controlled) into a yellow light -- level 3, u.mhmax = d(3,8),
+# and emits_light() != 0 -- means polymon()'s own retouch_equipment(2) at
+# polyself.c:1021 blasts hard enough to take u.mh below 1.  losehp() calls
+# rehumanize(), which deletes the u-as-mon light source.  But polyself()
+# installs that source only at polyself.c:728, AFTER polymon() returns, so
+# there is nothing to delete.
+#
+# Expected output (unpatched):
+#   You turn into a yellow light!  You can no longer hold your shield!
+#   You find you must drop your spear!
+#   You are blasted by the gray stone named the Heart of Ahriman's power!
+#   del_light_source: not found type=2, id=0x...
+#   Program in disorder!  (Saving and reloading may fix this problem.)
+#   Please report these messages to devteam@nethack.org.
+#   You return to human form!  You can see again.
+#
+# With proposed-fix.patch the two diagnostic lines disappear and nothing
+# else changes.
+
+seed: 4250
+datetime: 20000110090000
+nethackrc: |
+  OPTIONS=name:r,role:Valkyrie,race:human,gender:female,align:neutral
+  OPTIONS=playmode:debug
+  OPTIONS=!autopickup
+  OPTIONS=!tutorial
+  OPTIONS=pettype:none
+  OPTIONS=time,showexp
+
+"\x1b#levelchange\n20\n                   "
+"\x17The Heart of Ahriman\n "
+"\x17ring of polymorph control\n"
+"\x17wand of polymorph\nPfrzg.yellow light\n      "

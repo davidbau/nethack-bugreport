@@ -1,0 +1,38 @@
+# Bug 08: break_armor() keeps stripping gear by the old form's rules after a
+# nested rehumanize(), removing a human's water walking boots while they stand
+# in lava.  This is the keystream recorded in session.json.
+#
+# Valkyrie, wizard mode, XL 30 (so lava damage alone cannot kill -- that is
+# what makes the cause unambiguous).  Levitating on an INVOKED, WIELDED Heart
+# of Ahriman, wearing leather gloves and FIREPROOF water walking boots, over
+# lava, polymorphs under control into a newt.
+#
+#   break_armor() gloves block -> drop_weapon(0) releases the Heart
+#     -> freeinv() ends the invoked levitation -> float_down() onto the lava
+#     -> boots still on, so lava_effects() takes the survivable losehp() branch
+#     -> the 1 hp newt dies -> rehumanize()
+#   break_armor() resumes with uptr still pointing at the newt:
+#     "You can no longer hold your shield!"   (nohands(newt))
+#     "Your boots slide off your feet!"       (verysmall(newt))
+#   boots gone -> next lava_effects() goes straight to done(BURNING).
+#
+# Fireproof boots are required: lava_effects() burns organic boots away BEFORE
+# testing Wwalking, which would mask the bug behind an ordinary death.
+
+seed: 5150
+datetime: 20000110090000
+nethackrc: |
+  OPTIONS=name:b,role:Valkyrie,race:human,gender:female,align:neutral
+  OPTIONS=playmode:debug
+  OPTIONS=!autopickup
+  OPTIONS=!tutorial
+  OPTIONS=pettype:none
+  OPTIONS=time,showexp
+
+"\x1b#levelchange\n30\n                             "
+"\x17fireproof water walking boots\n"
+"\x17leather gloves\n"
+"\x17The Heart of Ahriman\n "
+"\x17ring of polymorph control\n"
+"\x17wand of polymorph\nWeWfPhrwg #invoke\ng "
+"\x17lava\nzi.newt\n        "

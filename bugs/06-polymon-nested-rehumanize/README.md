@@ -1,14 +1,8 @@
-# `polymon()` runs on past a nested `rehumanize()`, re-touching equipment twice
+# One polymorph, two artifact blasts
 
-**Component:** `src/polyself.c` `polymon()`, lines 929-932 and 971-974
-**Severity:** LOW / player-visible. A duplicate artifact blast — a repeated
-message **and** a second damage roll — from a single polymorph, plus a
-duplicate full inventory touch-scan.
-**Status upstream:** both sites already carry a DevTeam `FIXME?`.
-
-## Symptom
-
-One polymorph, two blasts:
+If you are carrying an artifact that blasts you, and a polymorph is undone
+while it is still being set up, the artifact blasts you twice for that single
+polymorph. The message repeats and the second blast rolls fresh damage:
 
 ```
 You turn into a kobold!  The lava here burns you!
@@ -17,28 +11,89 @@ You are blasted by the cubical amulet named the Eye of the Aethiopica's power!
 You are blasted by the cubical amulet named the Eye of the Aethiopica's power!
 ```
 
-In the recorded RNG stream (`session.json`):
+In the recorded session that costs the hero 5 hit points and then another 12,
+from one zap of a wand of polymorph. The player sees a duplicated message and
+takes damage twice for one event.
+
+Nothing asserts, and that is part of the problem. No `impossible()` fires and
+nothing reaches paniclog, so anyone triaging by paniclog will never see this.
+The only trace is the repeated message.
+
+The cause is that `polymon()` keeps running after something inside it has
+already undone the polymorph. The DevTeam has marked two of the places where
+this can happen with `FIXME?` comments; the audit below finds five.
+
+|  |  |
+|---|---|
+| Affects | NetHack 5.0 (the `NetHack-3.7` branch), `src/polyself.c` |
+| Severity | Low, but player-visible: a duplicate message and a duplicate damage roll |
+| Reported upstream | not as of 2026-09-14. Both sites already carry a DevTeam `FIXME?` |
+| Recorded against | `NetHack/NetHack@16ff59115` |
+
+## Watch it happen
+
+Two routes into the same defect are recorded, one per `FIXME?`. Step through
+them in the browser; no build required.
+
+**Route A, the `spoteffects()` FIXME** (polymorph over lava):
+
+- [**Buggy** (stock 5.0), the second blast](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session.json#step=178)
+- [**Fixed** (with `proposed-fix.patch`), same step](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-fixed.json#step=178)
+
+Step 177 is identical in both runs: the first blast, hit points 100 to 95. At
+step 178 the stock build blasts a second time, 95 to 83, while the patched
+build moves on to the goblin's attack.
+
+**Route B, the `expels()` FIXME** (land mine under an ochre jelly):
+
+- [**Buggy**, the second blast](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-expels.json#step=247)
+- [**Fixed**, same point in the run](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/06-polymon-nested-rehumanize/session-expels-fixed.json#step=246)
+
+Again the runs agree through the first blast at step 245 (227 to 215) and part
+company at the second (215 to 206).
+
+There is also a [static side-by-side view](visualization.html) of route A.
+
+## What is in the recordings
+
+The measurement is the number of `d(2,10) @ touch_artifact(artifact.c:953)`
+rolls that follow a single polymorph. Route A:
 
 ```
 rnd(4)=1      @ polymon(polyself.c:866)          <- level-0 form, 1 hit point
 d(6,6)=19     @ lava_effects(trap.c:6807)        <- lava damage
   ... losehp() -> u.mh < 1 -> rehumanize()
-d(2,10)=5     @ touch_artifact(artifact.c:953)   <- blast 1: rehumanize's :1415
-^botl[polymon]                                   <- control is back inside polymon()
-d(2,10)=12    @ touch_artifact(artifact.c:953)   <- blast 2: polymon's :1021
+d(2,10)=5     @ touch_artifact(artifact.c:953)   <- blast 1, from rehumanize's :1415
+^botl[polymon]                                    <- control is back inside polymon()
+d(2,10)=12    @ touch_artifact(artifact.c:953)   <- blast 2, from polymon's :1021
 ```
 
-**No assertion fires.**  Unlike its sibling
-[bug 07](../07-polyself-light-delete-before-create/), this defect never calls
-`impossible()` — verified across the recorded sessions.  A player sees a
-repeated blast message and takes a second damage roll, with nothing in
-paniclog.  A maintainer triaging by paniclog would never see it.
+Route B:
 
-## Root cause
+```
+d(2,8)=10     @ polymon(polyself.c:868)          <- rothe, 10 hit points
+>pline        @ expels(mhitu.c:296)              <- expelled from the jelly
+rn2(5)=3      @ dotrap(trap.c:3044)              <- did not escape the trap
+rnd(16)=10    @ trapeffect_landmine(trap.c:2538)
+  ... losehp() -> u.mh < 1 -> rehumanize()
+d(2,10)=12    @ touch_artifact(artifact.c:953)   <- blast 1
+d(2,10)=11    @ touch_artifact(artifact.c:953)   <- blast 2
+```
 
-`polymon()` (`polyself.c:735-1071`) has exactly one early exit — the "cannot
-become that" `return 0` at line 747. Two of its calls can revert the hero
-mid-function, and the source flags both:
+Two controls, not shipped here, pin the mechanism down. Both use the same
+keystrokes as a witness with one ingredient removed: control A drops the lava
+wish, control B uses a form too small to be expelled. In both controls the
+poly form still dies and the hero still reverts, but the damage comes from
+`polymon()`'s own `retouch_equipment(2)` blast, so `rehumanize()`'s call is
+genuinely nested inside it. Both controls blast once. The difference between
+one blast and two separates "sequential" from "nested" exactly, and shows that
+the existing recursion guard is not the thing that is broken.
+
+## What the code is doing
+
+`polymon()` (`polyself.c:735-1071`) has exactly one early exit, the "cannot
+become that" `return 0` at line 747. Two of the calls it makes can revert the
+hero in the middle of the function, and the source flags both:
 
 ```c
 /* polyself.c:929-932 */
@@ -53,57 +108,34 @@ mid-function, and the source flags both:
            return early */
 ```
 
-`rehumanize()` finishes with its own cleanup (`polyself.c:1410`
-`encumber_msg()`, `polyself.c:1415` `retouch_equipment(2)`). Control then
-returns into `polymon()`, which does both again at `polyself.c:1019` and
+When one of those does trigger a revert, `rehumanize()` runs to completion,
+including its own cleanup: `encumber_msg()` at `polyself.c:1410` and
+`retouch_equipment(2)` at `polyself.c:1415`. Control then returns into
+`polymon()`, which does both of those again at `polyself.c:1019` and
 `polyself.c:1021`.
 
-That is not a harmless repeat. `retouch_equipment()` guards against recursion
-with a nesting counter:
+`retouch_equipment()` does guard against recursion, with a nesting counter:
 
 ```c
     if (!nesting++)
         clear_bypasses(); /* init upon initial entry */
 ```
 
-The guard only helps when the two calls **nest**. Here they are **sequential** —
-`rehumanize()`'s call has already returned and decremented `nesting` back to 0 —
-so `polymon()`'s call clears the bypass bits again and re-scans the whole of
+That guard only helps when the two calls nest. Here they are sequential:
+`rehumanize()`'s call has already returned and decremented `nesting` back to 0,
+so `polymon()`'s call clears the bypass bits again and re-scans all of
 `gi.invent` from scratch, re-running the touch test on every worn, wielded and
 carry-effect item.
 
-## Reproducers
+### How each route reaches a revert
 
-Four recorded C sessions: a witness per FIXME, each with a control that differs
-by one ingredient. The measurement is the number of
-`d(2,10) @ touch_artifact(artifact.c:953)` rolls after one polymorph.
-
-| session | path | blasts |
-|---|---|---|
-| [`session.json`](session.json) | `spoteffects()` FIXME | **2** |
-| [`session-expels.json`](session-expels.json) | `expels()` FIXME | **2** |
-| control A (not shipped; same keys minus the lava wish) | no nested revert | 1 |
-| control B (not shipped; same keys, form too small to be expelled) | no expulsion | 1 |
-
-**The controls are the point.** In both of them the poly form *also* dies and
-the hero *also* rehumanizes — but there the damage comes from `polymon()`'s own
-`retouch_equipment(2)` blast, so `rehumanize()`'s call is genuinely nested,
-`nesting` is 1, `clear_bypasses()` is skipped, every item is already bypassed
-and nothing is re-scanned. The difference between 1 and 2 blasts isolates
-"sequential" from "nested" exactly, and shows the existing guard is not what is
-broken.
-
-### Witness A — the `spoteffects()` FIXME ([`repro-lava.kp`](repro-lava.kp))
-
-A neutral Valkyrie wearing **The Eye of the Aethiopica** stands on **lava** in
-**fireproof water walking boots** and zaps a wand of polymorph with polymorph
-control, choosing a **kobold**.
-
-`polymon()` gives a level-0 form only `rnd(4)` hit points (`polyself.c:866`) and
-lava does `d(6,6)`, so the form always dies inside `polymon()`'s own
-`spoteffects()` call. `lava_effects()` reaches `losehp()` on one branch, and
-note that the survival test reads the **human** hit points while `losehp()`
-decrements `u.mh`:
+**Route A.** A neutral Valkyrie wearing The Eye of the Aethiopica stands on
+lava in fireproof water walking boots and zaps a wand of polymorph with
+polymorph control, choosing a kobold. `polymon()` gives a level-0 form only
+`rnd(4)` hit points (`polyself.c:866`) and lava does `d(6,6)`, so the form
+always dies inside `polymon()`'s own `spoteffects()` call. The survival test in
+`lava_effects()` is worth a look, because it reads the *human* hit points while
+`losehp()` decrements `u.mh`:
 
 ```c
     usurvive = Fire_resistance || (Wwalking && dmg < u.uhp);
@@ -115,43 +147,30 @@ decrements `u.mh`:
 That mismatch is what lets a healthy hero in a frail form pass the check and
 still lose the form.
 
-### Witness B — the `expels()` FIXME ([`repro-expels.kp`](repro-expels.kp))
+**Route B.** The same hero sets a land mine at their feet, is swallowed by an
+ochre jelly, then polymorphs into a rothe. The ochre jelly is the only engulfer
+that is neither `MZ_HUGE` nor whirly (level 6, `MZ_MEDIUM`), so any `MZ_LARGE`
+or bigger form trips the size test at `polyself.c:915-918`. The mine survives
+the engulf because `gulpmu()` (`mhitu.c:1292`) moves the *monster* onto the
+hero's square with `place_monster()` rather than `mintrap()`, and explicitly
+zeroes `mtmp->mtrapped`. `expels()` ends in `spoteffects(TRUE)`, the mine
+fires, and `losehp()` reverts the rothe from inside `polymon()`.
 
-Same hero sets a **land mine** at their feet, is swallowed by an **ochre
-jelly**, then polymorphs into a **rothe**.
+### Why an artifact is needed to see it
 
-The ochre jelly is the only engulfer that is neither `MZ_HUGE` nor whirly
-(level 6, `MZ_MEDIUM`), so any `MZ_LARGE`+ form trips the size test at
-`polyself.c:915-918`. The mine survives the engulf because `gulpmu()`
-(`mhitu.c:1292`) moves the *monster* onto the hero's square with
-`place_monster()` — not `mintrap()` — and explicitly zeroes `mtmp->mtrapped`.
-`expels()` ends in `spoteffects(TRUE)`, the mine fires, and `losehp()` reverts
-the rothe from inside `polymon()`.
-
-```
-d(2,8)=10     @ polymon(polyself.c:868)          <- rothe, 10 hit points
->pline        @ expels(mhitu.c:296)              <- expelled
-rn2(5)=3      @ dotrap(trap.c:3044)              <- did not escape the trap
-rnd(16)=10    @ trapeffect_landmine(trap.c:2538)
-  ... losehp() -> u.mh < 1 -> rehumanize()
-d(2,10)=12    @ touch_artifact(artifact.c:953)   <- blast 1
-d(2,10)=11    @ touch_artifact(artifact.c:953)   <- blast 2
-```
-
-### Why the artifact
-
-The duplicate pass is silent on a plain hero. **The Eye of the Aethiopica** is a
-quest artifact of the wrong role (Wizard) but the right alignment (neutral), so
-`badclass` is true and `badalign` is false. `touch_artifact()` blasts on
-`(badclass || badalign) && self_willed`, and because `badalign` is false the
+The duplicate pass is invisible on a plain hero: re-touching equipment that is
+safe to touch has no effect. The Eye of the Aethiopica is a quest artifact of
+the wrong role (Wizard) but the right alignment (neutral), so `badclass` is
+true and `badalign` is false. `touch_artifact()` blasts on
+`(badclass || badalign) && self_willed`, and since `badalign` is false the
 `badclass && badalign && self_willed` removal branch does not fire, so
-`retouch_object()` returns 1 and the amulet stays worn — which is exactly why a
-second pass can blast again. `break_armor()` never removes amulets, so it
-survives any target form.
+`retouch_object()` returns 1 and the amulet stays worn. That is what lets a
+second pass blast again. `break_armor()` never removes amulets, so it survives
+any target form.
 
 ## Proposed fix
 
-[`proposed-fix.patch`](proposed-fix.patch). Stop at every boundary where a
+[`proposed-fix.patch`](proposed-fix.patch) stops at every boundary where a
 re-entrant callback may have replaced the form being configured:
 
 ```c
@@ -159,17 +178,15 @@ re-entrant callback may have replaced the form being configured:
         return 1;
 ```
 
-Testing `u.umonnum != mntmp` rather than `!Upolyd` is deliberate: a nested
-callback can install a *different monster* form as well as reverting to human
-(`instapetrify()` and `selftouch()` both call `polymon()` directly), and only
-the stronger test catches that.
+Testing `u.umonnum != mntmp` rather than `!Upolyd` is deliberate. A nested
+callback can install a *different monster* form as well as reverting to human,
+since `instapetrify()` and `selftouch()` both call `polymon()` directly, and
+only the stronger test catches that. Returning 1 keeps the "polymorph happened"
+contract for `polyself()`, which only ever does `(void) polymon(...)`.
 
-Returning 1 keeps the "polymorph happened" contract for `polyself()`, which
-only ever does `(void) polymon(...)`.
-
-The two DevTeam `FIXME?`s mark two of these boundaries. The audit should not
-stop there — the current source has five, and C's own comments document the
-re-entrancy at each:
+The two `FIXME?`s mark two of these boundaries. The audit should not stop
+there: the current source has five, and C's own comments document the
+re-entrancy at each.
 
 | after | re-enters via | C's own comment |
 |---|---|---|
@@ -179,57 +196,69 @@ re-entrancy at each:
 | `spoteffects(TRUE)` | `drown()` / `lava_effects()` / `dotrap()` -> `losehp()` | the `FIXME?` |
 | `retouch_equipment(2)` | artifact blast -> `losehp()`; also direct re-entry | `polyself.c:1022`: *"this might trigger a recursive call to polymon()"* |
 
-**Invariant preserved:** `retouch_equipment()` runs once per form change, and
-nothing after a form change configures the form that was replaced.
+The invariant this restores: `retouch_equipment()` runs once per form change,
+and nothing after a form change configures the form that was replaced.
 
 ### One boundary this does not fully close
 
-A guard *after* `break_armor()` returns is necessary but may not be sufficient:
-`break_armor()` caches `uptr` (the form it is working on) and keeps using it
-after an internal `Boots_off()` has re-entered form-changing code. Closing that
-properly needs either `break_armor()` to report invalidation to its caller, or
-a check at its own internal boundary. Flagged here rather than half-fixed.
+A guard *after* `break_armor()` returns is necessary but may not be
+sufficient. `break_armor()` caches `uptr`, the form it is working on, and keeps
+using it after an internal `Boots_off()` has re-entered form-changing code.
+Closing that properly needs either `break_armor()` to report the invalidation
+to its caller, or a check at its own internal boundary. It is flagged here
+rather than half-fixed, and it has its own bundle:
+[bug 08](../08-break-armor-stale-form/).
 
 Everything between the boundaries and the end of `polymon()` also reads
-`gy.youmonst.data` for a form the hero may no longer have (`Passes_walls` trap
-release, `likes_lava`, the `amorphous`/`is_whirly`/`unsolid` chain release, web
-and bear trap release, `check_strangling(TRUE)`, the `#monster` capability
-hints). Those all fail *closed* for a human, so they are not separately
-harmful — but the early returns stop them being evaluated at all.
+`gy.youmonst.data` for a form the hero may no longer have: the `Passes_walls`
+trap release, `likes_lava`, the `amorphous`/`is_whirly`/`unsolid` chain
+release, web and bear trap release, `check_strangling(TRUE)`, and the
+`#monster` capability hints. Those all fail closed for a human, so they are not
+separately harmful, but the early returns stop them being evaluated at all.
 
 ## Verification
 
 Applied to the pinned upstream tree (`16ff59115`) and rebuilt:
 
-| session | unpatched | patched |
+| session | stock | patched |
 |---|---|---|
-| witness A (lava) | 2 blasts | **1** ([`session-fixed.json`](session-fixed.json)) |
-| witness B (expels) | 2 blasts | **1** ([`session-expels-fixed.json`](session-expels-fixed.json)) |
+| route A (lava) | 2 blasts | **1** ([`session-fixed.json`](session-fixed.json)) |
+| route B (expels) | 2 blasts | **1** ([`session-expels-fixed.json`](session-expels-fixed.json)) |
 | control A | 1 blast | 1 (unchanged) |
 | control B | 1 blast | 1 (unchanged) |
 
-The RNG stream up to the polymorph is identical in each pair — the witnesses
-draw the same `rnd(4)=1` / `d(2,8)=10` form hit points before and after — so
+The RNG stream up to the polymorph is identical in each pair. Both witnesses
+draw the same `rnd(4)=1` and `d(2,8)=10` form hit points before and after, so
 the patch removes the duplicate pass and nothing else.
 
-## Related
-
-The `del_light_source()` `impossible()` reachable from the same re-entrancy
-window is a *separate* defect with a separate patch — see
-[bug 07](../07-polyself-light-delete-before-create/).
-These early returns do **not** fix it: that assertion fires inside
-`rehumanize()`, several frames below, before `polymon()` gets a chance to test
-anything. The two patches are independent and apply cleanly in either order.
-
-## Reproducing
+## Reproducing it from scratch
 
 ```
 bash bugs/06-polymon-nested-rehumanize/repro.sh
 ```
 
-Re-records `session.json` through a freshly built NetHack recorder binary and
-asserts that **two** `touch_artifact()` blasts fire after a single polymorph.
-It exits non-zero if only one fires — i.e. if the patch is already applied.
+That re-records [`session.json`](session.json) through a freshly built
+recorder binary and checks that **two** `touch_artifact()` blasts fire after a
+single polymorph. It exits non-zero if only one fires, which normally means the
+patch is already applied.
+
+The keystreams for both routes are annotated in
+[`repro-lava.kp`](repro-lava.kp) and [`repro-expels.kp`](repro-expels.kp),
+including why each ingredient is required.
+
+## Related bugs
+
+Two other defects live in the same re-entrancy window and have their own
+patches: [bug 07](../07-polyself-light-delete-before-create/), where
+`del_light_source()` is asked to remove a hero light source that was never
+created, and [bug 08](../08-break-armor-stale-form/), where `break_armor()`
+strips a reverted hero's gear by the old form's rules and kills them. All
+three are independent: each fix leaves the other two symptoms intact, and the
+patches apply in any order.
+
+The early returns here do **not** fix bug 07. That assertion fires inside
+`rehumanize()`, several frames below, before `polymon()` gets a chance to test
+anything.
 
 ## Credit
 

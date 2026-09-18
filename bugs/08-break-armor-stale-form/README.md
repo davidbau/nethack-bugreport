@@ -1,12 +1,11 @@
-# `break_armor()` keeps stripping gear by the old form's rules after the hero has reverted — and kills them
+# The game takes your water walking boots off while you stand in lava, and you die
 
-**Component:** `src/polyself.c` `break_armor()` (line 1157; the stale reads are
-at 1260, 1282 and 1300)
-**Severity:** MEDIUM / **fatal**. The hero's water walking boots are removed
-while they are standing in lava, by a rule that belongs to a form they no longer
-have. Death follows immediately.
-
-## Symptom
+Polymorphing into a small form makes the game strip the gear that form cannot
+wear. If the polymorph is undone in the middle of that stripping, the game
+carries on removing items by the rules of the form the hero no longer has. A
+human then loses their shield and their boots because a *newt* could not wear
+them. When the boots are water walking boots and the hero is standing on lava,
+that is fatal:
 
 ```
 You turn into a male newt!  You drop your gloves and weapon!
@@ -20,17 +19,79 @@ An item in your inventory has been destroyed.  You burn to a crisp...
 Die? [yn] (n)
 ```
 
-See [`visualization.html`](visualization.html) for the rendered before/after.
+The hero in that recording is a level 30 Valkyrie with 169 hit points. Lava
+does `d(6,6)` a turn, so lava alone could not kill them. They die because the
+game removed their water walking boots while they were in it.
 
-**No assertion fires.**  This is the most harmful of the three and the quietest:
-it never calls `impossible()` — verified across the recorded session.  The hero
-simply loses their gear and dies.  Of the three defects in this re-entrancy
-window, only [bug 07](../07-polyself-light-delete-before-create/) announces
-itself, and it is the least harmful of them.
+Nothing asserts. No `impossible()` fires and nothing reaches paniclog: the hero
+just loses their gear and dies, which looks from the outside like an ordinary
+death. Of the three defects in this part of `polyself.c` this is the most
+harmful and the quietest.
 
-## Root cause
+|  |  |
+|---|---|
+| Affects | NetHack 5.0 (the `NetHack-3.7` branch), `src/polyself.c` |
+| Severity | **Medium, fatal.** Kills a hero who would otherwise survive |
+| Reported upstream | not as of 2026-09-14 |
+| Recorded against | `NetHack/NetHack@16ff59115` |
 
-`break_armor()` caches the form once, at entry:
+## Watch it happen
+
+Step through the recorded session in the browser; no build required.
+
+- [**Buggy** (stock 5.0), the fatal moment](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/08-break-armor-stale-form/session.json#step=202)
+- [**Fixed** (with `proposed-fix.patch`), end of the run](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/08-break-armor-stale-form/session-fixed.json#step=200)
+
+Both runs use the same seed and the same keystrokes, and they agree through
+step 199. Then:
+
+| step | stock | patched |
+|---|---|---|
+| 200 | `You can no longer hold your shield!` | `The lava here burns you!` (still alive, 111 hit points) |
+| 201 | shield burns up in the lava | (run ends) |
+| 202 | `Your boots slide off your feet! You fall into the molten lava!` | |
+| 203 | `You burn to a crisp...` | |
+| 204 | `Die? [yn]` | |
+
+Scrub back to step 196 to see the polymorph, and 197 to see the revert that
+should have stopped the stripping.
+
+There is also a [static side-by-side view](visualization.html) of the same
+frames.
+
+## Reproducing it from scratch
+
+```
+bash bugs/08-break-armor-stale-form/repro.sh
+```
+
+That re-records [`session.json`](session.json) through a freshly built
+recorder binary and checks that the shield and the water walking boots are
+stripped after the revert and that the run ends in death. It exits non-zero if
+the hero survives, which normally means the patch is already applied.
+
+To set it up by hand, in wizard mode; the keystream is annotated in
+[`repro.kp`](repro.kp).
+
+1. Neutral **Valkyrie**, `OPTIONS=playmode:debug`, `#levelchange` to 30. The
+   large hit point pool is what makes the cause unambiguous: lava damage alone
+   cannot account for the death.
+2. Wish for **fireproof water walking boots** (wear them), **leather gloves**
+   (wear them), **The Heart of Ahriman** (wield it), a **ring of polymorph
+   control** (put it on) and a **wand of polymorph**.
+3. `#invoke` the Heart. The hero starts levitating.
+4. Wish for **lava** underfoot, which is safe while levitating.
+5. Zap the wand at yourself and choose **newt**. It is a level 0 form, so
+   `u.mhmax = rnd(4)`, and it is both `nohands` and `verysmall`, so the gloves
+   block in `break_armor()` fires.
+
+The boots have to be fireproof. `lava_effects()` burns organic boots away
+*before* it tests `Wwalking`, which would skip the survivable branch and hide
+this behind an ordinary lava death.
+
+## What the code is doing
+
+`break_armor()` caches the hero's form once, at entry:
 
 ```c
 break_armor(void)
@@ -39,11 +100,12 @@ break_armor(void)
     struct permonst *uptr = gy.youmonst.data;
 ```
 
-and then asks `uptr` — not the hero's *current* form — what to strip:
-`breakarm(uptr)`, `sliparm(uptr)`, `nohands(uptr)`, `verysmall(uptr)`,
-`slithy(uptr)`, `uptr->mlet == S_CENTAUR`, `is_whirly(uptr)`, `has_head(uptr)`.
+and from then on asks `uptr`, rather than the hero's *current* form, what to
+strip: `breakarm(uptr)`, `sliparm(uptr)`, `nohands(uptr)`, `verysmall(uptr)`,
+`slithy(uptr)`, `uptr->mlet == S_CENTAUR`, `is_whirly(uptr)`,
+`has_head(uptr)`.
 
-In between, its own gloves block calls `drop_weapon(0)`:
+In between those questions, its own gloves block calls `drop_weapon(0)`:
 
 ```c
     if (nohands(uptr) || verysmall(uptr)) {
@@ -54,12 +116,13 @@ In between, its own gloves block calls `drop_weapon(0)`:
 ```
 
 If the wielded item is an artifact whose `#invoke`d levitation is holding the
-hero up, releasing it ends that levitation — `finesse_ahriman()`'s own comment
-says so: *"if we aren't levitating or this isn't an artifact which confers
+hero up, releasing it ends that levitation. `finesse_ahriman()`'s own comment
+says as much: *"if we aren't levitating or this isn't an artifact which confers
 levitation via #invoke then freeinv() won't toggle levitation"*. So
-`freeinv()` -> `float_down()` puts the hero on whatever is below. If that is
-lava and the water walking boots are **still worn** (they come off in the
-*next* block), `lava_effects()` takes its survivable branch:
+`freeinv()` calls `float_down()`, which puts the hero on whatever is below.
+
+If that is lava and the water walking boots are **still worn** (they come off
+in the *next* block), then `lava_effects()` takes its survivable branch:
 
 ```c
     usurvive = Fire_resistance || (Wwalking && dmg < u.uhp);
@@ -68,77 +131,58 @@ lava and the water walking boots are **still worn** (they come off in the
                     if (usurvive) losehp(dmg, lava_killer, KILLED_BY);
 ```
 
-and `losehp()` (`hack.c:4310`) sees `Upolyd`, drives `u.mh` below 1 and calls
-`rehumanize()`. The hero is human again — **inside** `break_armor()`.
+`losehp()` (`hack.c:4310`) sees `Upolyd`, drives `u.mh` below 1 and calls
+`rehumanize()`. The hero is human again, *inside* `break_armor()`.
 
-`break_armor()` then resumes at its next sub-block with `uptr` still pointing at
-the newt, and strips a human's shield (`nohands`) and a human's water walking
-boots (`verysmall`). With the boots gone, the next `lava_effects()` no longer
-qualifies for the `losehp()` branch and goes straight to
-`u.uhp = -1; done(BURNING)`.
+`break_armor()` then resumes at its next sub-block with `uptr` still pointing
+at the newt, and strips a human's shield (because a newt has `nohands`) and a
+human's water walking boots (because a newt is `verysmall`). With the boots
+gone, the next `lava_effects()` no longer qualifies for the `losehp()` branch
+and goes straight to `u.uhp = -1; done(BURNING)`.
 
-The hero does not die of lava damage — a level-30 Valkyrie absorbs `d(6,6)`
-indefinitely. **They die because the game took their water walking boots off
-while they were standing in lava.**
+The stale reads are at `polyself.c:1260`, `1282` and `1300`.
 
-### Not a dangling pointer
+### This is not a dangling pointer
 
-`uptr` is stale but valid: `gy.youmonst.data` always points into the static
-`mons[]` table, which is never freed. `nohands(uptr)` is well-defined; it simply
-answers about the newt. This is a logic error, not memory unsafety.
+`uptr` is stale but valid. `gy.youmonst.data` always points into the static
+`mons[]` table, which is never freed, so `nohands(uptr)` is well-defined. It
+simply answers about the newt. This is a logic error, not memory unsafety.
 
-### Why `Boots_off()` is not the re-entry point
+### Why the re-entry point is `drop_weapon()`, not `Boots_off()`
 
 `Boots_off()` (`do_wear.c:262`) does `setworn((struct obj *) 0, W_ARMF);`
-**before** its switch, so by the time it calls `spoteffects(TRUE)` the boots are
-already unworn. Without `Wwalking`, lava goes to `done(BURNING)` and water to
-`drown()`, neither of which routes through `losehp()` — so no `rehumanize()`.
-The revert has to arrive one block **earlier**, at `drop_weapon(0)`, while the
-boots are still on. That ordering is the whole mechanism.
-
-## Minimal reproducer
-
-[`repro.kp`](repro.kp); recorded C output in
-[`session.json`](session.json), and the same keys against the
-patched binary in [`session-fixed.json`](session-fixed.json).
-
-1. Neutral **Valkyrie**, wizard mode; `#levelchange` to 30 (enough hp that lava
-   alone cannot kill, which is what makes the cause unambiguous).
-2. Wish **fireproof water walking boots** (wear), **leather gloves** (wear),
-   **The Heart of Ahriman** (wield), a **ring of polymorph control** (put on)
-   and a **wand of polymorph**.
-3. `#invoke` the Heart — the hero starts levitating.
-4. Wish **lava** underfoot (safe while levitating).
-5. Zap the wand at yourself and choose **newt** — level 0, so
-   `u.mhmax = rnd(4)`, and `nohands`/`verysmall`, so the gloves block fires.
-
-Fireproof boots matter: `lava_effects()` burns organic boots away *before*
-testing `Wwalking`, which would skip the survivable branch and mask the bug
-behind an ordinary death.
+*before* its switch, so by the time it calls `spoteffects(TRUE)` the boots are
+already unworn. Without `Wwalking`, lava goes to `done(BURNING)` and water goes
+to `drown()`, and neither routes through `losehp()`, so neither reaches
+`rehumanize()`. The revert has to arrive one block earlier, at
+`drop_weapon(0)`, while the boots are still on. That ordering is the whole
+mechanism.
 
 ## Proposed fix
 
-[`proposed-fix.patch`](proposed-fix.patch). Stop when the form the function is
-working on is no longer the hero's form:
+[`proposed-fix.patch`](proposed-fix.patch) stops the function when the form it
+is working on is no longer the hero's form:
 
 ```c
         if (gy.youmonst.data != uptr)
             return;
 ```
 
-placed at three sub-block boundaries — after the gloves block (before the
-shield), before the boots block, and before the eyewear block. Checking at
-*boundaries* rather than mid-block matters: each sub-block pairs an `_off()`
-with a `dropp()`, and bailing between them would leave an item half-removed.
+placed at three sub-block boundaries: after the gloves block and before the
+shield, before the boots block, and before the eyewear block.
 
-**Invariant preserved:** `break_armor()` only ever strips gear the hero's
-*current* form cannot wear.
+Checking at boundaries rather than mid-block matters. Each sub-block pairs an
+`_off()` call with a `dropp()`, and bailing out between those two would leave
+an item half-removed.
+
+The invariant this restores: `break_armor()` only ever strips gear that the
+hero's *current* form cannot wear.
 
 ## Verification
 
 Applied to the pinned upstream tree (`16ff59115`) and rebuilt. Same keystream:
 
-| | unpatched | patched |
+| | stock | patched |
 |---|---|---|
 | shield stripped from the reverted human | yes | **no** |
 | water walking boots stripped from the reverted human | yes | **no** |
@@ -146,31 +190,18 @@ Applied to the pinned upstream tree (`16ff59115`) and rebuilt. Same keystream:
 | outcome | dead | survives, taking ordinary `d(6,6)` lava damage |
 
 Everything up to the revert is identical; the patch changes only what happens
-after it.
+after it. Applying it alone does not disturb the other two bundles: the bug 06
+witnesses still show their two `touch_artifact()` blasts.
 
-Applying this patch alone does not disturb the other two bundles: the bug 06
-witnesses still show their two `touch_artifact` blasts.
-
-## Reproducing
-
-```
-bash bugs/08-break-armor-stale-form/repro.sh
-```
-
-Re-records `session.json` through a freshly built NetHack recorder binary and
-asserts that the hero's shield and water walking boots are stripped after the
-revert and that the run ends in death. It exits non-zero if they survive — i.e.
-if the patch is already applied.
-
-## Related
+## Related bugs
 
 Two other defects live in the same re-entrancy window and have their own
-patches: [bug 06](../06-polymon-nested-rehumanize/) (`polymon()` continuing
-past a nested `rehumanize()`) and
-[bug 07](../07-polyself-light-delete-before-create/)
-(`del_light_source()` before the source exists). All three are independent —
-each fix leaves the other two symptoms intact — and the patches apply in any
-order.
+patches: [bug 06](../06-polymon-nested-rehumanize/), where `polymon()`
+continues past a nested `rehumanize()` and re-touches equipment twice, and
+[bug 07](../07-polyself-light-delete-before-create/), where
+`del_light_source()` is asked to remove a hero light source that was never
+created. All three are independent: each fix leaves the other two symptoms
+intact, and the patches apply in any order.
 
-Bug 06 adds a guard *after* `break_armor()` returns; this bundle closes the
+Bug 06 adds a guard *after* `break_armor()` returns. This bundle closes the
 interior, which that guard cannot reach.

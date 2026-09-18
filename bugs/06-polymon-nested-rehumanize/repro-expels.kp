@@ -1,0 +1,39 @@
+# Bug 06, witness B (the expels() FIXME, polyself.c:931): polymon() keeps
+# running after a nested rehumanize().  This is the keystream recorded in
+# session-expels.json.
+#
+# The ochre jelly is the only engulfer that is neither MZ_HUGE nor whirly
+# (level 6, MZ_MEDIUM), so polymorphing into any MZ_LARGE+ form trips the
+# size test at polyself.c:915-918 and expels() fires.  A rothe is the
+# frailest such form (level 2, u.mhmax = d(2,8)).
+#
+# The damage comes from a land mine the hero sets under their own feet
+# (set_trap, apply.c:2918).  It survives the engulf because gulpmu()
+# moves the MONSTER onto the hero's square with place_monster() -- not
+# mintrap() -- and explicitly zeroes mtmp->mtrapped.  expels() ends in
+# spoteffects(TRUE), which fires the mine, and losehp() then reverts the
+# rothe from inside polymon().
+#
+# dotrap() has a 1-in-5 escape roll for an already-seen trap
+# (rn2(5) @ trap.c:3044); this seed rolls past it.
+#
+# Evidence: TWO d(2,10) @ touch_artifact(artifact.c:953) after one
+# polymorph.  Control: seed4246 (same but a form too small to be
+# expelled) has ONE.
+
+seed: 4244
+datetime: 20000110090000
+nethackrc: |
+  OPTIONS=name:r,role:Valkyrie,race:human,gender:female,align:neutral
+  OPTIONS=playmode:debug
+  OPTIONS=!autopickup
+  OPTIONS=!tutorial
+  OPTIONS=pettype:none
+  OPTIONS=time,showexp
+
+"\x1b#levelchange\n30\n                             "
+"\x17The Eye of the Aethiopica\n "
+"\x17ring of polymorph control\n"
+"\x17wand of polymorph\n"
+"\x17land mine\n"
+"\x173 blessed potions of full healing\nPe PfrhFhFhFhah\x07ochre jelly\n20s 20s 20s 20s 20s 20s 20s   20s qizg.rothe\n        "
