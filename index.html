@@ -264,7 +264,7 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
                     <a href="https://davidbau.github.io/nethack-bugreport/bugs/07-polyself-light-delete-before-create/visualization.html">static before/after</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/07-polyself-light-delete-before-create">README + patch</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/07-polyself-light-delete-before-create/proposed-fix.patch">fix.patch</a>
-                    <a href="https://github.com/davidbau/NetHack/commit/d682576ae5e1ddb702a14c663b546ffc797408fe">fix as a diff</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/9a5fcf78e91d292faee9295e4a4e6424efec6cc7">fix as a diff</a>
                 </div>
             </td>
             <td>low</td>
@@ -289,6 +289,24 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
             </td>
             <td>medium<br>(fatal)</td>
             <td>unreported<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">10</td>
+            <td>
+                <div class="bug-title">
+                    Polymorphing is not atomic: three defects in
+                    <code>polyself.c</code> from one re-entrant form change
+                    (unifies 06, 07 and 08)
+                </div>
+                <span class="bug-meta">explanatory bundle · the rule behind all three, the unified fix branch, and the three before/after replays</span>
+                <div class="actions">
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/10-polyself-reentrant-form-changes">README</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/10-polyself-reentrant-form-changes/proposed-fix.patch">unified fix.patch</a>
+                    <a href="https://github.com/davidbau/NetHack/compare/16ff59115315917b93185d026aeefea06db9b0f4...bugreport/10-polyself-reentrancy">unified branch (3 commits)</a>
+                </div>
+            </td>
+            <td>medium<br>(fatal)</td>
+            <td>still present<br>upstream</td>
         </tr>
         <tr>
             <td class="num">09</td>

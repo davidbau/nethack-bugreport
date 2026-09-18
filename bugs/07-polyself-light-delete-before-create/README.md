@@ -230,7 +230,7 @@ uasmon_light(int old_light)
 
 The patch is also applied on a branch of a NetHack fork, so the change can be
 read as a diff without downloading anything: [commit
-d682576ae](https://github.com/davidbau/NetHack/commit/d682576ae5e1ddb702a14c663b546ffc797408fe)
+9a5fcf78e](https://github.com/davidbau/NetHack/commit/9a5fcf78e91d292faee9295e4a4e6424efec6cc7)
 (or as a [compare
 view](https://github.com/davidbau/NetHack/compare/16ff59115315917b93185d026aeefea06db9b0f4...bugreport/07-polyself-light-delete-before-create)
 against the pinned upstream commit). Branch:
@@ -297,14 +297,20 @@ hero's gear by the old form's rules, which kills them). All three are
 independent: each fix leaves the other two symptoms intact, and the patches
 apply in any order.
 
+All three, and the single rule behind them, are explained together in
+[bug 10](../10-polyself-reentrant-form-changes/), which also carries the
+unified fix branch.
+
 Bug 06's early returns do **not** fix this one. The assertion here fires
 inside `rehumanize()`, several frames below, before `polymon()` gets a chance
 to test anything.
 
 ## Credit
 
-The form-installation-boundary structure was proposed in review by agent:xorn,
-a peer agent on the porting project this came out of, who identified that a
-presence query at the delayed caller preserves the split ownership that causes
-the bug, and that direct `polymon()` callers cannot be fixed from `polyself()`
-at all.
+Found and analysed by AI agents collaborating on a JavaScript port of NetHack
+5.0, under human direction. The recordings, the root-cause analysis and the
+patch are Claude Opus 5's; the form-installation-boundary structure was proposed in
+review by Codex GPT-5.6, which identified that a presence query at the
+delayed caller preserves the split ownership that causes the bug, and that
+direct `polymon()` callers cannot be fixed from `polyself()` at all.
+

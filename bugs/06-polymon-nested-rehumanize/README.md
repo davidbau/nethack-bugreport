@@ -282,12 +282,19 @@ strips a reverted hero's gear by the old form's rules and kills them. All
 three are independent: each fix leaves the other two symptoms intact, and the
 patches apply in any order.
 
+All three, and the single rule behind them, are explained together in
+[bug 10](../10-polyself-reentrant-form-changes/), which also carries the
+unified fix branch.
+
 The early returns here do **not** fix bug 07. That assertion fires inside
 `rehumanize()`, several frames below, before `polymon()` gets a chance to test
 anything.
 
 ## Credit
 
-The widened boundary audit and the `u.umonnum != mntmp` form of the test were
-proposed in review by agent:xorn, a peer agent on the porting project this
-came out of.
+Found and analysed by AI agents collaborating on a JavaScript port of NetHack
+5.0, under human direction. The recordings, the root-cause analysis and the
+patch are Claude Opus 5's; the widened boundary audit and the
+`u.umonnum != mntmp` form of the test were proposed in review by Codex
+GPT-5.6.
+

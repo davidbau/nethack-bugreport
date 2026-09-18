@@ -1,5 +1,5 @@
 diff --git a/src/polyself.c b/src/polyself.c
-index a3f31a0ab..063fc780e 100644
+index a3f31a0ab..9841367a3 100644
 --- a/src/polyself.c
 +++ b/src/polyself.c
 @@ -29,6 +29,7 @@ staticfn void drop_weapon(int);
@@ -129,7 +129,108 @@ index a3f31a0ab..063fc780e 100644
  
      /* New stats for monster, to last only as long as polymorphed.
       * Currently only strength gets changed.
-@@ -1390,8 +1402,6 @@ rehumanize(void)
+@@ -887,6 +899,18 @@ polymon(int mntmp)
+         skinback(FALSE);
+     break_armor();
+     drop_weapon(1);
++    /* Several of the calls between set_uasmon() above and the end of this
++       function can re-enter code which changes the hero's form again --
++       rehumanize() through losehp(), or another polymon() through
++       petrification.  Once that has happened, everything below is
++       configuring a form the hero no longer has, and worse, it redoes
++       cleanup (encumber_msg(), retouch_equipment()) which the nested
++       change has already performed.  Stop at each such boundary.
++       break_armor() -> Boots_off() -> spoteffects() and drop_weapon()
++       losing an invoked levitation artifact are both documented in the
++       comments of those functions. */
++    if (u.umonnum != mntmp)
++        return 1;
+     find_ac(); /* (repeated below) */
+     /* if hiding under something and can't hide anymore, unhide now;
+        but don't auto-hide when not already hiding-under */
+@@ -928,8 +952,9 @@ polymon(int mntmp)
+             }
+             expels(u.ustuck, u.ustuck->data, expels_mesg);
+             was_expelled = TRUE;
+-            /* FIXME? if expels() triggered rehumanize then we should
+-               return early */
++            /* expels() ends in spoteffects(), which can revert the hero */
++            if (u.umonnum != mntmp)
++                return 1;
+         }
+ 
+     /* [note:  this 'sticking' handling is only sufficient for changing from
+@@ -963,6 +988,10 @@ polymon(int mntmp)
+         if (!can_ride(u.usteed))
+             dismount_steed(DISMOUNT_POLY);
+     }
++    /* dismount_steed() -> teleds() -> spoteffects(), and instapetrify()
++       above can call polymon() directly */
++    if (u.umonnum != mntmp)
++        return 1;
+ 
+     find_ac();
+     if (((!Levitation && !u.ustuck && !Flying && is_pool_or_lava(u.ux, u.uy))
+@@ -970,8 +999,8 @@ polymon(int mntmp)
+         /* if expelled above, expels() already called spoteffects() */
+         && !was_expelled) {
+         spoteffects(TRUE);
+-        /* FIXME? if spoteffects() triggered rehumanize then we should
+-           return early */
++        if (u.umonnum != mntmp)
++            return 1;
+     }
+     if (Passes_walls && u.utrap
+         && (u.utraptype == TT_INFLOOR || u.utraptype == TT_BURIEDBALL)) {
+@@ -1022,7 +1051,10 @@ polymon(int mntmp)
+     /* this might trigger a recursive call to polymon() [stone golem
+        wielding cockatrice corpse and hit by stone-to-flesh, becomes
+        flesh golem above, now gets transformed back into stone golem;
+-       fortunately neither form uses #monster] */
++       fortunately neither form uses #monster] -- and a cross-aligned
++       artifact blast here can take u.mh below 1 and rehumanize() */
++    if (u.umonnum != mntmp)
++        return 1;
+     if (!uarmg)
+         selftouch(no_longer_petrify_resistant);
+ 
+@@ -1256,6 +1288,16 @@ break_armor(void)
+             /* Glib manipulation (ends immediately) handled by Gloves_off */
+             dropp(otmp);
+         }
++        /* drop_weapon() above can release an artifact whose #invoked
++           levitation is keeping the hero up; freeinv() then ends it and
++           float_down() can land the hero in water or lava, whose damage
++           reverts the form through losehp() -> rehumanize().  Every test
++           below asks about 'uptr' -- the form the hero no longer has --
++           so stop here rather than strip a human's gear by a monster's
++           rules.  (Checked at sub-block boundaries so that no item is
++           left half-removed.) */
++        if (gy.youmonst.data != uptr)
++            return;
+         if ((otmp = uarms) != 0) {
+             You("can no longer hold your shield!");
+             (void) Shield_off();
+@@ -1270,6 +1312,8 @@ break_armor(void)
+             dropp(otmp);
+         }
+     }
++    if (gy.youmonst.data != uptr)
++        return; /* as above */
+     if (nohands(uptr) || verysmall(uptr)
+         || slithy(uptr) || uptr->mlet == S_CENTAUR) {
+         if ((otmp = uarmf) != 0) {
+@@ -1288,6 +1332,9 @@ break_armor(void)
+        it/them on (should also come off if head is too tiny or too huge,
+        but putting accessories on doesn't reject those cases [yet?]);
+        amulet stays worn */
++    if (gy.youmonst.data != uptr)
++        return; /* as above; Boots_off() -> spoteffects() is another
++                   re-entrant boundary */
+     if ((otmp = ublindf) != 0 && !has_head(uptr)) {
+         int l;
+         const char *eyewear = simpleonames(otmp); /* blindfold|towel|lenses */
+@@ -1390,8 +1437,6 @@ rehumanize(void)
       * reverts to human rather than to vampire.
       */
  

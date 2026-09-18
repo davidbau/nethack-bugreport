@@ -223,5 +223,9 @@ continues past a nested `rehumanize()` and re-touches equipment twice, and
 created. All three are independent: each fix leaves the other two symptoms
 intact, and the patches apply in any order.
 
+All three, and the single rule behind them, are explained together in
+[bug 10](../10-polyself-reentrant-form-changes/), which also carries the
+unified fix branch.
+
 Bug 06 adds a guard *after* `break_armor()` returns. This bundle closes the
 interior, which that guard cannot reach.
