@@ -31,6 +31,10 @@ checked 2026-09-18, and all three were recorded against
 [`bugreport/10-polyself-reentrancy`](https://github.com/davidbau/NetHack/compare/16ff59115315917b93185d026aeefea06db9b0f4...bugreport/10-polyself-reentrancy)
 holds three proposed commits, one per defect, which together fix all of them.
 
+Filed upstream on 2026-09-18: issue [NetHack/NetHack#1682](https://github.com/NetHack/NetHack/issues/1682) with
+companion pull request [#1681](https://github.com/NetHack/NetHack/pull/1681), which carries the three commits and the
+reasoning below.
+
 ## The three scenarios
 
 Below are recorded session repros for each of the three problems, and for the
@@ -127,7 +131,7 @@ another:
 | [`e21c87732`](https://github.com/davidbau/NetHack/commit/e21c8773279d77160e29706c3bd4ef8ac4f5ada3) | move light ownership to form installation | 07 |
 | [`2dc124672`](https://github.com/davidbau/NetHack/commit/2dc124672878074a8fbf2c2380e23509084df08d) | three re-checks inside `break_armor()` | 08 |
 
-Combined: `src/polyself.c` +70/-27, `src/timeout.c` -2, no other file.
+Combined: `src/polyself.c` +70/-25 and `src/timeout.c` +1/-3, no other file.
 [`proposed-fix.patch`](proposed-fix.patch) is the whole thing as one diff.
 
 ### Part 1: give the light source to whoever installs the form

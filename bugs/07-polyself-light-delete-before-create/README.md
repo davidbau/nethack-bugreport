@@ -36,6 +36,7 @@ under "Three symptoms, one cause" below.
 | Affects | NetHack 5.0 (the `NetHack-3.7` branch), `src/polyself.c` |
 | Severity | Low. `impossible()`, no state corruption; a hard stop under the fuzzer |
 | Upstream status | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0) (checked 2026-09-18): `made_change:` is still the only creator and `rehumanize()` still deletes unconditionally. No upstream fix. |
+| Reported | reported upstream as [#1682](https://github.com/NetHack/NetHack/issues/1682), with [PR #1681](https://github.com/NetHack/NetHack/pull/1681), which covers this defect together with the other two in the same window |
 | Recorded against | `NetHack/NetHack@16ff59115` |
 
 ## Watch it happen
