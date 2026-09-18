@@ -11,6 +11,10 @@ no matching issue or PR).
 `init_level()` function in `src/dungeon.c` and the constants in
 `include/dgn_file.h` have not changed for many years).
 
+Re-checked 2026-09-18: still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0) --
+`dgn_file.h` still has `UNCONNECTED 0x10` and
+`D_ALIGN_CHAOTIC (AM_CHAOTIC << 4)`, which is also `0x10`.
+
 **Not patch-induced:** the bug is in pure bit math involving
 header-defined macros (`UNCONNECTED`, `D_ALIGN_CHAOTIC`,
 `D_ALIGN_MASK`) and the data layout of `struct tmpdungeon`. The
@@ -57,8 +61,7 @@ prevent the buggy `flags.align` from ever being read:
    `induced_align()`, the second consumer of `flags.align`.
 
 Result: zero observable in-game symptoms.  The bug was originally
-surfaced during the JavaScript port of NetHack 3.7
-([davidbau/teleport](https://github.com/davidbau/teleport)) by
+surfaced during a JavaScript port of NetHack 3.7 by
 **direct test invocation** of `rndmonst_adj()` against a Tutorial
 level — not by gameplay.  The JS port produced cumulative weights
 of `3,4,5,…,21`, the C recorder produced `5,8,11,…,39` (+2 per
@@ -262,8 +265,7 @@ also possible but would break the on-disk save format.
 **Verified locally:** the standalone `repro.c` shows the math
 collision; the proposed fix is reflected in the `if-the-fix-were-
 applied` block of repro.c (the `>> 4` computation that uses
-`tmpdungeon.align`).  The JavaScript port at
-[davidbau/teleport](https://github.com/davidbau/teleport) reproduces
+`tmpdungeon.align`).  The JavaScript port reproduces
 the bug verbatim today (Tutorial monster weights match the
 `AM_CHAOTIC` C output bit-for-bit); see LORE entry "22. The
 UNCONNECTED / D_ALIGN_CHAOTIC bitfield collision" for the trace

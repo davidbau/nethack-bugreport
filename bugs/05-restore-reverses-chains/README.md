@@ -9,6 +9,10 @@
 **NetHack version:** 5.0.0 (the same code shape goes back decades in
 the 3.x line).
 
+Re-checked 2026-09-18: still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0) --
+`stairway_add()` (`stairs.c:8`) still prepends with
+`tmp->next = gs.stairs; gs.stairs = tmp;`.
+
 **Severity:** LOW. Almost every lookup into these lists is by map
 coordinate, where order cannot matter. But a handful of behaviors take
 "the first staircase going up" (or down) from the list, and on levels

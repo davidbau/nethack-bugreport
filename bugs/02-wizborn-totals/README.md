@@ -10,6 +10,10 @@ no matching issue or PR).
 `doborn()` function in `src/insight.c` has not changed in the
 totals area for several years).
 
+Re-checked 2026-09-18: still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0) --
+`doborn()` still builds the totals row with `Sprintf` and then calls
+`display_nhwindow()` with no `putstr` in between.
+
 **Not patch-induced:** the recorder binary used by `repro.sh` is
 built from `nethack-c/upstream/` with the patches in
 `nethack-c/patches/`. Those patches only add marker emission for

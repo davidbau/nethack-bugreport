@@ -27,7 +27,7 @@ this can happen with `FIXME?` comments; the audit below finds five.
 |---|---|
 | Affects | NetHack 5.0 (the `NetHack-3.7` branch), `src/polyself.c` |
 | Severity | Low, but player-visible: a duplicate message and a duplicate damage roll |
-| Reported upstream | not as of 2026-09-14. Both sites already carry a DevTeam `FIXME?` |
+| Upstream status | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0) (checked 2026-09-18): both `FIXME?`s are there and `polymon()` still has no guard. No upstream fix. |
 | Recorded against | `NetHack/NetHack@16ff59115` |
 
 ## Watch it happen

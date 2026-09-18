@@ -8,6 +8,10 @@ and [PRs](https://github.com/NetHack/NetHack/pulls) for `make_glib`,
 **NetHack version:** 5.0.0 (the line is unchanged for years in the
 3.7 line too).
 
+Re-checked 2026-09-18: still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0) --
+`make_glib()` (`potion.c:461`) is byte-identical to the pinned version,
+`disp.botl |= (!Glib ^ !!xtime);` included.
+
 **Severity:** LOW, but genuinely visible. The status line offers an
 opt-in "Slip" condition indicator (`OPTIONS=cond_slip`) that is
 supposed to show while your fingers are slippery with grease. Because

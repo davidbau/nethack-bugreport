@@ -35,15 +35,15 @@ infrastructure.
 
 | # | Title | Severity | Status |
 |---|---|---|---|
-| [01](bugs/01-vault-guard-parkguard-newsym/) | `impossible("newsym: attempting screen update for <0,0>")` when vault guard parks — via `postmov()` | low (cosmetic + extra `--More--`s, no state corruption) | **fixed upstream in `c42d35eac`**; a second path remains, see [09](bugs/09-see-monsters-parked-guard/) |
-| [02](bugs/02-wizborn-totals/) | `#wizborn` totals row computed via `Sprintf` but never `putstr`'d (wizmode summary row missing) | low (wizmode-only cosmetic) | unreported upstream as of 2026-06-19 |
-| [03](bugs/03-tutorial-alignment-collision/) | Tutorial dungeon silently inherits `AM_CHAOTIC` via `UNCONNECTED` ↔ `D_ALIGN_CHAOTIC` bit collision in `init_level` | low (latent — suppressed downstream by `tut-1.lua`'s `nomongen`) | unreported upstream as of 2026-06-19 |
-| [04](bugs/04-make-glib-xor-typo/) | The "Slip" status condition never displays — `make_glib` botl-dirty test inverted by a one-`!` typo | low (visible with `OPTIONS=cond_slip`; gameplay unaffected) | unreported upstream as of 2026-07-31 |
-| [05](bugs/05-restore-reverses-chains/) | Leaving and revisiting a level reverses its trap/stairway/engraving/exclusion lists — "first staircase" flips identity, moving covetous-monster retreats and Kop spawn points on two-staircase levels | low (visible on Sokoban/Mines entrance levels) | unreported upstream as of 2026-07-31 |
-| [06](bugs/06-polymon-nested-rehumanize/) | One polymorph, two artifact blasts: `polymon()` keeps running after something inside it has already undone the polymorph, so `retouch_equipment()` runs twice | low (player-visible duplicate message and damage roll; two DevTeam `FIXME?`s already mark it) | unreported upstream as of 2026-09-14 |
-| [07](bugs/07-polyself-light-delete-before-create/) | Polymorphing into a glowing form can print "Program in disorder!": the hero's light source is created one stack frame too late, so an interrupted polymorph deletes a source that does not exist yet | low (`impossible()`; also leaks a source permanently on the `were.c` path, and stops the DevTeam's fuzzer) | unreported upstream as of 2026-09-14 |
-| [08](bugs/08-break-armor-stale-form/) | The game takes a reverted hero's water walking boots off while they stand in lava, because `break_armor()` is still applying the old form's rules | **medium (fatal)** — kills a hero who would otherwise survive | unreported upstream as of 2026-09-14 |
-| [09](bugs/09-see-monsters-parked-guard/) | Same `newsym(0,0)` assertion as 01, but via `see_monsters()` — the loop is missing the off-map guard that `monmove.c`, `minion.c`, `sp_lev.c` and `wizard.c` all have | low (`impossible()`; hard stop under the DevTeam's fuzzer) | unreported upstream as of 2026-09-14 |
+| [01](bugs/01-vault-guard-parkguard-newsym/) | `impossible("newsym: attempting screen update for <0,0>")` when vault guard parks — via `postmov()` | low (cosmetic + extra `--More--`s, no state corruption) | **fixed upstream in `c42d35eac`**; the second path, [09](bugs/09-see-monsters-parked-guard/), was fixed later in `d13eceb28` |
+| [02](bugs/02-wizborn-totals/) | `#wizborn` totals row computed via `Sprintf` but never `putstr`'d (wizmode summary row missing) | low (wizmode-only cosmetic) | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
+| [03](bugs/03-tutorial-alignment-collision/) | Tutorial dungeon silently inherits `AM_CHAOTIC` via `UNCONNECTED` ↔ `D_ALIGN_CHAOTIC` bit collision in `init_level` | low (latent — suppressed downstream by `tut-1.lua`'s `nomongen`) | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
+| [04](bugs/04-make-glib-xor-typo/) | The "Slip" status condition never displays — `make_glib` botl-dirty test inverted by a one-`!` typo | low (visible with `OPTIONS=cond_slip`; gameplay unaffected) | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
+| [05](bugs/05-restore-reverses-chains/) | Leaving and revisiting a level reverses its trap/stairway/engraving/exclusion lists — "first staircase" flips identity, moving covetous-monster retreats and Kop spawn points on two-staircase levels | low (visible on Sokoban/Mines entrance levels) | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
+| [06](bugs/06-polymon-nested-rehumanize/) | One polymorph, two artifact blasts: `polymon()` keeps running after something inside it has already undone the polymorph, so `retouch_equipment()` runs twice | low (player-visible duplicate message and damage roll; two DevTeam `FIXME?`s already mark it) | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
+| [07](bugs/07-polyself-light-delete-before-create/) | Polymorphing into a glowing form can print "Program in disorder!": the hero's light source is created one stack frame too late, so an interrupted polymorph deletes a source that does not exist yet | low (`impossible()`; also leaks a source permanently on the `were.c` path, and stops the DevTeam's fuzzer) | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
+| [08](bugs/08-break-armor-stale-form/) | The game takes a reverted hero's water walking boots off while they stand in lava, because `break_armor()` is still applying the old form's rules | **medium (fatal)** — kills a hero who would otherwise survive | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
+| [09](bugs/09-see-monsters-parked-guard/) | Redrawing the screen just after a vault guard leaves prints `newsym(0,0)`'s `impossible()`: `see_monsters()` was missing the off-map guard that `monmove.c`, `minion.c`, `sp_lev.c` and `wizard.c` all have | low (`impossible()`; hard stop under the DevTeam's fuzzer) | **fixed upstream in [`d13eceb28`](https://github.com/NetHack/NetHack/commit/d13eceb28bc84a36d09254a7e1d8b939115afab6)** (2026-06-14) |
 
 ## Setup (once)
 
@@ -109,6 +109,7 @@ fork, so it can be read as a diff in the browser and fetched directly:
 | 06 | `bugreport/06-polymon-nested-rehumanize` | [commit 8076a1822](https://github.com/davidbau/NetHack/commit/8076a18220413d8bc6e0ff871c06fa420c8f5793) |
 | 07 | `bugreport/07-polyself-light-delete-before-create` | [commit d682576ae](https://github.com/davidbau/NetHack/commit/d682576ae5e1ddb702a14c663b546ffc797408fe) |
 | 08 | `bugreport/08-break-armor-stale-form` | [commit e38656987](https://github.com/davidbau/NetHack/commit/e38656987319c8e62f13c428ef3ae6837f7faa3a) |
+| 09 | `bugreport/09-see-monsters-parked-guard` | [commit f7f5a644c](https://github.com/davidbau/NetHack/commit/f7f5a644ce2cc579dc4ad5630d36148cb822c9ee) (superseded by upstream `d13eceb28`) |
 
 All three branch from `NetHack/NetHack@16ff59115`, the commit the
 `nethack-c/upstream` submodule is pinned to and the commit every session
@@ -132,16 +133,17 @@ would notice in normal play (bug 01 vault-guard `--More--`
 cascade; bug 02 `#wizborn` missing totals row).
 
 1. Record a session that triggers the bug.  Easiest method: replay
-   in the [Teleport browser port](https://mazesofmenace.ai/play/)
+   in the [Teleport browser port](https://nethack.games/)
    with the live parity-check server enabled, which writes a
    candidate session JSON on every divergence.
 2. `mkdir bugs/NN-slug/` (next number, descriptive slug).
 3. Copy the session into `bugs/NN-slug/session.json`.
 4. *(Optional but recommended)* re-record the same session against
    a C binary with `proposed-fix.patch` applied and ship the result
-   as `session-fixed.json`.  See the staging-area
-   [workflow notes](https://github.com/davidbau/teleport/blob/main/docs/upstream-reports/README.md)
-   for the rebuild loop (~30s round-trip for a one-`.c` change).
+   as `session-fixed.json`.  The rebuild loop is a ~30s round-trip for a
+   one-`.c` change: patch the source, `make` the one object file, relink,
+   copy the binary into the install path, and re-record the session with
+   its `steps` and `checkpoints` stripped so the whole keystream replays.
 5. Write `README.md` with: symptom, repro steps, root-cause
    analysis referencing specific files/lines in
    `nethack-c/upstream/src/`.
