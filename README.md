@@ -45,6 +45,10 @@ infrastructure.
 | [08](bugs/08-break-armor-stale-form/) | The game takes a reverted hero's water walking boots off while they stand in lava, because `break_armor()` is still applying the old form's rules | **medium (fatal)** — kills a hero who would otherwise survive | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
 | [09](bugs/09-see-monsters-parked-guard/) | Redrawing the screen just after a vault guard leaves prints `newsym(0,0)`'s `impossible()`: `see_monsters()` was missing the off-map guard that `monmove.c`, `minion.c`, `sp_lev.c` and `wizard.c` all have | low (`impossible()`; hard stop under the DevTeam's fuzzer) | **fixed upstream in [`d13eceb28`](https://github.com/NetHack/NetHack/commit/d13eceb28bc84a36d09254a7e1d8b939115afab6)** (2026-06-14) |
 | [10](bugs/10-polyself-reentrant-form-changes/) | **Explanatory bundle for 06, 07 and 08**: polymorphing is not atomic, and the code after the form change assumes it is. One rule, three defects, one unified fix branch | medium (08 is fatal) | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
+| [12](bugs/12-fort-ludios-annotation-flip/) | Fort Ludios never gets its `#overview` annotation on the half of games where `flip_level_rnd()` mirrors the level: the award looks for the throne four columns to the left of the entrance, and after a flip it is four columns to the right | low (cosmetic, but affects ~half of all games) | still present at the `NetHack-5.0` tip [`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0), checked 2026-09-18 |
+
+Bundle 11 is reserved for a dwarven-digging arithmetic bug that is
+analysed but not yet written up, so the numbering skips it for now.
 
 ## Setup (once)
 
@@ -112,6 +116,7 @@ fork, so it can be read as a diff in the browser and fetched directly:
 | 08 | `bugreport/08-break-armor-stale-form` | [commit e38656987](https://github.com/davidbau/NetHack/commit/e38656987319c8e62f13c428ef3ae6837f7faa3a) |
 | 09 | `bugreport/09-see-monsters-parked-guard` | [commit f7f5a644c](https://github.com/davidbau/NetHack/commit/f7f5a644ce2cc579dc4ad5630d36148cb822c9ee) (superseded by upstream `d13eceb28`) |
 | 06+07+08 | `bugreport/10-polyself-reentrancy` | [3-commit compare view](https://github.com/davidbau/NetHack/compare/16ff59115315917b93185d026aeefea06db9b0f4...bugreport/10-polyself-reentrancy) |
+| 12 | `bugreport/12-fort-ludios-annotation-flip` | [commit 6d3963b4a](https://github.com/davidbau/NetHack/commit/6d3963b4a1c9f32602acac246a1e47fc4b1fdc05) |
 
 All three branch from `NetHack/NetHack@16ff59115`, the commit the
 `nethack-c/upstream` submodule is pinned to and the commit every session

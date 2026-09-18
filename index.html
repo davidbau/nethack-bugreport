@@ -328,6 +328,26 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
             <td>low</td>
             <td><b>fixed upstream</b><br>in d13eceb28</td>
         </tr>
+        <tr>
+            <td class="num">12</td>
+            <td>
+                <div class="bug-title">
+                    Fort Ludios never gets its <code>#overview</code>
+                    annotation on the half of games where the level flips
+                    horizontally
+                </div>
+                <span class="bug-meta">seed 19 flipped (no label) vs seed 7027 unflipped (label) · verified by rebuild: same keystream, same 24,043 RNG entries, label absent then present</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/12-fort-ludios-annotation-flip/session.json#step=105">▶ replay (flipped, label missing)</a>
+                    <a href="tools/session-viewer/?session=bugs/12-fort-ludios-annotation-flip/session-unflipped.json#step=104">▶ replay (not flipped, label present)</a>
+                    <a href="tools/session-viewer/?session=bugs/12-fort-ludios-annotation-flip/session-fixed.json#step=105">▶ replay (after fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/12-fort-ludios-annotation-flip">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/6d3963b4a1c9f32602acac246a1e47fc4b1fdc05">fix as a diff</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>still present<br>upstream</td>
+        </tr>
     </tbody>
 </table>
 
