@@ -44,13 +44,25 @@ upstream fixed it is more interesting than the patch proposed below.
 
 ## Watch it happen
 
-[**Replay the recorded game, at the first firing**](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/09-see-monsters-parked-guard/session.json#step=137)
-No build required. Step back to 136 for `Suddenly, the guard disappears.`
-and forward through 140 and 143, where the same assertion fires twice more as
-the display is refreshed again.
+Two recordings are shipped, and they play different roles.
 
-This is a real game, not a constructed scenario: the recording comes from a
-public NAO game replayed keystroke for keystroke.
+**[`session-directed.json`](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/09-see-monsters-parked-guard/session-directed.json#step=73) is the one to
+run** ([step 73](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/09-see-monsters-parked-guard/session-directed.json#step=73), the first of five
+firings; the others are at 78, 83, 88 and 93). It is a 97-key wizard-mode
+scenario built from the mechanics rather than found in play: teleport into a
+vault, wait out `VAULT_GUARD_TIME`, get escorted out carrying no gold, and then
+stay standing in the temporary corridor when the guard parks. `clear_fcorr()`
+will not dispose of the guard while the hero is on one of its squares, so every
+`see_monsters()` call in that window trips the assertion. `^T` onto your own
+square is the cheapest trigger, since `teleds()` calls `see_monsters()`
+unconditionally (`teleport.c:537`). Step back to 72 to see the teleport prompt.
+
+**[`session.json`](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/09-see-monsters-parked-guard/session.json#step=137) is a historical witness** from
+a real NAO game, replayed keystroke for keystroke, with firings at
+[137](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/09-see-monsters-parked-guard/session.json#step=137), 140 and 143 (step 136 is
+`Suddenly, the guard disappears.`). It shows the defect happening to a player
+who was not looking for it. It no longer re-records, for reasons in
+"Verification" below, so use the directed one if you are rebuilding.
 
 ## Reproducing it by hand
 
@@ -65,17 +77,17 @@ nhmall's own recipe, from the fix commit, is the shortest route:
 Either action calls `see_monsters()`, which walks `fmon` and redraws the parked
 guard.
 
-The recorded session reproduces it without any of that:
+The shipped scenario does all of that for you:
 
 ```
 bash bugs/09-see-monsters-parked-guard/repro.sh
 ```
 
-That re-records [`session.json`](session.json) through a freshly built recorder
-binary and checks that `newsym: attempting screen update` appears. Note the
-caveat in the script: on a tree that predates `c42d35eac` the older
-`postmov()` path fires as well, so the message alone does not tell you which
-call site produced it.
+That re-records [`session-directed.json`](session-directed.json) through a
+freshly built recorder binary and checks that
+`newsym: attempting screen update` appears. One caveat from the script: on a
+tree that predates `c42d35eac` the older `postmov()` path fires as well, so the
+message alone does not tell you which call site produced it.
 
 ## What the code is doing
 
@@ -205,24 +217,47 @@ Four independent recordings, different roles and seeds, all from real games:
 
 | session | role | steps | `impossible()` at |
 |---|---|---|---|
+| [`session-directed.json`](session-directed.json) (`vault-guard-parked-newsym-s902`) | Wizard, wizmode | 97 | 73, 78, 83, 88, 93 |
 | [`session.json`](session.json) (`nao-val-eiy51p-s3675-rcwildkatz`) | Valkyrie | 220 | 137, 140, 143 |
 | `nao-tou-1dmu1g-s8361-rcjorgejarai` | Tourist | 445 | 107, 111, 115 |
 | `cov-wear-every-armor-s5012` | — | 479 | 117, 120, 123 |
 | `nao-tou-mnzci-s4359-rcrzepol` | Tourist | 752 | 94, 98, 106 |
 
-The shipped one is the shortest. All four are registered regression fixtures in
-the JavaScript port that this bundle came out of, and all four pass every
-channel exactly — the port reproduces C's RNG stream, event order and screen
+The first is the directed scenario; the four below it were found in ordinary
+play, which is what shows this happens without being aimed at. All five are
+registered regression fixtures in the JavaScript port that this bundle came out
+of, and all five pass every channel exactly — the port reproduces C's RNG stream, event order and screen
 output including this assertion. That is what establishes the behaviour is C's
 and not an artefact of how the sessions were captured.
 
-## Verification status
+## Verification
 
-The analysis, the witnesses and the patch were never checked against a binary
-rebuilt with the patch applied, which was this bundle's one gap. It is now
-moot: `d13eceb28` is upstream's own fix for the same call site, and its commit
-message describes the same trigger (`^R`, or save and restore, right after the
-guard disappears) arrived at independently.
+The narrow patch was rebuilt and replayed both ways on the same seed, datetime
+and keystream: **5 assertions unpatched, 0 patched**, with
+`Suddenly, the guard disappears.` still printing once in each run as a control
+that the patched build reached the same game state rather than skipping the
+scenario. Reverting the source and rebuilding restored the baseline exactly:
+the fresh recording was RNG-identical to the shipped one and the five
+assertions came back.
+
+Upstream's `d13eceb28` is independent corroboration, and its commit message
+arrives at the same trigger (`^R`, or save and restore, right after the guard
+disappears) without reference to any of this.
+
+### Why the NAO recordings no longer re-record
+
+The four found-in-play recordings below still replay frame for frame, which is
+why the viewer shows them, and they are still exact regression fixtures in the
+JavaScript port. But a *fresh* C recording of the same seed, datetime and
+keystream no longer produces the same game: it parts from the shipped RNG
+stream at draw 2486, because they were recorded against a harness patch stack
+that has since changed, and the replacement game never parks a guard.
+
+That is the reason the directed scenario exists and is the one `repro.sh` uses.
+A recording found in play is evidence that a defect reaches real players; it is
+not a durable reproducer, because it depends on a whole game's RNG stream
+staying identical. A scenario built from the mechanics depends only on the
+mechanics.
 
 Tracked in the porting project this came out of as issue 1585; that
 repository is not public, so the analysis that matters is reproduced above.
