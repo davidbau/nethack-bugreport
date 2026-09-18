@@ -1,4 +1,4 @@
-# Polymorphing is not atomic, and the code after the form change assumes it is
+# Polymorphing can trigger a 2nd form change that code needs to handle
 
 Three separate defects in `src/polyself.c` come from one fact about the code:
 changing the hero's form is a long sequence, not a single step, and something
