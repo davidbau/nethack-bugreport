@@ -14,17 +14,13 @@ and when `u.mh` reaches zero the game reverts you to human, by calling
 and the rest of the sequence runs to completion, still configuring the monster
 you are no longer.
 
-Three distinct bugs arise in that window, and they look nothing alike from a
-player's chair:
+Three distinct bugs arise in that window:
 
 | | what you see | bundle |
 |---|---|---|
 | A light source is deleted that was never created | `del_light_source: not found`, `Program in disorder!`, a request to mail the DevTeam | [bug 07](../07-polyself-light-delete-before-create/) |
 | Cleanup runs twice for one polymorph | one polymorph, **two** artifact blasts and two damage rolls | [bug 06](../06-polymon-nested-rehumanize/) |
 | Decisions keep being made by the superseded form's rules | a **human** is stripped of their water walking boots because a *newt* could not wear them, while standing in lava; fatal | [bug 08](../08-break-armor-stale-form/) |
-
-Each has its own bundle, with its own recordings and its own patch; this one
-covers all three.
 
 The affected code is `src/polyself.c` (`polymon()`, `polyself()` and
 `break_armor()`) plus one line in `src/timeout.c`. All three are present at

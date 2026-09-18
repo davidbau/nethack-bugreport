@@ -329,6 +329,24 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
             <td><b>fixed upstream</b><br>in d13eceb28</td>
         </tr>
         <tr>
+            <td class="num">11</td>
+            <td>
+                <div class="bug-title">
+                    The dwarven digging bonus doubles the accumulated effort
+                    instead of the per-turn increment, so dwarves dig 2.6x to
+                    5.3x faster rather than 2x
+                </div>
+                <span class="bug-meta">static reproducer, no game build needed · the advantage is not constant, which is the tell · unchanged since 2002</span>
+                <div class="actions">
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/11-dwarf-dig-accumulator">README + repro.c</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/11-dwarf-dig-accumulator/proposed-fix.patch">fix.patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/de56289519c8b4776fe14d194a58fb7d7c742e37">fix as a diff</a>
+                </div>
+            </td>
+            <td>low<br>(balance)</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
             <td class="num">12</td>
             <td>
                 <div class="bug-title">
