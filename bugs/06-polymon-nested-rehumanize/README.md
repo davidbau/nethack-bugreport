@@ -82,6 +82,13 @@ d(2,10)=12    @ touch_artifact(artifact.c:953)   <- blast 1
 d(2,10)=11    @ touch_artifact(artifact.c:953)   <- blast 2
 ```
 
+The `@ file:line` annotations in those two excerpts are the recorder's own
+output, so they carry the line numbers of the instrumented build rather than
+of stock upstream. Files that take marker patches drift by a few lines:
+`trap.c` by 7, `mhitu.c` by 1, while `polyself.c` and `artifact.c` match
+exactly. Every line number in the prose below is against the pinned upstream
+commit.
+
 Two controls, not shipped here, pin the mechanism down. Both use the same
 keystrokes as a witness with one ingredient removed: control A drops the lava
 wish, control B uses a form too small to be expelled. In both controls the
@@ -93,7 +100,7 @@ the existing recursion guard is not the thing that is broken.
 
 ## What the code is doing
 
-`polymon()` (`polyself.c:735-1071`) has exactly one early exit, the "cannot
+`polymon()` ([`polyself.c:735-1071`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L735-L1071)) has exactly one early exit, the "cannot
 become that" `return 0` at line 747. Two of the calls it makes can revert the
 hero in the middle of the function, and the source flags both:
 
@@ -110,6 +117,9 @@ hero in the middle of the function, and the source flags both:
            return early */
 ```
 
+Source: [`src/polyself.c:929-932`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L929-L932) and
+[`src/polyself.c:972-974`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L972-L974).
+
 When one of those does trigger a revert, `rehumanize()` runs to completion,
 including its own cleanup: `encumber_msg()` at `polyself.c:1410` and
 `retouch_equipment(2)` at `polyself.c:1415`. Control then returns into
@@ -122,6 +132,8 @@ including its own cleanup: `encumber_msg()` at `polyself.c:1410` and
     if (!nesting++)
         clear_bypasses(); /* init upon initial entry */
 ```
+
+Source: [`src/artifact.c:2659-2660`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/artifact.c#L2659-L2660).
 
 That guard only helps when the two calls nest. Here they are sequential:
 `rehumanize()`'s call has already returned and decremented `nesting` back to 0,
@@ -146,16 +158,20 @@ always dies inside `polymon()`'s own `spoteffects()` call. The survival test in
                     if (usurvive) losehp(dmg, lava_killer, KILLED_BY);
 ```
 
+Source: [`src/trap.c:6811`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/trap.c#L6811) and the `Wwalking` branch at
+[`src/trap.c:6872-6875`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/trap.c#L6872-L6875).
+
 That mismatch is what lets a healthy hero in a frail form pass the check and
 still lose the form.
 
 **Route B.** The same hero sets a land mine at their feet, is swallowed by an
 ochre jelly, then polymorphs into a rothe. The ochre jelly is the only engulfer
 that is neither `MZ_HUGE` nor whirly (level 6, `MZ_MEDIUM`), so any `MZ_LARGE`
-or bigger form trips the size test at `polyself.c:915-918`. The mine survives
-the engulf because `gulpmu()` (`mhitu.c:1292`) moves the *monster* onto the
-hero's square with `place_monster()` rather than `mintrap()`, and explicitly
-zeroes `mtmp->mtrapped`. `expels()` ends in `spoteffects(TRUE)`, the mine
+or bigger form trips the size test at
+[`polyself.c:917-920`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L917-L920). The mine survives
+the engulf because `gulpmu()` moves the *monster* onto the hero's square with
+`place_monster()` rather than `mintrap()`, and explicitly zeroes
+`mtmp->mtrapped` ([`mhitu.c:1310-1312`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/mhitu.c#L1310-L1312)). `expels()` ends in `spoteffects(TRUE)`, the mine
 fires, and `losehp()` reverts the rothe from inside `polymon()`.
 
 ### Why an artifact is needed to see it
@@ -179,6 +195,14 @@ re-entrant callback may have replaced the form being configured:
     if (u.umonnum != mntmp)
         return 1;
 ```
+
+The patch is also applied on a branch of a NetHack fork, so the change can be
+read as a diff without downloading anything: [commit
+8076a1822](https://github.com/davidbau/NetHack/commit/8076a18220413d8bc6e0ff871c06fa420c8f5793)
+(or as a [compare
+view](https://github.com/davidbau/NetHack/compare/16ff59115315917b93185d026aeefea06db9b0f4...bugreport/06-polymon-nested-rehumanize)
+against the pinned upstream commit). Branch:
+`bugreport/06-polymon-nested-rehumanize`.
 
 Testing `u.umonnum != mntmp` rather than `!Upolyd` is deliberate. A nested
 callback can install a *different monster* form as well as reverting to human,

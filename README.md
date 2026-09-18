@@ -97,6 +97,29 @@ and open `http://localhost:8000/tools/session-viewer/` — load any
 session JSON via the file picker. `file://` won't work because the
 viewer `fetch()`s the session by relative URL.
 
+## Proposed patches as branches
+
+Each bundle ships its fix as a `proposed-fix.patch` against the pinned
+upstream commit. For the bugs where that patch has been built and
+verified, the same change is also committed to a branch of a NetHack
+fork, so it can be read as a diff in the browser and fetched directly:
+
+| bug | branch | diff |
+|---|---|---|
+| 06 | `bugreport/06-polymon-nested-rehumanize` | [commit 8076a1822](https://github.com/davidbau/NetHack/commit/8076a18220413d8bc6e0ff871c06fa420c8f5793) |
+| 07 | `bugreport/07-polyself-light-delete-before-create` | [commit d682576ae](https://github.com/davidbau/NetHack/commit/d682576ae5e1ddb702a14c663b546ffc797408fe) |
+| 08 | `bugreport/08-break-armor-stale-form` | [commit e38656987](https://github.com/davidbau/NetHack/commit/e38656987319c8e62f13c428ef3ae6837f7faa3a) |
+
+All three branch from `NetHack/NetHack@16ff59115`, the commit the
+`nethack-c/upstream` submodule is pinned to and the commit every session
+here was recorded against, so each branch contains exactly one commit and
+its diff is exactly the proposed patch.
+
+```bash
+git remote add bugfix https://github.com/davidbau/NetHack.git
+git fetch bugfix bugreport/07-polyself-light-delete-before-create
+```
+
 ## Filing a new bug
 
 There are two bundle shapes that work, depending on whether the

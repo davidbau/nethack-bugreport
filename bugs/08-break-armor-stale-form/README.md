@@ -30,7 +30,7 @@ harmful and the quietest.
 
 |  |  |
 |---|---|
-| Affects | NetHack 5.0 (the `NetHack-3.7` branch), `src/polyself.c` |
+| Affects | NetHack 5.0 (the `NetHack-3.7` branch), [`break_armor()`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L1156-L1302) in `src/polyself.c` |
 | Severity | **Medium, fatal.** Kills a hero who would otherwise survive |
 | Reported upstream | not as of 2026-09-14 |
 | Recorded against | `NetHack/NetHack@16ff59115` |
@@ -101,6 +101,8 @@ break_armor(void)
     struct permonst *uptr = gy.youmonst.data;
 ```
 
+Source: [`src/polyself.c:1156-1160`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L1156-L1160).
+
 and from then on asks `uptr`, rather than the hero's *current* form, what to
 strip: `breakarm(uptr)`, `sliparm(uptr)`, `nohands(uptr)`, `verysmall(uptr)`,
 `slithy(uptr)`, `uptr->mlet == S_CENTAUR`, `is_whirly(uptr)`,
@@ -115,6 +117,8 @@ In between those questions, its own gloves block calls `drop_weapon(0)`:
             You("drop your gloves%s!", uwep ? " and weapon" : "");
             drop_weapon(0);
 ```
+
+Source: [`src/polyself.c:1248-1254`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L1248-L1254).
 
 If the wielded item is an artifact whose `#invoke`d levitation is holding the
 hero up, releasing it ends that levitation. `finesse_ahriman()`'s own comment
@@ -132,7 +136,10 @@ in the *next* block), then `lava_effects()` takes its survivable branch:
                     if (usurvive) losehp(dmg, lava_killer, KILLED_BY);
 ```
 
-`losehp()` (`hack.c:4310`) sees `Upolyd`, drives `u.mh` below 1 and calls
+Source: [`src/trap.c:6811`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/trap.c#L6811) and the `Wwalking` branch at
+[`src/trap.c:6872-6875`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/trap.c#L6872-L6875).
+
+`losehp()` ([`hack.c:4267-4273`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/hack.c#L4267-L4273)) sees `Upolyd`, drives `u.mh` below 1 and calls
 `rehumanize()`. The hero is human again, *inside* `break_armor()`.
 
 `break_armor()` then resumes at its next sub-block with `uptr` still pointing
@@ -141,7 +148,11 @@ human's water walking boots (because a newt is `verysmall`). With the boots
 gone, the next `lava_effects()` no longer qualifies for the `losehp()` branch
 and goes straight to `u.uhp = -1; done(BURNING)`.
 
-The stale reads are at `polyself.c:1260`, `1282` and `1300`.
+The gates that read the stale `uptr` after the revert are the boots test at
+[`polyself.c:1273-1274`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L1273-L1274), the `is_whirly` and
+`verysmall` tests inside that block at [`1278-1282`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L1278-L1282),
+and the eyewear test at [`1291`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L1291). The shield and helmet
+sub-blocks run under a gate that was evaluated at `1248`, before the revert.
 
 ### This is not a dangling pointer
 
@@ -168,6 +179,14 @@ is working on is no longer the hero's form:
         if (gy.youmonst.data != uptr)
             return;
 ```
+
+The patch is also applied on a branch of a NetHack fork, so the change can be
+read as a diff without downloading anything: [commit
+e38656987](https://github.com/davidbau/NetHack/commit/e38656987319c8e62f13c428ef3ae6837f7faa3a)
+(or as a [compare
+view](https://github.com/davidbau/NetHack/compare/16ff59115315917b93185d026aeefea06db9b0f4...bugreport/08-break-armor-stale-form)
+against the pinned upstream commit). Branch:
+`bugreport/08-break-armor-stale-form`.
 
 placed at three sub-block boundaries: after the gloves block and before the
 shield, before the boots block, and before the eyewear block.

@@ -119,11 +119,13 @@ returned:
     }
 ```
 
+Source: [`src/polyself.c:720-730`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L720-L730).
+
 Between `set_uasmon()` at `polyself.c:815` and that block, `polymon()` does a
 lot of work that can hurt the hero and re-enter form-changing code:
 `break_armor()`, `drop_weapon()`, `expels()`, `spoteffects()`, and
 `retouch_equipment(2)`. Any of those can take `u.mh` below 1, at which point
-`losehp()` (`hack.c:4310`) calls `rehumanize()`.
+`losehp()` ([`hack.c:4267-4273`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/hack.c#L4267-L4273)) calls `rehumanize()`.
 
 `rehumanize()` decides whether to delete a light source by looking at the
 form, and does not check that a source was ever registered:
@@ -134,6 +136,8 @@ form, and does not check that a source was ever registered:
         del_light_source(LS_MONSTER, monst_to_any(&gy.youmonst));
 ```
 
+Source: [`src/polyself.c:1393-1394`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L1393-L1394).
+
 In the window above, the hero *is* a light-emitting monster and *has* no light
 source, so the delete fails and `del_light_source()` reports it:
 
@@ -142,6 +146,8 @@ source, so the delete fails and `del_light_source()` reports it:
         impossible("del_light_source: not found type=%d, id=%s", type,
                    fmt_ptr((genericptr_t) id->a_obj));
 ```
+
+Source: [`src/light.c:135-136`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/light.c#L135-L136).
 
 `type=2` is `LS_MONSTER`. The `id` is the hero as a monster;
 `polyself.c`'s own file header notes that the light source code "assumes that
@@ -190,6 +196,8 @@ the clearest sign that the ownership is in the wrong place.
                 goto made_change;
 ```
 
+Source: [`src/polyself.c:578-582`](https://github.com/NetHack/NetHack/blob/16ff59115315917b93185d026aeefea06db9b0f4/src/polyself.c#L578-L582).
+
 And `timeout.c:488-489` deletes the light source by hand immediately before
 its direct `polymon()` call. Each fixes one instance. Neither helps the paths
 through `polymon()`'s interior.
@@ -219,6 +227,14 @@ uasmon_light(int old_light)
     }
 }
 ```
+
+The patch is also applied on a branch of a NetHack fork, so the change can be
+read as a diff without downloading anything: [commit
+d682576ae](https://github.com/davidbau/NetHack/commit/d682576ae5e1ddb702a14c663b546ffc797408fe)
+(or as a [compare
+view](https://github.com/davidbau/NetHack/compare/16ff59115315917b93185d026aeefea06db9b0f4...bugreport/07-polyself-light-delete-before-create)
+against the pinned upstream commit). Branch:
+`bugreport/07-polyself-light-delete-before-create`.
 
 - `polymon()` captures `emits_light()` immediately before `u.umonnum = mntmp`
   and calls the helper immediately after `set_uasmon()`.
