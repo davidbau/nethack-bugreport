@@ -63,13 +63,11 @@ nondeterministic callback outcome at each modeled boundary:
   admits a concrete ordinary form-change counterexample;
 - the old delayed light bookkeeping admits the delete-before-create state.
 
-Frama-C/WP separately proves the transition theorem used by the identity
-guards.  The modeled reachable nested callbacks are rehumanization (which
-ends at the base form) and petrification of a non-stone golem (which ends at
-the stone-golem form).  For every active non-base outer form, neither endpoint
-is the original form; the proof also checks two successive nested callbacks.
-The current run discharges all **344/344** WP obligations with Qed or
-Alt-Ergo.
+Frama-C/WP proves the generation-guard protocol with arbitrary nested form
+installations, including explicit same-form ABA reinstallations. The current
+entry points discharge **76/76** WP obligations with Qed or Alt-Ergo. The
+earlier restricted no-ABA transition model remains in the source for
+comparison, but is not used as the final safety argument.
 
 There are no loops in the model, so no behavior is excluded by an unwind
 bound.  `--unwinding-assertions` remains enabled to make that fact checked by
@@ -87,6 +85,6 @@ formally verified. In particular:
   shape audit, rather than by translating all of NetHack's unrelated C code.
 
 This boundary is intentional: the result is an unbounded proof of the stated
-ownership/light/cleanup properties under explicit contracts for the real
-callback transition classes, plus negative controls showing that each guard is
-needed. It is not a blanket proof of all NetHack behavior.
+ownership/light/cleanup properties under arbitrary form-installation choices,
+plus negative controls showing that each guard is needed. It is not a blanket
+proof of all NetHack behavior.

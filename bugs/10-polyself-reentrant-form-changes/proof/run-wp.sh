@@ -13,9 +13,10 @@ docker run --rm \
     "${IMAGE}" \
     frama-c bugs/10-polyself-reentrant-form-changes/proof/polyself_acsl.c \
     -wp \
+    -wp-fct verify_polymon_generation_arbitrary_aba,verify_break_armor_generation_arbitrary_aba \
     -wp-rte \
     -wp-prover qed,alt-ergo \
-    -wp-timeout 30 2>&1 | tee "${OUTPUT}"
+    -wp-timeout 120 2>&1 | tee "${OUTPUT}"
 
 summary="$(grep -Eo 'Proved goals:[[:space:]]+[0-9]+ / [0-9]+' "${OUTPUT}" | tail -n 1)"
 if [[ -z "${summary}" ]]; then

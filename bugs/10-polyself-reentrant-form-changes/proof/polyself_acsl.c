@@ -221,7 +221,6 @@ nested_change(int choice)
   requires 0 <= w.form_epoch < 99;
   requires owner_epoch == w.form_epoch;
   requires light_consistent;
-  requires w.cleanup_seen == 0;
   assigns w;
   ensures light_consistent;
   ensures valid_form(w.form);
@@ -272,6 +271,36 @@ identity_boundary_no_aba(int choice, int owner_form)
     //@ assert choice == 0;
     //@ assert w.cleanup_seen == 0;
     //@ assert w.form_epoch == owner_epoch;
+    return 0;
+}
+
+/* Generation guards remain sound even when the nested callback performs an
+ * arbitrary ABA transition.  Choice 3 deliberately reinstalls the owner
+ * form, which is the case identity-only guards cannot distinguish. */
+/*@
+  requires 0 <= choice <= 3;
+  requires valid_form(w.form);
+  requires 0 <= w.form_epoch < 99;
+  requires owner_epoch == w.form_epoch;
+  requires light_consistent;
+  assigns w;
+  ensures light_consistent;
+  ensures valid_form(w.form);
+  ensures \result == 0 ==> w.form_epoch == owner_epoch;
+  ensures \result == 1 ==> w.form_epoch != owner_epoch;
+*/
+static int
+generation_boundary_arbitrary_aba(int choice, int owner_epoch)
+{
+    if (choice == 1)
+        install_form(FORM_HUMAN);
+    else if (choice == 2)
+        install_form(FORM_OTHER);
+    else if (choice == 3)
+        install_form(FORM_TARGET);
+    if (w.form_epoch != owner_epoch)
+        return 1;
+    //@ assert choice == 0;
     return 0;
 }
 
@@ -333,6 +362,31 @@ verify_polymon_identity_no_aba(int c0, int c1, int c2, int c3, int c4)
   requires 0 <= c0 <= 3;
   requires 0 <= c1 <= 3;
   requires 0 <= c2 <= 3;
+  requires 0 <= c3 <= 3;
+  requires 0 <= c4 <= 3;
+  assigns w;
+  ensures light_consistent;
+*/
+void
+verify_polymon_generation_arbitrary_aba(int c0, int c1, int c2, int c3, int c4)
+{
+    int owner_epoch;
+
+    reset_world();
+    install_form(FORM_TARGET);
+    owner_epoch = w.form_epoch;
+
+    if (generation_boundary_arbitrary_aba(c0, owner_epoch)) return;
+    if (generation_boundary_arbitrary_aba(c1, owner_epoch)) return;
+    if (generation_boundary_arbitrary_aba(c2, owner_epoch)) return;
+    if (generation_boundary_arbitrary_aba(c3, owner_epoch)) return;
+    if (generation_boundary_arbitrary_aba(c4, owner_epoch)) return;
+}
+
+/*@
+  requires 0 <= c0 <= 3;
+  requires 0 <= c1 <= 3;
+  requires 0 <= c2 <= 3;
   assigns w;
   ensures light_consistent;
 */
@@ -369,6 +423,27 @@ verify_break_armor_identity_no_aba(int c0, int c1, int c2)
     if (identity_boundary_no_aba(c0, FORM_TARGET)) return;
     if (identity_boundary_no_aba(c1, FORM_TARGET)) return;
     if (identity_boundary_no_aba(c2, FORM_TARGET)) return;
+}
+
+/*@
+  requires 0 <= c0 <= 3;
+  requires 0 <= c1 <= 3;
+  requires 0 <= c2 <= 3;
+  assigns w;
+  ensures light_consistent;
+*/
+void
+verify_break_armor_generation_arbitrary_aba(int c0, int c1, int c2)
+{
+    int owner_epoch;
+
+    reset_world();
+    install_form(FORM_TARGET);
+    owner_epoch = w.form_epoch;
+
+    if (generation_boundary_arbitrary_aba(c0, owner_epoch)) return;
+    if (generation_boundary_arbitrary_aba(c1, owner_epoch)) return;
+    if (generation_boundary_arbitrary_aba(c2, owner_epoch)) return;
 }
 
 /*@

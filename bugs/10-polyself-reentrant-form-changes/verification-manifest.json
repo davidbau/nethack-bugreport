@@ -1,0 +1,33 @@
+{
+  "schema": "nethack-bugreport.formal-verification/v1",
+  "report": "REPORT.md",
+  "source": {
+    "repository": "https://github.com/NetHack/NetHack",
+    "path": "nethack-c/upstream",
+    "commit": "16ff59115315917b93185d026aeefea06db9b0f4"
+  },
+  "commands": [
+    "bash bugs/10-polyself-reentrant-form-changes/proof/verify.sh"
+  ],
+  "tools": {
+    "cbmc": "diffblue/cbmc:6.10.0",
+    "frama_c": "framac/frama-c:32.1",
+    "alt_ergo": "2.5.4"
+  },
+  "claims": [
+    {"id":"P1", "property":"arbitrary_aba_generation_guard", "status":"proved", "obligations":"76/76"},
+    {"id":"P2", "property":"all_reentrancy_boundaries", "status":"passed"},
+    {"id":"P3", "property":"form_installation_callgraph_inventory", "status":"passed", "sites":16, "polymon_callers":21},
+    {"id":"P4", "property":"identity_guard_aba_counterexample", "status":"expected_counterexample"},
+    {"id":"P5", "property":"light_and_cleanup_invariants", "status":"passed"},
+    {"id":"P6", "property":"guard_necessity", "status":"expected_counterexample", "guards":8}
+  ],
+  "artifacts": {
+    "cbmc_model": "proof/polyself_model.c",
+    "acsl_model": "proof/polyself_acsl.c",
+    "transition_audit": "proof/audit-form-transitions.mjs",
+    "callgraph_audit": "proof/audit-callgraph.mjs",
+    "patch_audit": "proof/audit-patch.mjs",
+    "generation_patch": "proof/generation-guard.patch"
+  }
+}
