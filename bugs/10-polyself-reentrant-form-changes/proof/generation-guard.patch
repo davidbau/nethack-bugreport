@@ -1,0 +1,74 @@
+diff --git a/src/polyself.c b/src/polyself.c
+--- a/src/polyself.c
++++ b/src/polyself.c
+@@
+ staticfn void newman(void);
+ staticfn void polysense(void);
+ staticfn void uasmon_light(int);
++static unsigned long uasmon_generation;
++
++/* Every completed semantic hero-form installation gets a distinct serial.
++   Overflow cannot be allowed to turn a new generation into an old one. */
++staticfn void
++note_uasmon_install(void)
++{
++    if (++uasmon_generation == 0UL)
++        panic("hero form generation overflow");
++}
+ 
+ static const char no_longer_petrify_resistant[] =
+@@
+     }
+     set_uasmon();
+     uasmon_light(old_light);
++    note_uasmon_install();
+ 
+     u.mh = u.mhmax = 0;
+@@
+-    int mlvl, newMaxStr, old_light;
++    int mlvl, newMaxStr, old_light;
++    unsigned long my_generation;
+@@
+     u.umonnum = mntmp;
+     set_uasmon();
+     uasmon_light(old_light);
++    note_uasmon_install();
++    my_generation = uasmon_generation;
+@@
+-    if (u.umonnum != mntmp)
++    if (uasmon_generation != my_generation)
+         return 1;
+@@
+-            if (u.umonnum != mntmp)
++            if (uasmon_generation != my_generation)
+                 return 1;
+@@
+-    if (u.umonnum != mntmp)
++    if (uasmon_generation != my_generation)
+         return 1;
+@@
+-        if (u.umonnum != mntmp)
++        if (uasmon_generation != my_generation)
+             return 1;
+@@
+-    if (u.umonnum != mntmp)
++    if (uasmon_generation != my_generation)
+         return 1;
+@@
+ break_armor(void)
+ {
+     struct obj *otmp;
+     struct permonst *uptr = gy.youmonst.data;
++    unsigned long my_generation = uasmon_generation;
+@@
+-        if (gy.youmonst.data != uptr)
++        if (uasmon_generation != my_generation)
+             return;
+@@
+-    if (gy.youmonst.data != uptr)
++    if (uasmon_generation != my_generation)
+         return; /* as above */
+@@
+-    if (gy.youmonst.data != uptr)
++    if (uasmon_generation != my_generation)
+         return; /* as above; Boots_off() -> spoteffects() is another
