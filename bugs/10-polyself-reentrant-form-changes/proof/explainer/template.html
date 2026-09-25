@@ -127,6 +127,7 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
 .verdict.stp{border-color:var(--violet);color:var(--text-primary)}
 
 /* premises and sub-headings */
+.inv{border-left:4px solid var(--green);background:var(--surface);padding:12px 16px;margin:6px 0 14px;font-size:17px;max-width:84ch;border-radius:0 8px 8px 0}
 .prem{margin:0 0 12px;padding-left:22px;max-width:84ch;font-size:15.5px;color:var(--text-secondary)}
 .prem li{margin:6px 0}
 .prem b{color:var(--text-primary)}
@@ -159,7 +160,8 @@ h2.sub{font-size:19px;margin:28px 0 6px}
   <h1>How the polymorph proof works</h1>
   <p><b>The bug.</b> <code>polymon()</code> installs a new hero form and then spends about 250 lines applying its consequences. Some of those steps can change the form again (a revert when <code>u.mh</code> hits zero, a polymorph trap), and the outer code then carries on for a form that is gone. Bugs 06, 07 and 08 are three results.</p>
   <p><b>The fix</b> (PR #1681) gives every form installation a new generation number, bumped inside <code>set_uasmon()</code>. <code>polymon()</code> and <code>break_armor()</code> save the number and stop at eight checkpoints if it has changed.</p>
-  <p><b>The argument</b> has two halves. First, a lemma, proved exhaustively by CBMC and for every input by Frama-C/WP on a small C model: <i>the old operation continues past a checkpoint only if nothing was installed meanwhile</i>, even when a callback reinstalls the same form. Negative controls show every checkpoint is needed and that the checks can fail. Second, three premises connect the model to NetHack, and are checked by source audits and review, not by the provers: every form installation goes through <code>set_uasmon()</code>; every bump inside the window belongs to an installer that finishes its own form's setup; a checkpoint follows every re-entrant call.</p>
+  <p><b>The invariant.</b> <i>A running <code>polymon()</code> or <code>break_armor()</code> may act for its form only while it owns it: while no form has been installed since it saved its generation.</i> Every bug here is a call that kept acting after it had been overtaken.</p>
+  <p><b>The argument.</b> A small C model of the two functions is checked exhaustively by CBMC and proved for every input by Frama-C/WP: the invariant holds, and removing any one checkpoint breaks it. Three premises about the source, checked by audits and review, make the model a faithful picture of NetHack.</p>
   <p>Six short parts follow. Each has a live figure (the model runs in your browser), and every boundary links to the NetHack 5.0 source at <a href="https://github.com/NetHack/NetHack/tree/16ff59115315917b93185d026aeefea06db9b0f4"><code>16ff59115</code></a>, with the patch shown as a diff.</p>
 </header>
 <ol class="qs" id="qs"></ol>
@@ -261,24 +263,37 @@ h2.sub{font-size:19px;margin:28px 0 6px}
 </section>
 
 <!-- 6 -->
-<section class="view" id="v-aba" hidden>
+<section class="view" id="v-invariant" hidden>
   <div class="nav"><a href="#">&larr; All explainers</a></div>
-  <h1>A&rarr;B&rarr;A <span>&middot; why a counter, not the form number</span></h1>
-  <p class="quiz"><b>Question:</b> <code>polymon(y)</code> saved "my form is <span class="gy">y</span>". A nested callback runs. Afterwards the form is <span class="gy">y</span>. Did anything happen?</p>
-  <p class="lede">Add nested installations and watch the two guards. The identity guard compares the form number now to the saved one. The generation guard compares a counter that every installation increments. They disagree whenever the history returns to where it started, which is called the <b>ABA problem</b> in concurrent programming.</p>
+  <h1>The invariant <span>&middot; what the patch guarantees</span></h1>
+  <p class="quiz"><b>Question:</b> what does the patch guarantee, in one sentence?</p>
+  <div class="inv"><b>A running <code>polymon()</code> or <code>break_armor()</code> may act for its form only while it owns it</b>: while no form has been installed since it saved its generation.</div>
+  <p class="lede">Each call saves the counter when it starts (<code>my_generation</code>). Three facts keep the sentence true:</p>
+  <ol class="prem">
+    <li><b>The counter only goes up.</b> Every form installation adds one, in <code>set_uasmon()</code>, and the counter never wraps.</li>
+    <li><b>So an equal counter means nothing happened.</b> If the counter still equals a call's saved generation, no form has been installed since: the call <b>owns</b> the form. Once anything is installed, the saved value is below the counter for good: the call is <b>stale</b>.</li>
+    <li><b>Only an owner acts.</b> After every callback that could install a form, a checkpoint returns if the call has gone stale.</li>
+  </ol>
+  <p class="lede">Try it: add installations that a callback could make, and watch <code>polymon(</code><span class="gy mono">y</span><code>)</code>'s next checkpoint.</p>
   <div class="row">
-    <span class="klab">nested callback installs</span>
+    <span class="klab">a callback installs</span>
     <button data-add="0">@ revert to human</button><button data-add="2">: another form</button><button data-add="1">y the same form</button>
     <button id="a-reset" class="sm">Reset</button>
   </div>
   <div class="hist" id="a-hist"></div>
   <div class="guards" id="a-guards"></div>
   <div class="rd" id="a-read"></div>
+  <div class="tablewrap" style="margin-top:16px"><table class="bt">
+    <tr><th>bug</th><th>what goes wrong</th><th>how it breaks the invariant</th></tr>
+    <tr><td>08</td><td><code>break_armor()</code> keeps stripping gear by a newt's rules after the hero is human again, and the water walking boots come off over lava</td><td>a stale call acts (fact 3 missing)</td></tr>
+    <tr><td>06</td><td><code>polymon()</code> runs <code>retouch_equipment()</code> again after the nested revert already did: two artifact blasts</td><td>a stale call acts; cleanup belongs to the owner</td></tr>
+    <tr><td>07</td><td><code>rehumanize()</code> deletes a light source that has not been created yet</td><td>a second, smaller invariant: <i>a light source exists exactly when the installed form glows</i>. The patch updates the light in the same step as the form, with no callback in between</td></tr>
+    <tr><td>ABA</td><td>the first PR draft compared form numbers: after <span class="gy mono">y</span>&rarr;<span class="ga mono">@</span>&rarr;<span class="gy mono">y</span> nothing seems to have changed</td><td>a form number cannot say "nothing installed since" (fact 2); a counter can</td></tr>
+  </table></div>
   <div class="panel-h" style="margin-top:14px">The real route to y&rarr;y in NetHack, found by the source audit</div>
   <div id="a-src"></div>
   <div class="cap">
-    <p><b>Why ABA matters here.</b> A same-form installation is a real event. The nested <code>polymon()</code> ran its own cleanup, including <code>retouch_equipment()</code>, for its own generation. When the outer call continues, it repeats that work, which is bug 06's double blast even though the form number never changed. The identity guard that PR #1681 first proposed (<code>if (u.umonnum != mntmp) return 1;</code>) cannot see this.</p>
-    <p><b>The fix</b> (<code>proof/generation-guard.patch</code>, the last commit of PR #1681): a <code>static unsigned long uasmon_generation</code> that <code>note_uasmon_install()</code> increments at the end of <code>set_uasmon()</code>, the function every form installation calls. It is never reset, so a saved value can equal the current one only if nothing was installed in between. Wraparound would break that, so the patch calls <code>panic()</code> if the counter reaches 0 again. The counter is not saved to disk, because a re-entrant call chain cannot span a save and restore.</p>
+    <p>The same-form route is real: an invoked levitation artifact dropped during <code>break_armor()</code> lands you on a polymorph trap, and with polymorph control you can choose the form you already have. The counter is not saved to disk, because a re-entrant call chain cannot span a save and restore.</p>
   </div>
   <div class="pager"></div>
 </section>
@@ -286,22 +301,22 @@ h2.sub{font-size:19px;margin:28px 0 6px}
 <!-- 7 -->
 <section class="view" id="v-wp" hidden>
   <div class="nav"><a href="#">&larr; All explainers</a></div>
-  <h1>What WP adds <span>&middot; a proof for every input, not every path</span></h1>
-  <p class="quiz"><b>Question:</b> CBMC checked every path of one small program, starting from generation 0, with one installation per callback. Does the lemma hold in general?</p>
-  <p class="lede">Frama-C/WP reads C annotated with ACSL contracts (<code>requires</code>, <code>ensures</code>, <code>assigns</code>, <code>assert</code>, loop invariants) and proves each function against its own contract for <b>every</b> input its <code>requires</code> allows. So the result does not depend on a starting state, and a loop with an invariant covers any number of iterations. <code>run-wp.sh</code> checks every function in <code>polyself_acsl.c</code> and fails if any property is left merely assumed.</p>
+  <h1>The invariant, proved <span>&middot; Frama-C/WP</span></h1>
+  <p class="quiz"><b>Question:</b> CBMC checked every path of a small program with one installation per callback. Does the invariant hold in general?</p>
+  <p class="lede">Frama-C/WP proves each function against its <b>contract</b>, the <code>requires</code> and <code>ensures</code> clauses above it, for every input the contract allows, and a caller may rely only on its callees' contracts. <code>proof/polyself_acsl.c</code> writes the invariant's three facts as contracts, in the same words:</p>
   <div class="tablewrap"><table class="bt">
-    <tr><th>what WP proves</th><th>where</th></tr>
-    <tr><td>The boundary lemma: after any callback outcome, same-form reinstall included, the owner continues only if nothing was installed.</td><td><code>generation_boundary_arbitrary_aba()</code></td></tr>
-    <tr><td>The same with no limit on installations: a callback may install any number of forms in any order (A&rarr;B&rarr;A chains of any length), and the owner continues <b>if and only if</b> it installed none. A loop invariant carries "after <i>i</i> installs the generation is exactly <i>i</i> past the start".</td><td><code>generation_boundary_any_installs()</code></td></tr>
-    <tr><td>Every installation keeps the form and its light source in agreement (bug 07), and cleanup never runs twice for one generation (bug 06).</td><td><code>install_form()</code>, <code>epoch_boundary()</code>, entry points</td></tr>
-    <tr><td>Runtime safety of the model itself: no overflow of the counter, no out-of-bounds read.</td><td><code>-wp-rte</code></td></tr>
+    <tr><th>contract</th><th>says</th></tr>
+    <tr><td><code>install_form()</code></td><td>the counter goes up by exactly one (fact 1), and the light matches the new form (bug 07's invariant)</td></tr>
+    <tr><td><code>callback()</code></td><td>any number of installations, of any forms, in any order, each finished by its own installer: a loop whose invariant is "after <i>i</i> installations the counter is <i>i</i> higher"</td></tr>
+    <tr><td><code>checkpoint()</code></td><td>continue exactly when nothing was installed; a call that continues still <code>owns(g)</code>, and one that stops is <code>stale(g)</code> (facts 2 and 3)</td></tr>
+    <tr><td><code>owned_effect()</code></td><td><code>requires owns(g)</code>: this precondition <i>is</i> the invariant, and WP checks it at every place the model acts for its form</td></tr>
+    <tr><td><code>cleanup_form()</code></td><td>requires that the current generation has not been cleaned yet (bug 06)</td></tr>
   </table></div>
-  <div class="rd" style="margin-top:10px"><b>Result:</b> 488 of 488 goals proved (433 by Qed, WP's simplifier; 47 by the Alt-Ergo SMT solver; 8 trivially), and no property left assumed.</div>
+  <div class="rd" style="margin-top:10px"><b>Result:</b> 158 of 158 goals proved (108 by Qed, WP's simplifier; 42 by the Alt-Ergo SMT solver; 8 trivially), for every function in the file, with no property left assumed.</div>
   <div class="cap">
-    <p><b>The negative control.</b> WP cannot produce a counterexample, but it can fail to prove. <code>run-wp.sh</code> rebuilds the identity-guard model with <code>-DIDENTITY_MAX_CHOICE=3</code>, which allows a callback to reinstall the owner's form, and requires that exactly one goal then stays unproved: the identity boundary's <code>assert choice == 0</code>. Everything else still proves, which pins the failure on ABA and nothing else. (CBMC gives the concrete counterexample path; see part 3.)</p>
-    <p><b>Why "every function" matters.</b> WP is modular: a caller relies only on its callees' contracts. An earlier run restricted WP to the two top-level entry points (<code>-wp-fct</code>) and reported 76/76, but that assumed the boundary function's contract, which carries the whole lemma, without checking it. Checking every function also exposed a missing precondition in <code>epoch_boundary()</code>, now fixed.</p>
+    <p><b>The negative controls.</b> <code>run-wp.sh</code> also makes ten small edits to the model, each of which must make WP fail. Ignore any one of the eight checkpoints' answers, and WP cannot prove the next <code>owned_effect()</code>'s <code>requires owns(g)</code>, or, after <code>spoteffects()</code>, <code>cleanup_form()</code>'s: bug 06 exactly. Stop <code>install_form()</code> from bumping the counter, and its own promises fail. Replace the checkpoint by the identity guard without a promise that no callback reinstalls the owner's form, and exactly its <code>assert owns(g)</code> goes unproved: ABA.</p>
   </div>
-  <details class="more"><summary>The ACSL: <code>install_form()</code>, <code>generation_boundary_any_installs()</code>, <code>generation_boundary_arbitrary_aba()</code></summary><div class="body"><div id="wp-real"></div></div></details>
+  <details class="more"><summary>The ACSL: <code>install_form()</code>, <code>checkpoint()</code>, <code>polymon_model()</code></summary><div class="body"><div id="wp-real"></div></div></details>
   <div class="pager"></div>
 </section>
 
@@ -310,11 +325,11 @@ h2.sub{font-size:19px;margin:28px 0 6px}
   <div class="nav"><a href="#">&larr; All explainers</a></div>
   <h1>What the proof rests on <span>&middot; three premises and the audits</span></h1>
   <p class="quiz"><b>Question:</b> the provers checked a model. What makes the model a faithful picture of <code>src/polyself.c</code>?</p>
-  <p class="lede">Three premises, checked by source audits and review rather than by the provers:</p>
+  <p class="lede">The model keeps the invariant. NetHack keeps it too if three things are true of the source, and these are checked by audits and review rather than by the provers:</p>
   <ol class="prem">
     <li><b>Every form installation goes through <code>set_uasmon()</code>, which bumps the counter.</b> <code>audit-form-transitions.mjs</code> lists every write to <code>u.umonnum</code> or <code>gy.youmonst.data</code> and every <code>set_uasmon()</code> call (the table below) and fails if one appears without review. <code>audit-patch.mjs</code> applies the PR's patches and checks the bump is in <code>set_uasmon()</code>.</li>
     <li><b>Every bump inside the window belongs to an installer that finishes its own form's setup</b>: a nested <code>polymon()</code> or <code>rehumanize()</code>. The other <code>set_uasmon()</code> callers are refreshes (<code>set_ulycn()</code> when you eat, quaff, fight or pray; the were-change refresh between turns), game start, or restore, and none can run inside <code>polymon()</code> or <code>break_armor()</code>. This one is checked by review only.</li>
-    <li><b>A checkpoint follows every re-entrant call.</b> The model's eight boundaries come from reading the source; <code>audit-patch.mjs</code> checks all eight generation guards are in the patched code with no identity guard left, and part 3's negative controls show each is needed.</li>
+    <li><b>A checkpoint follows every re-entrant call.</b> The model's eight boundaries come from reading the source; <code>audit-patch.mjs</code> checks all eight generation guards are in the patched code with no identity guard left, and part 4's negative controls show each is needed.</li>
   </ol>
   <div class="panel-h">audit-form-transitions.mjs: every direct form write, and why it's accepted</div>
   <div class="tablewrap"><table class="bt" id="au-table"></table></div>
@@ -353,10 +368,10 @@ const tagLabel = t => ({install:'form', cleanup:'clean', aba:'ABA', removed:'old
 /* ------------------------------------------------------------ Explainer list */
 const VIEWS = [
   {id:'window', tag:'The bugs', title:'The window: a form change that isn’t atomic', what:'Three recorded bugs as timelines of polymon() and break_armor(): a light source deleted before it exists, cleanup that runs twice, and a human stripped of boots by a newt’s rules. Switch between NetHack 5.0 and the fix; click a step for its source.'},
+  {id:'invariant', tag:'The idea', title:'The invariant: only the owner of the form acts', what:'What the patch guarantees in one sentence, the three facts that keep it true, and how each bug breaks it. Add nested installations and watch the form number miss a same-form reinstall that the counter catches.'},
   {id:'model', tag:'Abstraction', title:'From NetHack to a model', what:'The real polymon() beside polyself_model.c. Each re-entrant call becomes a four-way choice, and the world shrinks to five variables.'},
   {id:'cbmc', tag:'CBMC', title:'Every path, and breaking the fix on purpose', what:'The full tree of callback outcomes for each guard, then all 18 checks from run-cbmc.sh, including the controls that must fail. Click any path to read it event by event.'},
-  {id:'aba', tag:'ABA', title:'A→B→A: why a counter, not the form number', what:'Build a history of nested installations and watch the identity guard miss a same-form reinstall that the counter catches, with the real route through NetHack.'},
-  {id:'wp', tag:'Frama-C/WP', title:'What WP adds', what:'The lemma for every input and any number of nested installations, 488/488 goals with nothing assumed, and a negative control for the identity guard.'},
+  {id:'wp', tag:'Frama-C/WP', title:'The invariant, proved', what:'The invariant written as contracts and proved for every input and any number of nested installations: 158 of 158 goals, nothing assumed, and ten edits that must make the proof fail.'},
   {id:'audits', tag:'Premises', title:'What the proof rests on', what:'The three premises that tie the model to NetHack, the 16 reviewed form-write sites, and what is out of scope.'},
 ];
 const MAIN = VIEWS;
@@ -831,13 +846,13 @@ function drawAba() {
     <div class="gcard${idWrong ? ' wrong' : ''}"><div class="panel-h">identity guard (PR #1681)</div><code>if (u.umonnum != mntmp) return 1;</code><div class="lg">now ${glyph(M.FORM_GLYPH[nowF])} vs saved ${glyph('y')}</div><div class="res ${idStop ? 'stp' : idWrong ? 'bad' : 'ok'}">${idStop ? 'return 1' : 'continue'}${idWrong ? ' ✕ wrong' : ''}</div></div>
     <div class="gcard"><div class="panel-h">generation guard</div><code>if (uasmon_generation != my_generation) return 1;</code><div class="lg">now ${gen} vs saved 1</div><div class="res ${genStop ? 'stp' : 'ok'}">${genStop ? 'return 1' : 'continue'}</div></div>`;
   let msg;
-  if (gen === 1) msg = 'No nested installation yet. Both guards correctly let <code>polymon()</code> continue. Add one with the buttons above.';
-  else if (idWrong) msg = `<b>ABA.</b> ${gen - 1} nested installation${gen > 2 ? 's' : ''} happened, and the last one ran its own cleanup for generation ${gen}. The form number is back to ${glyph('y')}, so the identity guard continues and repeats that cleanup under the old ownership. The counter never goes back, so the generation guard returns.`;
-  else msg = `The form is now ${glyph(M.FORM_GLYPH[nowF])}, so both guards return. The identity guard is right here only because the history didn’t come back to ${glyph('y')}.`;
+  if (gen === 1) msg = '<code>polymon()</code> still <b>owns</b> the form: nothing has been installed since it saved generation 1. Both guards let it continue. Add an installation with the buttons above.';
+  else if (idWrong) msg = `<b>ABA.</b> ${gen - 1} installation${gen > 2 ? 's' : ''} happened, so <code>polymon()</code> is <b>stale</b>: generation ${gen} belongs to the call that installed it, which has already run its own cleanup. The form number is back to ${glyph('y')}, so the identity guard lets the stale call continue and repeat that work. The counter never goes back, so the generation guard returns.`;
+  else msg = `<code>polymon()</code> is <b>stale</b>: generation ${gen} belongs to the call that installed ${glyph(M.FORM_GLYPH[nowF])}. Both guards return. The identity guard is right here only because the history didn’t come back to ${glyph('y')}.`;
   $('#a-read').innerHTML = msg;
 }
-INIT.aba = () => {
-  $$('#v-aba [data-add]').forEach(b => b.onclick = () => { if (abaHist.length < 9) abaHist.push(+b.dataset.add); drawAba(); });
+INIT.invariant = () => {
+  $$('#v-invariant [data-add]').forEach(b => b.onclick = () => { if (abaHist.length < 9) abaHist.push(+b.dataset.add); drawAba(); });
   $('#a-reset').onclick = () => { abaHist = [1]; drawAba(); };
   abaSrc = SourceView($('#a-src'), { key: 'aba' });
   drawAba();
@@ -845,7 +860,7 @@ INIT.aba = () => {
 
 /* ------------------------------------------------------------ 7. WP */
 INIT.wp = () => {
-  ModelView($('#wp-real'), { tall: true }).set(['install_form', 'generation_boundary_any_installs', 'generation_boundary_arbitrary_aba'].map(f => extractFn(MSRC.acsl, f)).join('\n\n'));
+  ModelView($('#wp-real'), { tall: true }).set(['install_form', 'checkpoint', 'polymon_model'].map(f => extractFn(MSRC.acsl, f)).join('\n\n'));
 };
 
 /* ------------------------------------------------------------ 8. Audits */

@@ -9,27 +9,33 @@ old operation continue applying effects that belong to the old form?
 
 ## What is being proved
 
-The proof checks four properties:
+The patch keeps one invariant:
 
-1. Form-dependent light bookkeeping is done immediately when a form is
-   installed.
-2. Every `polymon()` and `break_armor()` boundary stops if a nested callback
-   installed any new form.
-3. Cleanup is not repeated for the same form installation.
-4. Every direct form-installation site is covered by the generation update.
+> **A running `polymon()` or `break_armor()` may act for its form only while
+> it owns it: while no form has been installed since it saved its
+> generation.**
 
-The generation counter makes the key property simple: even if the hero goes
-from form A to form B and back to form A, the generation number is different.
-The outer operation therefore detects the change.
+Three facts keep it true:
 
-## What does ABA mean here?
+1. **The counter only goes up.** Every form installation adds one, inside
+   `set_uasmon()`, and the counter never wraps (the patch panics first).
+2. **So an equal counter means nothing happened.** If the counter still
+   equals a call's saved generation, no form has been installed since: the
+   call *owns* the form. Once anything is installed the saved value is below
+   the counter for good: the call is *stale*.
+3. **Only an owner acts.** After every callback that could install a form,
+   a checkpoint returns if the call has gone stale.
 
-ABA is a standard concurrency/re-entrancy pattern. Code observes state `A`, a
-nested call changes it to `B`, and the nested call changes it back to `A`.
-Comparing only the final form number cannot detect that anything happened.
-Here, a trap-triggered `polyself()` call can reinstall the same monster form.
-The generation counter records the event even when the form number is again
-unchanged.
+Each bug is a stale call that kept acting. Bug 08: `break_armor()` stripped a
+human's gear by a newt's rules. Bug 06: `polymon()` repeated the cleanup its
+successor had already run. Bug 07 breaks a second, smaller invariant, that a
+light source exists exactly when the installed form glows; the patch updates
+the light in the same step as the form.
+
+**Why a counter, not the form number (ABA).** A callback can change the form
+and change it back (a polymorph trap can even reinstall the same form). The
+form number is then unchanged, so comparing it cannot express "nothing was
+installed since". The counter can.
 
 ## How the proof works
 
@@ -42,11 +48,13 @@ The proof uses two complementary approaches:
 - **ACSL/WP** uses annotations written in ACSL (the ANSI/ISO C Specification
   Language). Frama-C's WP ( weakest-precondition ) engine turns those
   annotations into mathematical proof obligations and discharges them with
-  Qed and Alt-Ergo. Every function in the model is checked against its own
-  contract, and nothing is left assumed: **488/488** obligations. This
-  includes a boundary at which one callback may install any number of forms
-  (a loop with an invariant), and a WP negative control in which the identity
-  guard, allowed a same-form reinstall, leaves its key assertion unproved.
+  Qed and Alt-Ergo. The ACSL file states the three facts as contracts
+  (`install_form()`, `checkpoint()`, and `owned_effect()`, whose
+  precondition `owns(g)` is the invariant itself), lets a callback install
+  any number of forms, and checks every function with nothing left assumed:
+  **158/158** obligations. Ten deliberate breakages must make WP fail: each
+  of the eight checkpoints ignored in turn, the counter not bumped, and the
+  identity guard allowed a same-form reinstall.
 
 The source audits then connect the model to the pinned NetHack source. They
 inventory all direct form writes and `set_uasmon()` edges, enumerate 21 direct

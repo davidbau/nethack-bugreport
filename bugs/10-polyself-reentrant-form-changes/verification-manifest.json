@@ -15,14 +15,48 @@
     "alt_ergo": "2.5.4"
   },
   "claims": [
-    {"id":"P1", "property":"arbitrary_aba_generation_guard", "status":"proved", "obligations":"488/488", "scope":"every function in polyself_acsl.c; no property assumed"},
-    {"id":"P1a", "property":"any_number_of_nested_installs", "status":"proved", "function":"generation_boundary_any_installs"},
-    {"id":"P1b", "property":"identity_guard_aba_wp_control", "status":"expected_unproved", "goal":"typed_identity_boundary_no_aba_assert"},
-    {"id":"P2", "property":"all_reentrancy_boundaries", "status":"passed"},
-    {"id":"P3", "property":"form_installation_callgraph_inventory", "status":"passed", "sites":16, "polymon_callers":21},
-    {"id":"P4", "property":"identity_guard_aba_counterexample", "status":"expected_counterexample"},
-    {"id":"P5", "property":"light_and_cleanup_invariants", "status":"passed"},
-    {"id":"P6", "property":"guard_necessity", "status":"expected_counterexample", "guards":8}
+    {
+      "id": "P1",
+      "property": "generation_invariant",
+      "status": "proved",
+      "obligations": "158/158",
+      "scope": "every function in polyself_acsl.c; no property assumed; any number of nested installations"
+    },
+    {
+      "id": "P1a",
+      "property": "wp_negative_controls",
+      "status": "expected_unproved",
+      "controls": 10,
+      "detail": "each of 8 checkpoints ignored; counter not bumped; identity guard without its no-reinstall promise (typed_identity_checkpoint_assert)"
+    },
+    {
+      "id": "P2",
+      "property": "all_reentrancy_boundaries",
+      "status": "passed"
+    },
+    {
+      "id": "P3",
+      "property": "form_installation_callgraph_inventory",
+      "status": "passed",
+      "sites": 16,
+      "polymon_callers": 21
+    },
+    {
+      "id": "P4",
+      "property": "identity_guard_aba_counterexample",
+      "status": "expected_counterexample"
+    },
+    {
+      "id": "P5",
+      "property": "light_and_cleanup_invariants",
+      "status": "passed"
+    },
+    {
+      "id": "P6",
+      "property": "guard_necessity",
+      "status": "expected_counterexample",
+      "guards": 8
+    }
   ],
   "artifacts": {
     "cbmc_model": "proof/polyself_model.c",

@@ -1,536 +1,307 @@
 /*
- * Unbounded ACSL/WP proof of the polymorph form-generation protocol.
+ * polyself_acsl.c -- the generation invariant of PR #1681, proved with
+ * Frama-C/WP.  run-wp.sh checks every function below against its contract.
  *
- * Unlike the CBMC pilot, choices are explicit arguments.  WP therefore proves
- * the assertions for every allowed choice without a loop or recursion bound.
- * This remains a protocol model; README.md and ASSESSMENT.md state the proof
- * obligations needed to refine it to the complete NetHack translation unit.
+ * THE INVARIANT
+ *
+ * Every running polymon() or break_armor() remembers the generation that was
+ * current when it started (its "saved generation" g).  The patch keeps:
+ *
+ *   (1) The counter only goes up: every form installation adds exactly one.
+ *   (2) So g equals the counter exactly when no form has been installed since
+ *       g was saved.  We say the call OWNS the current form.  Once anything is
+ *       installed, g is below the counter for good: the call is STALE.
+ *   (3) A call applies an effect of its form only while it owns it.  After
+ *       every callback that could install a form there is a checkpoint,
+ *           if (uasmon_generation != my_generation) return 1;
+ *       so a stale call can only return.
+ *
+ * Bug 08 is a stale break_armor() stripping gear by the old form's rules.
+ * Bug 06 is a stale polymon() repeating the cleanup its successor already ran.
+ * Bug 07 breaks a second, smaller invariant: a light source exists exactly
+ * when the installed form emits light.
+ *
+ * THE MODEL
+ *
+ * The world is the installed form, the generation counter, the hero's light
+ * source, and which generation was last cleaned up.  A callback that may
+ * re-enter (break_armor(), expels(), spoteffects(), retouch_equipment(), ...)
+ * is modelled as "installs any number of forms, of any kind, in any order,
+ * each finished by its own installer, cleanup included".  That covers
+ * everything the real callbacks can do to the form, A->B->A chains included.
+ *
+ * Reading order: the predicates, install_form() (property 1 and the light
+ * invariant), cleanup_form(), callback(), checkpoint() (properties 2 and 3),
+ * the two operations polymon_model() and break_armor_model(), and last the
+ * identity-guard contrast used by run-wp.sh's negative control.
  */
-
-/* The identity-guard model allows callback choices 0..IDENTITY_MAX_CHOICE.
- * The default, 2, is the no-ABA contract: no callback reinstalls the owner
- * form.  run-wp.sh also builds with -DIDENTITY_MAX_CHOICE=3, admitting the
- * same-form reinstallation, and requires WP to FAIL: a negative control
- * showing that identity guards alone cannot exclude ABA. */
-#ifndef IDENTITY_MAX_CHOICE
-#define IDENTITY_MAX_CHOICE 2
-#endif
 
 #include <limits.h>
 
 #define FORM_HUMAN 0
-#define FORM_TARGET 1
+#define FORM_TARGET 1 /* the form polymon() installs; it emits light */
 #define FORM_OTHER 2
 
-/* Semantic form classes for the reachable nested callbacks.  A petrifying
- * non-stone golem becomes FORM_STONE_GOLEM; rehumanize becomes FORM_BASE.
- * These are deliberately separate from the three display forms above. */
-#define FORM_BASE 0
-#define FORM_NONSTONE_GOLEM 1
-#define FORM_STONE_GOLEM 2
-#define FORM_OTHER_KIND 3
+/* A generous bound so that the counter provably cannot overflow in the
+ * model; the patch itself panics rather than let the real counter wrap. */
+#define MAX_GEN 100000
+#define MAX_INSTALLS 1000
 
 struct world {
-    int form;
-    int form_epoch;
-    int light_source;
-    int cleanup_seen;
-    int cleanup_epoch;
+    int form;        /* u.umonnum / gy.youmonst.data                     */
+    int gen;         /* uasmon_generation                                */
+    int light;       /* an LS_MONSTER light source exists for the hero   */
+    int cleaned_gen; /* the generation whose cleanup last ran; -1 = none */
 };
 
 static struct world w;
 
 /*@
-  predicate valid_kind(integer kind) = FORM_BASE <= kind <= FORM_OTHER_KIND;
-*/
+  predicate valid_form(integer f) = FORM_HUMAN <= f <= FORM_OTHER;
 
-/*@
-  requires valid_kind(owner);
-  requires 0 <= callback <= 2;
-  assigns \nothing;
-  ensures valid_kind(\result);
-  ensures callback == 0 ==> \result == owner;
-  ensures callback == 1 ==> \result == FORM_BASE;
-  ensures callback == 2 && owner == FORM_NONSTONE_GOLEM
-          ==> \result == FORM_STONE_GOLEM;
-  ensures callback == 2 && owner != FORM_NONSTONE_GOLEM
-          ==> \result == owner;
-*/
-static int
-nested_kind(int owner, int callback)
-{
-    if (callback == 0)
-        return owner;
-    if (callback == 1)
-        return FORM_BASE;
-    if (owner == FORM_NONSTONE_GOLEM)
-        return FORM_STONE_GOLEM;
-    return owner;
-}
+  // (2): the call whose saved generation is g owns the installed form...
+  predicate owns(integer g) = g == w.gen;
+  // ...or has been overtaken by a later installation.
+  predicate stale(integer g) = g < w.gen;
 
-/*@
-  requires valid_kind(owner);
-  requires owner != FORM_BASE;
-  requires 0 <= callback <= 2;
-  assigns \nothing;
-  ensures callback == 0 || callback == 2 && owner != FORM_NONSTONE_GOLEM
-       || (callback == 1 && owner != FORM_BASE)
-       || (callback == 2 && owner == FORM_NONSTONE_GOLEM);
-*/
-static void
-prove_nested_change_is_not_aba(int owner, int callback)
-{
-    int next = nested_kind(owner, callback);
-    if (callback == 1)
-        //@ assert next == FORM_BASE && next != owner;
-        return;
-    if (callback == 2 && owner == FORM_NONSTONE_GOLEM)
-        //@ assert next == FORM_STONE_GOLEM && next != owner;
-        return;
-    //@ assert callback == 0 || (callback == 2 && owner != FORM_NONSTONE_GOLEM);
-}
+  // Bug 07's invariant: a light source exists exactly when the form glows.
+  predicate light_ok = w.light == (w.form == FORM_TARGET);
 
-/*@
-  requires valid_kind(owner);
-  requires owner != FORM_BASE;
-  requires 0 <= c0 <= 2;
-  requires 0 <= c1 <= 2;
-  assigns \nothing;
-*/
-static void
-prove_two_nested_callbacks_no_aba(int owner, int c0, int c1)
-{
-    int first = nested_kind(owner, c0);
-    int second = nested_kind(first, c1);
-    prove_nested_change_is_not_aba(owner, c0);
-    if (first != owner)
-        //@ assert second != owner;
-        return;
-    /* The only same-form first callback is a no-op or a failed
-     * petrification.  A second callback has the same endpoint rule. */
-    if (c1 == 0 || (c1 == 2 && owner != FORM_NONSTONE_GOLEM))
-        //@ assert second == owner;
-        return;
-    //@ assert c1 == 1 || (c1 == 2 && owner == FORM_NONSTONE_GOLEM);
-    //@ assert second != owner;
-}
+  // Everything that is true between any two steps of the model.
+  predicate world_ok =
+      valid_form(w.form) && light_ok
+      && 0 <= w.gen <= MAX_GEN && -1 <= w.cleaned_gen <= w.gen;
 
-/*@
-  predicate valid_form(integer form) =
-      FORM_HUMAN <= form <= FORM_OTHER;
-
-  predicate light_consistent{L} =
-      w.light_source == (w.form == FORM_TARGET);
+  // The installed form has not had its cleanup yet.
+  predicate not_cleaned_yet = w.cleaned_gen < w.gen;
 */
-
-/*@
-  requires valid_form(form);
-  assigns \nothing;
-  ensures \result == (form == FORM_TARGET);
-*/
-static int
-emits_light(int form)
-{
-    return form == FORM_TARGET;
-}
 
 /*@
   assigns w;
-  ensures w.form == FORM_HUMAN;
-  ensures w.form_epoch == 0;
-  ensures w.light_source == 0;
-  ensures w.cleanup_seen == 0;
-  ensures w.cleanup_epoch == -1;
-  ensures light_consistent;
+  ensures world_ok;
+  ensures w.gen == 0 && w.form == FORM_HUMAN && w.cleaned_gen == -1;
 */
 static void
 reset_world(void)
 {
     w.form = FORM_HUMAN;
-    w.form_epoch = 0;
-    w.light_source = 0;
-    w.cleanup_seen = 0;
-    w.cleanup_epoch = -1;
+    w.gen = 0;
+    w.light = 0;
+    w.cleaned_gen = -1;
 }
 
+/* One form installation, as the patch does it:
+ *     u.umonnum = mntmp; set_uasmon(); uasmon_light(old_light);
+ * set_uasmon() bumps the counter, and the light is updated in the same step,
+ * with no re-entrant call in between. */
 /*@
+  requires world_ok && w.gen < MAX_GEN;
   requires valid_form(next);
-  requires valid_form(w.form);
-  requires 0 <= w.form_epoch < INT_MAX;
-  requires light_consistent;
-  assigns w.form, w.form_epoch, w.light_source;
+  assigns w.form, w.gen, w.light;
+  ensures world_ok;
   ensures w.form == next;
-  ensures w.form_epoch == \old(w.form_epoch) + 1;
-  ensures light_consistent;
+  ensures w.gen == \old(w.gen) + 1;   // (1) every installation adds one
+  ensures not_cleaned_yet;            // a new generation starts uncleaned
 */
 static void
 install_form(int next)
 {
-    int old_light = emits_light(w.form);
-    int new_light;
+    int old_light = (w.form == FORM_TARGET);
 
     w.form = next;
-    ++w.form_epoch;
-    new_light = emits_light(w.form);
-    if (old_light != new_light)
-        w.light_source = new_light;
-
-    //@ assert light_consistent;
+    ++w.gen;
+    if (old_light != (w.form == FORM_TARGET))
+        w.light = (w.form == FORM_TARGET);
 }
 
+/* The end-of-change cleanup, encumber_msg() and retouch_equipment().
+ * Bug 06 is this running twice for one generation. */
 /*@
-  requires w.cleanup_seen == 0 || w.cleanup_epoch != w.form_epoch;
-  assigns w.cleanup_seen, w.cleanup_epoch;
-  ensures w.cleanup_seen == 1;
-  ensures w.cleanup_epoch == w.form_epoch;
+  requires not_cleaned_yet;           // at most once per generation
+  assigns w.cleaned_gen;
+  ensures w.cleaned_gen == w.gen;
 */
 static void
-cleanup_current_form(void)
+cleanup_form(void)
 {
-    w.cleanup_seen = 1;
-    w.cleanup_epoch = w.form_epoch;
+    w.cleaned_gen = w.gen;
 }
 
+/* A callback that may re-enter.  It installs n forms, kinds[0..n-1]; each is
+ * installed by a nested polymon() or rehumanize() that finishes its own
+ * setup, cleanup included, before the callback returns. */
 /*@
-  requires 0 <= choice <= 3;
-  requires valid_form(w.form);
-  requires 0 <= w.form_epoch < 99;
-  requires light_consistent;
-  requires w.cleanup_seen == 0 || w.cleanup_epoch <= w.form_epoch;
-  assigns w;
-  ensures light_consistent;
-  ensures valid_form(w.form);
-  ensures choice == 0 ==> w.form_epoch == \old(w.form_epoch);
-  ensures choice != 0 ==> w.form_epoch == \old(w.form_epoch) + 1;
-  ensures choice == 0 ==> w.form == \old(w.form);
-  ensures choice == 0 ==> w.cleanup_seen == \old(w.cleanup_seen);
-  ensures choice == 0 ==> w.cleanup_epoch == \old(w.cleanup_epoch);
-  ensures choice == 1 ==> w.form == FORM_HUMAN;
-  ensures choice == 2 ==> w.form == FORM_OTHER;
-  ensures choice == 3 ==> w.form == FORM_TARGET;
-  ensures choice != 0 ==> w.cleanup_epoch == w.form_epoch;
-  ensures 0 <= w.form_epoch < 100;
-  ensures w.cleanup_seen == 0 || w.cleanup_epoch <= w.form_epoch;
-*/
-static void
-nested_change(int choice)
-{
-    if (choice == 0)
-        return;
-    if (choice == 1)
-        install_form(FORM_HUMAN);
-    else if (choice == 2)
-        install_form(FORM_OTHER);
-    else
-        install_form(FORM_TARGET);
-    cleanup_current_form();
-}
-
-/*@
-  requires 0 <= choice <= 3;
-  requires valid_form(w.form);
-  requires 0 <= w.form_epoch < 99;
-  requires owner_epoch == w.form_epoch;
-  requires light_consistent;
-  requires w.cleanup_seen == 0;
-  assigns w;
-  ensures light_consistent;
-  ensures valid_form(w.form);
-  ensures 0 <= w.form_epoch < 100;
-  ensures w.cleanup_seen == 0 || w.cleanup_epoch <= w.form_epoch;
-  ensures \result == 0 ==> w.form_epoch == owner_epoch;
-  ensures \result == 0 ==> w.form_epoch == \old(w.form_epoch);
-  ensures \result == 0 ==> w.cleanup_seen == 0;
-*/
-static int
-epoch_boundary(int choice, int owner_epoch)
-{
-    nested_change(choice);
-    if (w.form_epoch != owner_epoch)
-        return 1;
-    //@ assert choice == 0;
-    //@ assert w.cleanup_seen == 0;
-    //@ assert w.form_epoch == owner_epoch;
-    return 0;
-}
-
-/*@
-  requires 0 <= choice <= IDENTITY_MAX_CHOICE;
-  requires valid_form(w.form);
-  requires 0 <= w.form_epoch < 99;
-  requires owner_form == FORM_TARGET;
-  requires w.form == owner_form;
-  requires light_consistent;
-  requires w.cleanup_seen == 0;
-  assigns w;
-  ensures light_consistent;
-  ensures valid_form(w.form);
-  ensures 0 <= w.form_epoch < 100;
-  ensures w.cleanup_seen == 0 || w.cleanup_epoch <= w.form_epoch;
-  ensures \result == 0 ==> w.form == owner_form;
-  ensures \result == 0 ==> w.form_epoch == \old(w.form_epoch);
-  ensures \result == 0 ==> w.cleanup_seen == 0;
-*/
-static int
-identity_boundary_no_aba(int choice, int owner_form)
-{
-    int owner_epoch = w.form_epoch;
-
-    nested_change(choice);
-    if (w.form != owner_form)
-        return 1;
-    /* choice 3 (same-target reinstall) is excluded by the contract. */
-    //@ assert choice == 0;
-    //@ assert w.cleanup_seen == 0;
-    //@ assert w.form_epoch == owner_epoch;
-    return 0;
-}
-
-/* Generation guards remain sound even when the nested callback performs an
- * arbitrary ABA transition.  Choice 3 deliberately reinstalls the owner
- * form, which is the case identity-only guards cannot distinguish. */
-/*@
-  requires 0 <= choice <= 3;
-  requires valid_form(w.form);
-  requires 0 <= w.form_epoch < 99;
-  requires owner_epoch == w.form_epoch;
-  requires light_consistent;
-  assigns w;
-  ensures light_consistent;
-  ensures valid_form(w.form);
-  ensures \result == 0 ==> w.form_epoch == owner_epoch;
-  ensures \result == 1 ==> w.form_epoch != owner_epoch;
-*/
-static int
-generation_boundary_arbitrary_aba(int choice, int owner_epoch)
-{
-    if (choice == 1)
-        install_form(FORM_HUMAN);
-    else if (choice == 2)
-        install_form(FORM_OTHER);
-    else if (choice == 3)
-        install_form(FORM_TARGET);
-    if (w.form_epoch != owner_epoch)
-        return 1;
-    //@ assert choice == 0;
-    return 0;
-}
-
-/* A callback may install any number of forms before it returns: rehumanize,
- * then a polymorph trap, then another.  kinds[0..n-1] lists them (each one
- * of FORM_HUMAN, FORM_TARGET, FORM_OTHER, so A->B->A chains of any length are
- * included).  The loop invariant carries the one fact the guard needs: after
- * i installations the generation is exactly i past where it started. */
-/*@
-  requires 0 <= n;
+  requires world_ok;
+  requires 0 <= n <= MAX_INSTALLS && w.gen <= MAX_GEN - MAX_INSTALLS;
   requires \valid_read(kinds + (0 .. n - 1));
   requires \forall integer j; 0 <= j < n ==> valid_form(kinds[j]);
-  requires valid_form(w.form);
-  requires 0 <= w.form_epoch;
-  requires w.form_epoch <= INT_MAX - n;
-  requires light_consistent;
-  assigns w.form, w.form_epoch, w.light_source;
-  ensures w.form_epoch == \old(w.form_epoch) + n;
-  ensures valid_form(w.form);
-  ensures light_consistent;
+  assigns w;
+  ensures world_ok;
+  ensures w.gen == \old(w.gen) + n;
+  ensures n > 0 ==> w.form == kinds[n - 1];
+  ensures n == 0 ==> w.form == \old(w.form)
+                     && w.cleaned_gen == \old(w.cleaned_gen);
 */
 static void
-nested_installs(int n, const int *kinds)
+callback(int n, const int *kinds)
 {
     int i;
 
     /*@
       loop invariant 0 <= i <= n;
-      loop invariant w.form_epoch == \at(w.form_epoch, Pre) + i;
-      loop invariant valid_form(w.form);
-      loop invariant light_consistent;
-      loop assigns i, w.form, w.form_epoch, w.light_source;
+      loop invariant world_ok;
+      loop invariant w.gen == \at(w.gen, Pre) + i;
+      loop invariant i > 0 ==> w.form == kinds[i - 1];
+      loop invariant i == 0 ==> w.form == \at(w.form, Pre)
+                                && w.cleaned_gen == \at(w.cleaned_gen, Pre);
+      loop assigns i, w;
       loop variant n - i;
     */
-    for (i = 0; i < n; ++i)
+    for (i = 0; i < n; ++i) {
         install_form(kinds[i]);
+        cleanup_form();
+    }
 }
 
-/* The boundary argument without the one-installation-per-callback limit:
- * the guard lets the owner continue exactly when the callback installed
- * nothing. */
+/* THE CHECKPOINT the patch places after every callback that may re-enter:
+ *     callback();
+ *     if (uasmon_generation != my_generation)
+ *         return 1;
+ * The contract is properties (2) and (3). */
 /*@
-  requires 0 <= n;
+  requires world_ok;
+  requires owns(g);
+  requires 0 <= n <= MAX_INSTALLS && w.gen <= MAX_GEN - MAX_INSTALLS;
   requires \valid_read(kinds + (0 .. n - 1));
   requires \forall integer j; 0 <= j < n ==> valid_form(kinds[j]);
-  requires valid_form(w.form);
-  requires 0 <= w.form_epoch;
-  requires w.form_epoch <= INT_MAX - n;
-  requires owner_epoch == w.form_epoch;
-  requires light_consistent;
-  assigns w.form, w.form_epoch, w.light_source;
-  ensures light_consistent;
-  ensures valid_form(w.form);
-  ensures \result == 0 <==> n == 0;
-  ensures \result == 0 ==> w.form_epoch == owner_epoch;
+  assigns w;
+  ensures world_ok;
+  ensures \result == 0 <==> n == 0;   // continue exactly when nothing was installed
+  ensures \result == 0 ==> owns(g)    // a call that continues still owns its form,
+          && w.form == \old(w.form) && w.cleaned_gen == \old(w.cleaned_gen);
+  ensures \result != 0 ==> stale(g);  // and one that stops has been overtaken
 */
 int
-generation_boundary_any_installs(int n, const int *kinds, int owner_epoch)
+checkpoint(int n, const int *kinds, int g)
 {
-    nested_installs(n, kinds);
-    if (w.form_epoch != owner_epoch)
+    callback(n, kinds);
+    if (w.gen != g)
         return 1;
-    //@ assert n == 0;
     return 0;
 }
 
+/* Something the operation does on behalf of its own form: find_ac(),
+ * unhiding, stripping armor by uptr's rules, selftouch().  Its precondition
+ * IS property (3); WP checks it at every call. */
 /*@
-  requires 0 <= c0 <= 3;
-  requires 0 <= c1 <= 3;
-  requires 0 <= c2 <= 3;
-  requires 0 <= c3 <= 3;
-  requires 0 <= c4 <= 3;
-  assigns w;
-  ensures light_consistent;
+  requires owns(g);
+  assigns \nothing;
 */
-void
-verify_polymon_epoch(int c0, int c1, int c2, int c3, int c4)
+static void
+owned_effect(int g)
 {
-    int owner_epoch;
-
-    reset_world();
-    install_form(FORM_TARGET);
-    owner_epoch = w.form_epoch;
-
-    if (epoch_boundary(c0, owner_epoch)) return;
-    //@ assert w.form_epoch == owner_epoch;
-    if (epoch_boundary(c1, owner_epoch)) return;
-    //@ assert w.form_epoch == owner_epoch;
-    if (epoch_boundary(c2, owner_epoch)) return;
-    //@ assert w.form_epoch == owner_epoch;
-    if (epoch_boundary(c3, owner_epoch)) return;
-    //@ assert w.form_epoch == owner_epoch;
-    if (epoch_boundary(c4, owner_epoch)) return;
-    //@ assert w.form_epoch == owner_epoch;
-    cleanup_current_form();
+    (void) g;
 }
 
+/* polymon(), boundary by boundary (the model's POLY_* list).  Each callback
+ * may install any number of forms: k0..k4 list them. */
 /*@
-  requires 0 <= c0 <= IDENTITY_MAX_CHOICE;
-  requires 0 <= c1 <= IDENTITY_MAX_CHOICE;
-  requires 0 <= c2 <= IDENTITY_MAX_CHOICE;
-  requires 0 <= c3 <= IDENTITY_MAX_CHOICE;
-  requires 0 <= c4 <= IDENTITY_MAX_CHOICE;
+  requires 0 <= n0 <= MAX_INSTALLS && \valid_read(k0 + (0 .. n0 - 1));
+  requires 0 <= n1 <= MAX_INSTALLS && \valid_read(k1 + (0 .. n1 - 1));
+  requires 0 <= n2 <= MAX_INSTALLS && \valid_read(k2 + (0 .. n2 - 1));
+  requires 0 <= n3 <= MAX_INSTALLS && \valid_read(k3 + (0 .. n3 - 1));
+  requires 0 <= n4 <= MAX_INSTALLS && \valid_read(k4 + (0 .. n4 - 1));
+  requires \forall integer j; 0 <= j < n0 ==> valid_form(k0[j]);
+  requires \forall integer j; 0 <= j < n1 ==> valid_form(k1[j]);
+  requires \forall integer j; 0 <= j < n2 ==> valid_form(k2[j]);
+  requires \forall integer j; 0 <= j < n3 ==> valid_form(k3[j]);
+  requires \forall integer j; 0 <= j < n4 ==> valid_form(k4[j]);
   assigns w;
-  ensures light_consistent;
+  ensures world_ok;
 */
 void
-verify_polymon_identity_no_aba(int c0, int c1, int c2, int c3, int c4)
+polymon_model(int n0, const int *k0, int n1, const int *k1,
+              int n2, const int *k2, int n3, const int *k3,
+              int n4, const int *k4)
 {
-    reset_world();
-    install_form(FORM_TARGET);
+    int g;
 
-    if (identity_boundary_no_aba(c0, FORM_TARGET)) return;
-    if (identity_boundary_no_aba(c1, FORM_TARGET)) return;
-    if (identity_boundary_no_aba(c2, FORM_TARGET)) return;
-    if (identity_boundary_no_aba(c3, FORM_TARGET)) return;
-    if (identity_boundary_no_aba(c4, FORM_TARGET)) return;
-    cleanup_current_form();
+    reset_world();
+    install_form(FORM_TARGET);         /* u.umonnum = mntmp; set_uasmon(); ... */
+    g = w.gen;                         /* my_generation = uasmon_generation;   */
+
+    if (checkpoint(n0, k0, g)) return; /* break_armor(); drop_weapon(1);       */
+    owned_effect(g);                   /* find_ac(), unhide                    */
+    if (checkpoint(n1, k1, g)) return; /* expels()                             */
+    owned_effect(g);
+    if (checkpoint(n2, k2, g)) return; /* instapetrify() / dismount_steed()    */
+    owned_effect(g);
+    if (checkpoint(n3, k3, g)) return; /* spoteffects(TRUE)                    */
+    cleanup_form();                    /* encumber_msg(); retouch_equipment(2) */
+    if (checkpoint(n4, k4, g)) return; /* retouch_equipment() can revert you   */
+    owned_effect(g);                   /* selftouch() and the rest             */
 }
 
+/* break_armor(), sub-block by sub-block (the model's ARMOR_* list). */
 /*@
-  requires 0 <= c0 <= 3;
-  requires 0 <= c1 <= 3;
-  requires 0 <= c2 <= 3;
-  requires 0 <= c3 <= 3;
-  requires 0 <= c4 <= 3;
+  requires 0 <= n0 <= MAX_INSTALLS && \valid_read(k0 + (0 .. n0 - 1));
+  requires 0 <= n1 <= MAX_INSTALLS && \valid_read(k1 + (0 .. n1 - 1));
+  requires 0 <= n2 <= MAX_INSTALLS && \valid_read(k2 + (0 .. n2 - 1));
+  requires \forall integer j; 0 <= j < n0 ==> valid_form(k0[j]);
+  requires \forall integer j; 0 <= j < n1 ==> valid_form(k1[j]);
+  requires \forall integer j; 0 <= j < n2 ==> valid_form(k2[j]);
   assigns w;
-  ensures light_consistent;
+  ensures world_ok;
 */
 void
-verify_polymon_generation_arbitrary_aba(int c0, int c1, int c2, int c3, int c4)
+break_armor_model(int n0, const int *k0, int n1, const int *k1,
+                  int n2, const int *k2)
 {
-    int owner_epoch;
+    int g;
 
     reset_world();
-    install_form(FORM_TARGET);
-    owner_epoch = w.form_epoch;
+    install_form(FORM_TARGET);         /* the form polymon() just installed    */
+    g = w.gen;                         /* my_generation = uasmon_generation;   */
 
-    if (generation_boundary_arbitrary_aba(c0, owner_epoch)) return;
-    if (generation_boundary_arbitrary_aba(c1, owner_epoch)) return;
-    if (generation_boundary_arbitrary_aba(c2, owner_epoch)) return;
-    if (generation_boundary_arbitrary_aba(c3, owner_epoch)) return;
-    if (generation_boundary_arbitrary_aba(c4, owner_epoch)) return;
+    owned_effect(g);                   /* body armor, cloak, shirt by uptr     */
+    if (checkpoint(n0, k0, g)) return; /* drop_weapon(0); Gloves_off(); ...    */
+    owned_effect(g);                   /* shield, helmet                       */
+    if (checkpoint(n1, k1, g)) return; /* before the boots block               */
+    owned_effect(g);                   /* boots: Boots_off() may re-enter      */
+    if (checkpoint(n2, k2, g)) return; /* before the eyewear block             */
+    owned_effect(g);                   /* eyewear                              */
 }
 
-/*@
-  requires 0 <= c0 <= 3;
-  requires 0 <= c1 <= 3;
-  requires 0 <= c2 <= 3;
-  assigns w;
-  ensures light_consistent;
-*/
-void
-verify_break_armor_epoch(int c0, int c1, int c2)
-{
-    int owner_epoch;
-
-    reset_world();
-    install_form(FORM_TARGET);
-    owner_epoch = w.form_epoch;
-
-    if (epoch_boundary(c0, owner_epoch)) return;
-    //@ assert w.form_epoch == owner_epoch;
-    if (epoch_boundary(c1, owner_epoch)) return;
-    //@ assert w.form_epoch == owner_epoch;
-    if (epoch_boundary(c2, owner_epoch)) return;
-    //@ assert w.form_epoch == owner_epoch;
-}
+/* THE CONTRAST: the first draft of the PR compared the form instead,
+ *     if (u.umonnum != mntmp) return 1;
+ * That keeps property (3) only under an extra promise that no callback ever
+ * reinstalls the owner's form.  run-wp.sh builds once more with
+ * -DIDENTITY_ALLOW_REINSTALL, dropping that promise, and requires WP to fail
+ * on exactly one goal: the assertion below.  Form numbers cannot tell
+ * "nothing happened" from "y -> @ -> y"; the counter can. */
+#ifdef IDENTITY_ALLOW_REINSTALL
+#define NEVER_REINSTALLS(n, kinds, f) \true
+#else
+#define NEVER_REINSTALLS(n, kinds, f) \
+    (\forall integer j; 0 <= j < (n) ==> (kinds)[j] != (f))
+#endif
 
 /*@
-  requires 0 <= c0 <= IDENTITY_MAX_CHOICE;
-  requires 0 <= c1 <= IDENTITY_MAX_CHOICE;
-  requires 0 <= c2 <= IDENTITY_MAX_CHOICE;
+  requires world_ok;
+  requires owns(g) && w.form == owner_form;
+  requires 0 <= n <= MAX_INSTALLS && w.gen <= MAX_GEN - MAX_INSTALLS;
+  requires \valid_read(kinds + (0 .. n - 1));
+  requires \forall integer j; 0 <= j < n ==> valid_form(kinds[j]);
+  requires NEVER_REINSTALLS(n, kinds, owner_form);
   assigns w;
-  ensures light_consistent;
+  ensures world_ok;
 */
-void
-verify_break_armor_identity_no_aba(int c0, int c1, int c2)
+int
+identity_checkpoint(int n, const int *kinds, int owner_form, int g)
 {
-    reset_world();
-    install_form(FORM_TARGET);
-
-    if (identity_boundary_no_aba(c0, FORM_TARGET)) return;
-    if (identity_boundary_no_aba(c1, FORM_TARGET)) return;
-    if (identity_boundary_no_aba(c2, FORM_TARGET)) return;
-}
-
-/*@
-  requires 0 <= c0 <= 3;
-  requires 0 <= c1 <= 3;
-  requires 0 <= c2 <= 3;
-  assigns w;
-  ensures light_consistent;
-*/
-void
-verify_break_armor_generation_arbitrary_aba(int c0, int c1, int c2)
-{
-    int owner_epoch;
-
-    reset_world();
-    install_form(FORM_TARGET);
-    owner_epoch = w.form_epoch;
-
-    if (generation_boundary_arbitrary_aba(c0, owner_epoch)) return;
-    if (generation_boundary_arbitrary_aba(c1, owner_epoch)) return;
-    if (generation_boundary_arbitrary_aba(c2, owner_epoch)) return;
-}
-
-/*@
-  requires 0 <= choice <= 3;
-  assigns w;
-  ensures light_consistent;
-*/
-void
-verify_light_protocol(int choice)
-{
-    reset_world();
-    install_form(FORM_TARGET);
-    nested_change(choice);
-    //@ assert light_consistent;
+    callback(n, kinds);
+    if (w.form != owner_form)
+        return 1;
+    //@ assert owns(g);   // continuing is safe only if nothing was installed
+    return 0;
 }
