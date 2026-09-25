@@ -8,6 +8,9 @@
 // URL state:
 //   ?session=PATH   — fetch this session.json on load
 //   #step=N         — start at step N (default: first step with a key)
+//   #seg=K          — show segment K (1-based; default 1).  A save/restore
+//                     session is two segments: the game up to the save,
+//                     then the restored game.
 //
 // No build, no server, no JS port required.
 
@@ -39,6 +42,7 @@ function readHash() {
 }
 function writeHash(state) {
     const parts = [];
+    if (typeof state.seg === 'number' && state.seg > 1) parts.push(`seg=${state.seg}`);
     if (typeof state.step === 'number') parts.push(`step=${state.step}`);
     const next = parts.length ? '#' + parts.join('&') : ' ';
     if (next !== location.hash) history.replaceState(null, '', next);
@@ -47,6 +51,7 @@ function writeHash(state) {
 // --- Session loading ------------------------------------------------------
 let SESSION = null;
 let SEGMENT = null;
+let SEGMENT_INDEX = 0;
 let STEPS = [];
 
 // GitHub repo this viewer is published from. Used to turn the relative
@@ -76,11 +81,20 @@ async function fetchSession(path) {
     }
 }
 
+function segmentsOf(data) {
+    return Array.isArray(data.segments) && data.segments.length ? data.segments : [data];
+}
+
 function loadSession(data, sourcePath = '(file)', fromUrl = false) {
     SESSION = data;
-    SEGMENT = (data.segments && data.segments[0]) || data;
+    const segments = segmentsOf(data);
+    const hashSeg = parseInt(readHash().seg, 10);
+    SEGMENT_INDEX = Number.isFinite(hashSeg) && hashSeg >= 1 && hashSeg <= segments.length
+        ? hashSeg - 1 : 0;
+    SEGMENT = segments[SEGMENT_INDEX];
     STEPS = SEGMENT.steps || [];
     renderMeta(sourcePath, fromUrl);
+    setupSegmentPicker(segments, sourcePath, fromUrl);
     setupScrubber();
     const hashStep = parseInt(readHash().step, 10);
     const initial = Number.isFinite(hashStep) && hashStep >= 0 && hashStep < STEPS.length
@@ -124,6 +138,7 @@ function renderMeta(sourcePath, fromUrl) {
             SESSION.recorded_with
                 ? `teleport ${SESSION.recorded_with.teleport ?? '?'} · nethack ${SESSION.recorded_with.nethack_c ?? '?'}`
                 : '—'],
+        ['segment', `${SEGMENT_INDEX + 1} of ${segmentsOf(SESSION).length}`],
         ['total steps', String(STEPS.length)],
         ['moves length', String((SEGMENT.moves || '').length)],
     ];
@@ -172,8 +187,34 @@ function wireCopyButton(sel, getter) {
     };
 }
 
+// --- Segment picker -------------------------------------------------------
+function setupSegmentPicker(segments, sourcePath, fromUrl) {
+    const row = $('#segment-row');
+    const sel = $('#segment-select');
+    if (segments.length < 2) { row.style.display = 'none'; return; }
+    row.style.display = '';
+    sel.innerHTML = '';
+    segments.forEach((seg, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = `segment ${i + 1} of ${segments.length}`
+            + ` (${(seg.steps || []).length} steps${i ? ', after restore' : ''})`;
+        sel.appendChild(opt);
+    });
+    sel.value = String(SEGMENT_INDEX);
+    sel.onchange = () => {
+        SEGMENT_INDEX = parseInt(sel.value, 10);
+        SEGMENT = segments[SEGMENT_INDEX];
+        STEPS = SEGMENT.steps || [];
+        renderMeta(sourcePath, fromUrl);
+        setupScrubber();
+        showStep(firstInterestingStep());
+    };
+}
+
 // --- Scrubber + navigation ------------------------------------------------
 let CURRENT_STEP = 0;
+let KEYS_WIRED = false;
 
 function setupScrubber() {
     const sc = $('#scrubber');
@@ -183,6 +224,8 @@ function setupScrubber() {
     sc.oninput = () => showStep(parseInt(sc.value, 10));
     $('#prev-btn').onclick = () => showStep(CURRENT_STEP - 1);
     $('#next-btn').onclick = () => showStep(CURRENT_STEP + 1);
+    if (KEYS_WIRED) return;
+    KEYS_WIRED = true;
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         if (e.key === 'ArrowLeft') { showStep(CURRENT_STEP - 1); e.preventDefault(); }
@@ -201,7 +244,7 @@ function showStep(n) {
     $('#scrubber').value = n;
     $('#step-label').textContent = `step ${n} / ${STEPS.length - 1}`;
     renderStep(STEPS[n], n);
-    writeHash({ step: n });
+    writeHash({ seg: SEGMENT_INDEX + 1, step: n });
 }
 
 // --- Key + screen rendering -----------------------------------------------
