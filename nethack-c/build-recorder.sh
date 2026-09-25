@@ -79,7 +79,10 @@ echo "[ok] upstream NetHack $VERSION ready"
 
 # --- Step 2: fresh recorder tree from upstream + patches ---
 echo "[step 2] Building recorder tree..."
-rm -rf "$RECORDER_DIR"
+# Delete the old tree by a literal relative path from the script's own
+# directory, never through a variable (set -e stops us if the cd fails).
+cd "$SCRIPT_DIR"
+rm -rf ./recorder
 mkdir -p "$RECORDER_DIR"
 # Use rsync to dereference any symlinks and skip git metadata cleanly
 rsync -a --exclude='.git' "$UPSTREAM_DIR/" "$RECORDER_DIR/"
@@ -139,6 +142,15 @@ cd "$RECORDER_DIR"
 export SOURCE_DATE_EPOCH="${TELEPORT_BUILD_EPOCH:-1777723200}"
 make -j"$NPROC" SYSCFLAGS="$LUA_SYSCFLAGS" >/dev/null
 make install >/dev/null
+# The linux/mac minimal hints leave SYSCONFCREATE commented out, but the
+# binary is built with SYSCF and refuses to start without one ("Unable to
+# open SYSCF_FILE"), which the session driver sees as a zero-step recording.
+# Install the stock sysconf with WIZARDS=* (so playmode:debug sessions work)
+# and without GDBPATH (so a panic does not try to attach a debugger).
+SYSCF_DST="$INSTALL_PREFIX/games/lib/nethackdir/sysconf"
+if [ ! -f "$SYSCF_DST" ]; then
+    sed -e 's/^WIZARDS=.*/WIZARDS=*/' -e '/^GDBPATH=/d' sys/unix/sysconf > "$SYSCF_DST"
+fi
 echo
 echo "[ok] recorder built: $RECORDER_DIR/src/nethack"
 echo "[ok] installed to:    $INSTALL_PREFIX/games/lib/nethackdir/"

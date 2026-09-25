@@ -311,8 +311,22 @@ function parseRngLines(text) {
 async function loadSession(p) {
     const txt = await fs.readFile(p, 'utf8');
     const data = JSON.parse(txt);
+    // A v4 session (one flat recording with env, nethackrc and steps, as
+    // bundles 09 and 12 ship) is one segment: its keystream is the step keys.
+    if (data.version === 4 && Array.isArray(data.steps)) {
+        const moves = data.steps.map((s) => s.key).filter((k) => k != null).join('');
+        return {
+            version: 5,
+            segments: [{
+                seed: Number(data.env?.NETHACK_SEED ?? data.seed ?? 0),
+                datetime: data.env?.NETHACK_FIXED_DATETIME ?? data.datetime,
+                nethackrc: data.nethackrc ?? '',
+                moves,
+            }],
+        };
+    }
     if (data.version !== 5 || !Array.isArray(data.segments)) {
-        throw new Error(`unsupported session shape: ${p} (need clean v5)`);
+        throw new Error(`unsupported session shape: ${p} (need v4 or v5)`);
     }
     return data;
 }
