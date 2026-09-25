@@ -88,3 +88,9 @@ This boundary is intentional: the result is an unbounded proof of the stated
 ownership/light/cleanup properties under arbitrary form-installation choices,
 plus negative controls showing that each guard is needed. It is not a blanket
 proof of all NetHack behavior.
+
+## Interactive explainer (draft)
+
+[`explainer/`](explainer/) walks through this proof interactively and links
+each step to the NetHack source. Its README lists open questions that need
+CBMC and Frama-C runs.

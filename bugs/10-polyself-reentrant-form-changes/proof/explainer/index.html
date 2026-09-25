@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0">
+<title>Polymorph Proof Walkthrough</title>
+<style>
+:root{--bg:#faf9f5;--surface:#ffffff;--surface-1:#f1efe8;--text-primary:#26251f;--text-secondary:#5f5e5a;--text-muted:#888780;--border:#d3d1c7;--border-strong:#b4b2a9;
+ --blue:#378ADD;--blue-ink:#185FA5;--warm:#BA7517;--warm-ink:#854F0B;--green:#1D9E75;--green-ink:#0F6E56;--pink:#D4537E;--pink-ink:#993556;--violet:#7F77DD;--violet-ink:#4F47A8;--orange:#D85A30;--orange-ink:#993C1D;--red:#E24B4A;--red-ink:#B3302F;
+ --add-bg:#e6f3ec;--rm-bg:#fbe9e7;--hi-bg:#fcf1dc;--code-bg:#fdfcf9}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#1a1a18;--surface:#232320;--surface-1:#2c2c2a;--text-primary:#eceae2;--text-secondary:#b4b2a9;--text-muted:#888780;--border:#3a3a36;--border-strong:#5f5e5a;
+ --blue-ink:#79b1ec;--warm-ink:#d9a24d;--green-ink:#4fbb99;--pink-ink:#e58aab;--violet-ink:#a49dea;--orange-ink:#e8895f;--red-ink:#f07c7b;--add-bg:#1f3129;--rm-bg:#3a2322;--hi-bg:#3a3020;--code-bg:#1f1f1d}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#1a1a18;--surface:#232320;--surface-1:#2c2c2a;--text-primary:#eceae2;--text-secondary:#b4b2a9;--text-muted:#888780;--border:#3a3a36;--border-strong:#5f5e5a;
+ --blue-ink:#79b1ec;--warm-ink:#d9a24d;--green-ink:#4fbb99;--pink-ink:#e58aab;--violet-ink:#a49dea;--orange-ink:#e8895f;--red-ink:#f07c7b;--add-bg:#1f3129;--rm-bg:#3a2322;--hi-bg:#3a3020;--code-bg:#1f1f1d}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text-primary);line-height:1.6;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:16px}
+.page{max-width:1120px;margin:0 auto;padding:0 20px 72px}
+a{color:var(--blue-ink)}
+code,.mono,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+p code,li code,td code,.cap code,.rd code{font-size:.9em;background:var(--surface-1);padding:0 4px;border-radius:4px}
+header.top{padding-block:40px 22px;border-bottom:1px solid var(--border)}
+.nav{font-size:14px;margin:0 0 16px}
+.nav a{color:var(--text-muted);text-decoration:none}
+.nav a:hover{color:var(--text-secondary);text-decoration:underline}
+.eyebrow{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin:0 0 10px}
+h1{font-size:32px;font-weight:600;letter-spacing:-.015em;margin:0 0 12px;text-wrap:balance}
+header.top p{margin:0 0 10px;font-size:17px;color:var(--text-secondary);max-width:70ch}
+ol.qs{list-style:none;counter-reset:q;margin:22px 0 0;padding:0;max-width:900px}
+ol.qs li{counter-increment:q;border-bottom:1px solid var(--border);padding:20px 0 20px 52px;position:relative}
+ol.qs li:before{content:counter(q);position:absolute;left:0;top:19px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;background:var(--surface);color:var(--blue-ink);border:1px solid var(--blue-ink)}
+.qtag{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--warm-ink)}
+ol.qs h2{font-size:20px;font-weight:600;margin:5px 0 6px;letter-spacing:-.01em}
+ol.qs h2 a{text-decoration:none}
+ol.qs h2 a:hover{text-decoration:underline}
+.what{margin:0;font-size:15.5px;color:var(--text-secondary);max-width:76ch}
+.go{display:inline-block;margin-top:9px;font-size:15px}
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--border);font-size:14.5px;color:var(--text-muted)}
+footer a{color:var(--text-secondary)}
+
+/* explainer shell */
+.view{padding-top:18px}
+.view h1{font-size:22px;margin:0 0 4px}
+.view h1 span{font-size:17px;font-weight:400;color:var(--text-secondary)}
+.quiz{font-size:14.5px;color:var(--text-muted);margin:0 0 12px;max-width:80ch}
+.quiz b{font-weight:500;color:var(--text-secondary)}
+.lede{font-size:16px;color:var(--text-secondary);max-width:78ch;margin:0 0 12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+button,select{height:36px;padding:0 12px;border:1px solid var(--border-strong);background:var(--surface);border-radius:8px;font-size:14.5px;color:var(--text-primary);cursor:pointer;font-family:inherit;white-space:nowrap}
+button:hover,select:hover{background:var(--surface-1)}
+button:focus-visible,select:focus-visible,a:focus-visible,.ln:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+button.main{border:2px solid var(--text-secondary);font-weight:500}
+button:disabled{opacity:.45;cursor:default}
+button.sm,.sm button{height:30px;font-size:13px;padding:0 9px}
+.seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:none;border-radius:0;height:34px}
+.seg button+button{border-left:1px solid var(--border-strong)}
+.seg button.on{background:var(--surface-1);font-weight:500;box-shadow:inset 0 -2px 0 var(--blue)}
+.seg.sm button{height:28px}
+.klab{font-size:14px;color:var(--text-secondary);white-space:nowrap}
+label.cb{display:flex;align-items:center;gap:7px;font-size:14.5px;color:var(--text-secondary);cursor:pointer}
+input[type=checkbox]{width:17px;height:17px;accent-color:var(--pink)}
+input[type=range]{accent-color:var(--blue);min-width:160px;flex:1;max-width:340px}
+.lg{font-size:13.5px;color:var(--text-muted);line-height:1.55}
+.rd{font-size:15.5px;color:var(--text-secondary);line-height:1.65;min-height:3.2em;max-width:84ch}
+.rd b{font-weight:600;color:var(--text-primary)}
+.cap{font-size:15px;color:var(--text-secondary);line-height:1.72;border-top:1px solid var(--border);padding-top:10px;margin-top:14px;max-width:84ch}
+.cap b{font-weight:600;color:var(--text-primary)}
+.cap p{margin:0 0 10px}
+.cap ul{margin:0 0 10px;padding-left:20px}
+.cap li{margin:3px 0}
+.fig{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:6px 0}
+.fig svg{display:block;width:100%;min-width:760px;height:auto}
+.ts{font-size:13px;fill:var(--text-secondary)}
+.tn{font-size:12px;fill:var(--text-muted)}
+.gl{paint-order:stroke;stroke:var(--surface);stroke-width:3.5px;stroke-linejoin:round}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:26px;padding-top:14px;border-top:1px solid var(--border);font-size:15px;flex-wrap:wrap}
+.pager a{text-decoration:none}
+.pager a:hover{text-decoration:underline}
+details.more{margin:12px 0;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+details.more>summary{cursor:pointer;padding:9px 14px;font-size:14.5px;color:var(--text-secondary);font-weight:500}
+details.more>summary:hover{color:var(--text-primary)}
+details.more>.body{padding:4px 14px 14px;font-size:15px;color:var(--text-secondary);line-height:1.65}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media (max-width:980px){.two{grid-template-columns:1fr}}
+.panel-h{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin:4px 0 6px}
+.gy{color:var(--warm-ink)} .ga{color:var(--blue-ink)} .gn{color:var(--green-ink)}
+.ok{color:var(--green-ink)} .bad{color:var(--red-ink)} .stp{color:var(--violet-ink)} .mut{color:var(--text-muted)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;line-height:1.5}
+table.bt{border-collapse:collapse;font-size:14px;width:100%}
+table.bt th{text-align:left;padding:6px 10px 6px 0;font-weight:500;color:var(--text-muted);border-bottom:1px solid var(--border-strong);font-size:13px}
+table.bt td{text-align:left;padding:6px 10px 6px 0;color:var(--text-secondary);border-bottom:1px solid var(--border);vertical-align:top}
+table.bt tr.now td{background:var(--hi-bg)}
+.tablewrap{overflow-x:auto}
+
+/* source viewer */
+.srcv{border:1px solid var(--border);border-radius:10px;background:var(--code-bg);overflow:hidden}
+.srcbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface)}
+.codebox{max-height:470px;overflow:auto;position:relative;font-size:12.5px;line-height:1.55}
+.codebox.tall{max-height:640px}
+.parth{position:sticky;left:0;padding:7px 10px 5px;font-size:12.5px;color:var(--text-muted);font-family:ui-sans-serif,system-ui,sans-serif;border-top:1px solid var(--border);background:var(--surface-1)}
+.parth:first-child{border-top:none}
+.parth b{color:var(--text-secondary);font-weight:600}
+.ln{display:grid;grid-template-columns:48px 44px max-content;min-width:100%;cursor:default}
+.ln .no{color:var(--text-muted);text-align:right;padding-right:8px;text-decoration:none;user-select:none;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a.no:hover{color:var(--blue-ink);text-decoration:underline}
+.ln .tg{font-size:10.5px;font-weight:700;text-align:center;align-self:center;user-select:none;font-family:ui-sans-serif,system-ui,sans-serif}
+.ln code{white-space:pre;padding-right:16px;font-size:12.5px;background:none}
+.ln.tagged{cursor:pointer}
+.ln.tagged:hover{background:var(--surface-1)}
+.ln.add{background:var(--add-bg)}
+.ln.add .no{color:var(--green-ink);text-align:right}
+.ln.rm{background:var(--rm-bg)}
+.ln.rm code{text-decoration:line-through;text-decoration-color:var(--red-ink);opacity:.8}
+.ln.hi{box-shadow:inset 3px 0 0 var(--warm);background:var(--hi-bg)}
+.ln.add.hi{background:var(--add-bg)}
+.fold{padding:2px 0 2px 100px;color:var(--text-muted);cursor:pointer;font-size:12px;font-family:ui-sans-serif,system-ui,sans-serif;border-block:1px dashed var(--border)}
+.fold:hover{color:var(--blue-ink);background:var(--surface-1)}
+.note{margin:2px 10px 6px 92px;padding:7px 11px;border-left:3px solid var(--warm);background:var(--surface);font-family:ui-sans-serif,system-ui,sans-serif;font-size:13.5px;line-height:1.55;color:var(--text-secondary);max-width:74ch;white-space:normal;position:sticky;left:92px}
+.note .nact{display:block;margin-top:4px;font-size:12.5px}
+.tag-B{color:var(--warm-ink)} .tag-install{color:var(--blue-ink)} .tag-cleanup{color:var(--violet-ink)} .tag-aba{color:var(--pink-ink)} .tag-removed,.tag-fixme{color:var(--orange-ink)} .tag-reent{color:var(--warm-ink)} .tag-entry,.tag-end{color:var(--text-muted)}
+
+/* playground */
+.pg{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr);gap:14px;align-items:start}
+@media (max-width:900px){.pg{grid-template-columns:1fr}}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:8px 0}
+.slot{border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--surface)}
+.slot .sl{font-size:11.5px;color:var(--text-muted);font-family:ui-monospace,Menlo,monospace;display:block;margin-bottom:3px;overflow-wrap:anywhere}
+.slot select{width:100%;height:30px;font-size:13px;padding:0 6px}
+.slot.unused{opacity:.45}
+.trace{border:1px solid var(--border);border-radius:10px;background:var(--surface);max-height:420px;overflow:auto;font-size:13.5px}
+.ev{display:grid;grid-template-columns:30px 22px minmax(0,1fr) auto;gap:6px;padding:4px 10px;border-bottom:1px solid var(--border);cursor:pointer;align-items:baseline}
+.ev:hover{background:var(--surface-1)}
+.ev.future{opacity:.35}
+.ev.cur{background:var(--hi-bg);box-shadow:inset 3px 0 0 var(--warm)}
+.ev .i{color:var(--text-muted);font-variant-numeric:tabular-nums;font-size:12px;text-align:right}
+.ev .k{font-weight:700;text-align:center}
+.ev.d1 .t{padding-left:18px;border-left:2px solid var(--border-strong)}
+.ev .srcl{font-size:12px;white-space:nowrap}
+.world{border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:12px 14px}
+.world .big{font-family:ui-monospace,Menlo,monospace;font-size:44px;line-height:1;font-weight:600}
+.wrow{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:14px}
+.wrow:last-child{border-bottom:none}
+.wrow span:first-child{color:var(--text-muted)}
+.wrow span:last-child{font-variant-numeric:tabular-nums;text-align:right}
+.verdict{margin-top:10px;padding:8px 11px;border-radius:8px;font-size:14px;border:1px solid var(--border)}
+.verdict.ok{border-color:var(--green);background:var(--add-bg);color:var(--text-primary)}
+.verdict.bad{border-color:var(--red);background:var(--rm-bg);color:var(--text-primary)}
+.verdict.stp{border-color:var(--violet);color:var(--text-primary)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;border:1px solid var(--pink);color:var(--pink-ink);padding:2px 9px;border-radius:999px}
+
+/* WP */
+.wpcode{font-size:13px;line-height:1.7;border:1px solid var(--border);border-radius:10px;background:var(--code-bg);padding:8px 0;overflow-x:auto}
+.wpcode div{white-space:pre;padding:0 12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.wpcode div.on{background:var(--hi-bg);box-shadow:inset 3px 0 0 var(--warm)}
+.wpcode div.acsl{color:var(--green-ink)}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:15px;white-space:pre-wrap;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px;line-height:1.6;min-height:4.4em}
+.side{font-size:13px;color:var(--text-muted);margin-top:6px}
+.stepdots{display:flex;gap:5px}
+.stepdots span{width:10px;height:10px;border-radius:50%;border:1px solid var(--border-strong);cursor:pointer}
+.stepdots span.on{background:var(--warm);border-color:var(--warm)}
+.callout{border-left:3px solid var(--orange);padding:6px 12px;background:var(--surface);margin:10px 0;font-size:15px;color:var(--text-secondary);max-width:84ch}
+.callout b{color:var(--text-primary)}
+
+/* ABA */
+.hist{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.hchip{display:flex;flex-direction:column;align-items:center;border:1px solid var(--border-strong);border-radius:10px;padding:6px 12px;background:var(--surface);min-width:64px}
+.hchip .g{font-family:ui-monospace,Menlo,monospace;font-size:28px;font-weight:600;line-height:1.1}
+.hchip .n{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.hchip.saved{border:2px solid var(--blue-ink)}
+.arrow{color:var(--text-muted)}
+.guards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
+@media (max-width:700px){.guards{grid-template-columns:1fr}}
+.gcard{border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:var(--surface)}
+.gcard code{font-size:13px}
+.gcard .res{font-size:17px;font-weight:600;margin-top:4px}
+.gcard.wrong{border-color:var(--red);background:var(--rm-bg)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:640px){h1{font-size:26px}.view h1{font-size:19px}ol.qs li{padding-left:44px}.ln{grid-template-columns:40px 36px max-content}.note{margin-left:12px;left:12px}.fold{padding-left:40px}}
+</style>
+
+<div class="page">
+<div id="index">
+<header class="top">
+  <div class="nav"><a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/10-polyself-reentrant-form-changes">&larr; nethack-bugreport, bug 10</a></div>
+  <p class="eyebrow">NetHack 5.0 &middot; polyself.c &middot; formal verification</p>
+  <h1>How the polymorph proof works</h1>
+  <p>Bug 10 fixes a family of re-entrancy bugs in <code>polymon()</code> and <code>break_armor()</code>, and then checks the fix with two formal-methods tools that don't appear in ordinary game development: <b>CBMC</b>, a bounded model checker that tries every path through a small C model, and <b>Frama-C/WP</b>, which turns annotated C into logic formulas and proves them. Text audits of the source then tie the model back to NetHack.</p>
+  <p>These nine explainers go through the argument in order. Each has a live figure: the model runs in your browser, and every boundary links to the real NetHack 5.0 source at <a href="https://github.com/NetHack/NetHack/tree/16ff59115315917b93185d026aeefea06db9b0f4"><code>16ff59115</code></a>, with the patch shown as a diff.</p>
+</header>
+<ol class="qs" id="qs"></ol>
+<footer>
+  Sources: <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/10-polyself-reentrant-form-changes/proof"><code>proof/</code></a>
+  (<code>polyself_model.c</code>, <code>polyself_acsl.c</code>, <code>run-cbmc.sh</code>, <code>run-wp.sh</code>, the audits), the bug's
+  <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/10-polyself-reentrant-form-changes/REPORT.md">REPORT.md</a>, and upstream
+  <a href="https://github.com/NetHack/NetHack/issues/1682">#1682</a> / <a href="https://github.com/NetHack/NetHack/pull/1681">PR #1681</a>.
+  The in-page model is a line-by-line JavaScript transcription of <code>polyself_model.c</code>; it reproduces all 18 expected outcomes in <code>run-cbmc.sh</code>.
+</footer>
+</div>
+
+<!-- 1 -->
+<section class="view" id="v-window" hidden>
+  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <h1>The window <span>&middot; a form change that isn't atomic</span></h1>
+  <p class="quiz"><b>Question:</b> after <code>set_uasmon()</code> installs a new form, what happens if something in the next few hundred lines changes the form again?</p>
+  <div class="row">
+    <div class="seg" id="w-scen"></div>
+    <div class="seg" id="w-mode"><button data-v="0">NetHack 5.0</button><button data-v="1">with the fix</button></div>
+  </div>
+  <div class="fig" id="w-fig"></div>
+  <div class="rd" id="w-read"></div>
+  <div class="row" id="w-links"></div>
+  <div class="panel-h" style="margin-top:14px">The code for the selected column</div>
+  <div id="w-src"></div>
+  <div class="cap">
+    <p><code>polymon()</code> installs the new form in one line (<code>u.umonnum = mntmp; set_uasmon();</code>), then spends about 250 lines applying what that form implies: armor it can't wear, a weapon it can't hold, being expelled, the square you are standing on, artifacts that now reject you. Several of those steps can hurt you. A polymorphed hero whose <code>u.mh</code> reaches zero is reverted on the spot by <code>rehumanize()</code>, <b>from inside</b> <code>polymon()</code>. Other steps can polymorph you again.</p>
+    <p>When the nested call returns, the outer code keeps going as if its form were still installed. Each scenario above is one way that goes wrong. Click a column to read what happens at that step and to see its source below. The <b>tagged lines</b> in the source are the <i>re-entrant boundaries</i> the proof is about; green rows are what the patch adds.</p>
+  </div>
+  <div class="pager"></div>
+</section>
+
+<!-- 2 -->
+<section class="view" id="v-model" hidden>
+  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <h1>From NetHack to a model <span>&middot; keep the boundaries, drop everything else</span></h1>
+  <p class="quiz"><b>Question:</b> how do you check a property of 250 lines of game code that call into half the game?</p>
+  <p class="lede">You don't check the real thing. You write a small C program that keeps only what the property depends on: <b>where</b> the code can re-enter, <b>which form</b> is installed, a <b>generation counter</b>, the <b>light source</b>, and a record of <b>cleanup</b>. Every call that might re-enter becomes a single choice with four outcomes. Click a tagged line on either side to find its counterpart.</p>
+  <div class="row"><div class="seg" id="m-fn"><button data-v="polymon">polymon()</button><button data-v="break_armor">break_armor()</button></div></div>
+  <div class="two">
+    <div><div class="panel-h">NetHack 5.0 source (with the fix as a diff)</div><div id="m-src"></div></div>
+    <div><div class="panel-h">The CBMC model, <code>proof/polyself_model.c</code></div><div id="m-mod"></div></div>
+  </div>
+  <div class="rd" id="m-read" style="margin-top:10px"></div>
+  <details class="more"><summary>The model's world: five variables</summary><div class="body">
+    <div class="tablewrap"><table class="bt">
+      <tr><th>model variable</th><th>stands for</th><th>why it's there</th></tr>
+      <tr><td><code>w.form</code></td><td><code>u.umonnum</code> / <code>gy.youmonst.data</code>, reduced to three values: <span class="ga mono">@</span> human, <span class="gy mono">y</span> the target (a glowing yellow light), <span class="gn mono">:</span> some other form (a newt)</td><td>what the identity guard compares</td></tr>
+      <tr><td><code>w.form_epoch</code></td><td>the patch's <code>uasmon_generation</code> counter</td><td>what the generation guard compares; bumped by every installation, including of the same form</td></tr>
+      <tr><td><code>w.light_source</code></td><td>whether an <code>LS_MONSTER</code> light source exists for the hero</td><td>bug 07: must always equal <code>emits_light(form)</code></td></tr>
+      <tr><td><code>w.cleanup_seen</code>, <code>w.cleanup_epoch</code></td><td><code>encumber_msg()</code> + <code>retouch_equipment()</code> having run, and for which generation</td><td>bug 06: cleanup at most once per generation</td></tr>
+    </table></div>
+    <p>The four callback outcomes at each boundary are: nothing happens; revert to <span class="ga mono">@</span> (<code>rehumanize()</code>); become <span class="gn mono">:</span> (another polymorph); or reinstall <span class="gy mono">y</span> itself (a same-form polymorph, the ABA case). A nested change always runs its own cleanup, as the real <code>polyman()</code>/<code>polymon()</code> do.</p>
+  </div></details>
+  <details class="more"><summary>Full model source: <code>maybe_nested_change()</code>, <code>guard_stops()</code>, <code>apply_owned_effect()</code></summary><div class="body"><div id="m-helpers"></div></div></details>
+  <details class="more"><summary>The model-to-source mapping table from <code>proof/README.md</code></summary><div class="body"><div class="tablewrap"><table class="bt" id="m-map"></table></div></div></details>
+  <div class="cap">
+    <p>This step is called <b>abstraction</b>. It is where most of the judgment in a proof like this goes. The callbacks (<code>break_armor()</code>, <code>spoteffects()</code>, and the rest) are not modeled at all. Each is replaced by "anything could happen to the form here", which is an <b>over-approximation</b>: the model allows everything the real code can do, and more. If the property holds under every outcome, it holds under whichever outcome NetHack actually produces.</p>
+    <p>The price is that the model says nothing about what those callbacks do to anything else. The link between the model and the source has to be argued separately, which is what the audits in explainer 8 do.</p>
+  </div>
+  <div class="pager"></div>
+</section>
+
+<!-- 3 -->
+<section class="view" id="v-path" hidden>
+  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <h1>One path, step by step <span>&middot; running the model by hand</span></h1>
+  <p class="quiz"><b>Question:</b> pick an outcome for each boundary. Does the old form ever apply an effect after it has been replaced?</p>
+  <div class="row">
+    <span class="klab">function</span><div class="seg" id="p-h"><button data-v="polymon">polymon()</button><button data-v="break_armor">break_armor()</button></div>
+    <span class="klab">guard</span><div class="seg" id="p-mode"><button data-v="0">none</button><button data-v="1">identity (PR #1681)</button><button data-v="2">generation</button></div>
+  </div>
+  <div class="row"><span class="klab">presets</span><select id="p-preset"></select><span id="p-chips"></span></div>
+  <div class="slots" id="p-slots"></div>
+  <div class="row">
+    <button id="p-first" class="sm">&#x23EE; Start</button><button id="p-prev" class="sm">&larr; Back</button><button id="p-next" class="main">Step &rarr;</button><button id="p-end" class="sm">Run to end &#x23ED;</button>
+    <label class="cb"><input type="checkbox" id="p-follow" checked> follow in source</label>
+  </div>
+  <div class="pg">
+    <div><div class="trace" id="p-trace"></div></div>
+    <div><div class="world" id="p-world"></div></div>
+  </div>
+  <div class="panel-h" style="margin-top:14px">Where this step is in NetHack</div>
+  <div id="p-src"></div>
+  <div class="cap">
+    <p>Each boundary asks for one choice, as <code>nondet_uint()</code> does in the C model. The model checks three <b>assertions</b> as it runs:</p>
+    <ul>
+      <li><code>apply_owned_effect()</code>: <i>the old transformation never applies a stale-form effect</i>. If the code continues past a boundary, the generation must be the one it saved.</li>
+      <li><code>cleanup_current_form()</code>: <i>cleanup runs at most once for each form generation</i> (bug 06).</li>
+      <li><code>assert_light_consistent()</code>: <i>form and hero light source agree</i> (bug 07).</li>
+    </ul>
+    <p>Try the presets. With <b>no guard</b>, any revert fails the first assertion (the shape of bugs 06 and 08). The <b>identity guard</b> catches a revert, but not a same-form reinstall at <code>retouch_equipment</code>. The <b>generation guard</b> catches both. Keep a set of choices and switch guards to compare them on the same path.</p>
+  </div>
+  <div class="pager"></div>
+</section>
+
+<!-- 4 -->
+<section class="view" id="v-cbmc" hidden>
+  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <h1>Every path at once <span>&middot; what CBMC does</span></h1>
+  <p class="quiz"><b>Question:</b> explainer 3 checks one path at a time. How can you be sure about all of them?</p>
+  <div class="row">
+    <span class="klab">function</span><div class="seg" id="c-h"><button data-v="polymon">polymon()</button><button data-v="break_armor">break_armor()</button></div>
+    <span class="klab">guard</span><div class="seg" id="c-mode"><button data-v="0">none</button><button data-v="1">identity</button><button data-v="2">generation</button></div>
+    <label class="cb"><input type="checkbox" id="c-noaba"> assume no same-form reentry</label>
+  </div>
+  <div class="fig" id="c-fig"></div>
+  <div class="rd" id="c-read"></div>
+  <div class="cap">
+    <p><b>The tree.</b> Each level is a boundary, and each node branches four ways, one per outcome of <code>nondet_uint()</code>: <span class="mut">&middot;</span> nothing, <span class="ga mono">@</span> revert, <span class="gn mono">:</span> another form, <span class="gy mono">y</span> the same form again. A leaf is where a path ends: <span class="ok">&#9679; the function completed with every assertion true</span>, <span class="stp">&#9632; a guard returned early</span>, <span class="bad">&#10005; an assertion failed</span>, or <span class="mut">&#9675; the path was excluded by an <code>__CPROVER_assume</code></span>. Click a leaf to open that path in explainer 3. (This page draws a path as ending at its first failure. CBMC would carry on and report each violated property separately.)</p>
+    <p><b>What CBMC actually does.</b> It does not walk this tree. It translates the whole C program into a single <b>SAT formula</b>, one Boolean variable per bit of every value at every point, with <code>nondet_uint()</code> as unconstrained inputs, <code>__CPROVER_assume(c)</code> as a constraint, and the negation of every <code>__CPROVER_assert</code> as the goal. It then asks a SAT solver: <i>is there any assignment of the inputs that reaches a false assertion?</i></p>
+    <ul>
+      <li><b>No such assignment</b> (unsatisfiable): the property holds on every path. CBMC exits 0.</li>
+      <li><b>An assignment exists</b>: the solver's answer is a concrete counterexample trace, the same kind of path you can step through here. CBMC exits 10.</li>
+    </ul>
+    <p>It is "bounded" because loops and recursion have to be unrolled to a fixed depth first. This model has no loops, and <code>--unwinding-assertions</code> makes CBMC confirm that no path was cut off, so here the check is exhaustive. The flags <code>--bounds-check --pointer-check --signed-overflow-check</code> and the rest add C safety assertions on top of the model's own.</p>
+    <p>The tree is small because the model is small, and that is deliberate. Everything that made polymorphing hard to test (which traps are where, which artifacts you carry, what the damage rolls are) has become a four-way choice.</p>
+  </div>
+  <details class="more"><summary>The CBMC harness: <code>verify_polymon_guards()</code> and <code>verify_break_armor_guards()</code></summary><div class="body"><div id="c-harness"></div></div></details>
+  <div class="pager"></div>
+</section>
+
+<!-- 5 -->
+<section class="view" id="v-controls" hidden>
+  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <h1>Breaking the fix on purpose <span>&middot; negative controls</span></h1>
+  <p class="quiz"><b>Question:</b> a proof that passes might be passing because the check can't see anything. How do you know it can?</p>
+  <p class="lede">A proof can pass for the wrong reason: an assumption that rules out every interesting path, or an assertion that can never fail. <code>run-cbmc.sh</code> protects against this by running some checks that are <b>supposed to fail</b>. For each one it breaks the fix in a specific way and requires CBMC to find a counterexample (exit 10). This table runs all 18 checks with the in-page model.</p>
+  <div class="row"><span id="n-sum"></span></div>
+  <div class="tablewrap"><table class="bt" id="n-table"></table></div>
+  <div class="cap">
+    <p><b>Guard necessity</b> (the last eight rows). For each of the eight guards, the script forces an ordinary revert to human at exactly that boundary (<code>-DFORCE_BOUNDARY=k</code>), removes just that guard (<code>-DOMIT_GUARD=k</code>), and requires a counterexample. This shows that every guard is reachable and needed. A patch with one guard missing is caught, and so is a harness that couldn't reach that boundary.</p>
+    <p><b>The ABA rows.</b> The identity guard passes only when same-form reentry is assumed away (<code>-DALLOW_SAME_FORM_REENTRY=0</code>) and fails without that assumption. That is the result that led to the generation counter. The <i>polymorph-trap route</i> rows use a fixed path that the source audit shows NetHack can actually reach.</p>
+    <p><b>Delayed light bookkeeping</b> reproduces bug 07: in the old code, <code>set_uasmon()</code> installs a glowing form, and a nested <code>rehumanize()</code> sees a glowing form with no light source to delete.</p>
+  </div>
+  <details class="more"><summary><code>proof/run-cbmc.sh</code> in full</summary><div class="body"><pre id="n-script" style="font-size:12.5px;overflow-x:auto;margin:0"></pre></div></details>
+  <div class="pager"></div>
+</section>
+
+<!-- 6 -->
+<section class="view" id="v-aba" hidden>
+  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <h1>A&rarr;B&rarr;A <span>&middot; why a counter, not the form number</span></h1>
+  <p class="quiz"><b>Question:</b> <code>polymon(y)</code> saved "my form is <span class="gy">y</span>". A nested callback runs. Afterwards the form is <span class="gy">y</span>. Did anything happen?</p>
+  <p class="lede">Add nested installations and watch the two guards. The identity guard compares the form number now to the saved one. The generation guard compares a counter that every installation increments. They disagree whenever the history returns to where it started, which is called the <b>ABA problem</b> in concurrent programming.</p>
+  <div class="row">
+    <span class="klab">nested callback installs</span>
+    <button data-add="0">@ revert to human</button><button data-add="2">: another form</button><button data-add="1">y the same form</button>
+    <button id="a-reset" class="sm">Reset</button>
+  </div>
+  <div class="hist" id="a-hist"></div>
+  <div class="guards" id="a-guards"></div>
+  <div class="rd" id="a-read"></div>
+  <div class="panel-h" style="margin-top:14px">The real route to y&rarr;y in NetHack, found by the source audit</div>
+  <div id="a-src"></div>
+  <div class="cap">
+    <p><b>Why ABA matters here.</b> A same-form installation is a real event. The nested <code>polymon()</code> ran its own cleanup, including <code>retouch_equipment()</code>, for its own generation. When the outer call continues, it repeats that work, which is bug 06's double blast even though the form number never changed. The identity guard that PR #1681 first proposed (<code>if (u.umonnum != mntmp) return 1;</code>) cannot see this.</p>
+    <p><b>The fix</b> (<code>proof/generation-guard.patch</code>): a <code>static unsigned long uasmon_generation</code> that <code>note_uasmon_install()</code> increments right after every semantic <code>set_uasmon()</code>, in <code>polymon()</code> and <code>polyman()</code>. It is never reset, so a saved value can equal the current one only if nothing was installed in between. Wraparound would break that, so the patch calls <code>panic()</code> if the counter reaches 0 again. The counter is not saved to disk, because a re-entrant call chain cannot span a save and restore.</p>
+  </div>
+  <div class="pager"></div>
+</section>
+
+<!-- 7 -->
+<section class="view" id="v-wp" hidden>
+  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <h1>Weakest preconditions <span>&middot; what Frama-C/WP does</span></h1>
+  <p class="quiz"><b>Question:</b> CBMC checked the paths of one small program. Can the boundary argument be proved as a general fact, for any starting generation?</p>
+  <p class="lede">Frama-C reads C annotated with <b>ACSL</b> contracts: <code>requires</code> (what the caller guarantees), <code>ensures</code> (what the function promises), <code>assigns</code> (what it may modify), and inline <code>assert</code>s. Its WP plugin works <b>backwards</b> from each promise, one statement at a time, to the condition that must hold at the start: the <i>weakest precondition</i>. Step through it for one boundary from <code>proof/polyself_acsl.c</code>.</p>
+  <div class="row">
+    <div class="seg" id="wp-mode"><button data-v="gen">generation guard</button><button data-v="id">identity guard</button><button data-v="noaba">identity + no-ABA contract</button></div>
+  </div>
+  <div class="row">
+    <button id="wp-prev" class="sm">&larr; Back</button><button id="wp-next" class="main">Step backward &uarr;</button>
+    <div class="stepdots" id="wp-dots"></div><span class="lg" id="wp-count"></span>
+  </div>
+  <div class="two">
+    <div><div class="panel-h">The annotated function (simplified from <code>generation_boundary_arbitrary_aba</code>)</div><div class="wpcode" id="wp-code"></div>
+      <p class="lg" id="wp-legend"></p></div>
+    <div><div class="panel-h">What must be true just before the highlighted line</div><div class="formula" id="wp-f"></div><div class="side" id="wp-side"></div><div class="rd" id="wp-x" style="margin-top:10px"></div></div>
+  </div>
+  <div class="cap">
+    <p><b>Proof obligations.</b> WP does this for every promise in the file, and each result becomes a <i>goal</i>: an <code>ensures</code> checked against the body, an <code>assert</code>, a callee's <code>requires</code> at each call site, an <code>assigns</code> frame condition, and, with <code>-wp-rte</code>, a runtime-error check such as "<code>++w.form_epoch</code> doesn't overflow". That last one is why the contracts carry bounds like <code>0 &lt;= w.form_epoch &lt; 99</code>. The patched C code enforces the same thing with its <code>panic()</code> on wraparound.</p>
+    <p><b>Discharging them.</b> Each goal goes first to <b>Qed</b>, WP's built-in simplifier, which handles goals like the one above by rewriting and arithmetic. Anything left over goes to <b>Alt-Ergo</b>, an SMT solver. The recorded result is 76 of 76 goals proved.</p>
+    <p><b>How this differs from CBMC.</b> CBMC answered "is there a bad path in <i>this</i> program, starting from generation 0?" WP proves each function against its contract for <i>every</i> input satisfying its <code>requires</code>, and callers rely only on callees' contracts, never their bodies. That modularity makes the result independent of the starting state, and it is also where the gap noted in explainer 9 comes from.</p>
+  </div>
+  <details class="more"><summary>The real ACSL: <code>install_form()</code>, <code>generation_boundary_arbitrary_aba()</code>, <code>verify_polymon_generation_arbitrary_aba()</code></summary><div class="body"><div id="wp-real"></div></div></details>
+  <div class="pager"></div>
+</section>
+
+<!-- 8 -->
+<section class="view" id="v-audits" hidden>
+  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <h1>Tying the model to NetHack <span>&middot; the source audits</span></h1>
+  <p class="quiz"><b>Question:</b> the proofs are about a model. What connects the model to <code>src/polyself.c</code>?</p>
+  <p class="lede">Nothing formal. The model says "every installation bumps the counter" and "a check follows every boundary". Two Node scripts check that the real source still has the shape the model assumes. They are <b>drift detectors</b>: they list every place that writes the hero's form and fail if the list changes without review.</p>
+  <div class="panel-h">audit-form-transitions.mjs: every direct form write, and why it's accepted</div>
+  <div class="tablewrap"><table class="bt" id="au-table"></table></div>
+  <div class="rd" id="au-read" style="margin-top:8px"></div>
+  <div id="au-src" style="margin-top:8px"></div>
+  <div class="cap">
+    <p><b>audit-form-transitions.mjs</b> strips comments and string literals from every <code>.c</code>/<code>.h</code> file, matches <code>u.umonnum =</code>, <code>gy.youmonst.data =</code> and <code>set_uasmon(</code>, and compares the result, as a multiset of normalized lines, to the 16 reviewed entries above. It includes a self-test showing that commented-out writes and <code>==</code> comparisons are not counted.</p>
+    <p><b>audit-callgraph.mjs</b> repeats the form-write scan with the reviewed line numbers hard-coded, checks which files call <code>set_uasmon()</code>, and counts direct <code>polymon(</code> call sites. The manifest records 21. It requires that the list include <code>trap.c</code> (the ABA route) and <code>polyself.c</code> (recursion). It does not review the 21 callers one by one.</p>
+    <p>The last column matters most. The generation argument needs "every <i>semantic</i> form change bumps the counter", but the patch bumps it in only two places, <code>polymon()</code> and <code>polyman()</code>. Every other row is accepted because a reviewer judged it not to be a new form installed during the re-entrant window. That judgment is where the audit carries weight that the proofs can't.</p>
+  </div>
+  <div class="pager"></div>
+</section>
+
+<!-- 9 -->
+<section class="view" id="v-scope" hidden>
+  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <h1>What is proved, and what isn't</h1>
+  <p class="quiz"><b>Question:</b> after all this, how much should you trust the fix?</p>
+  <div class="cap" style="border-top:none;margin-top:0;padding-top:0">
+    <p><b>Solid.</b> Within the model, every choice at every boundary has been checked, with the <b>generation</b> guard: no stale effect, no repeated cleanup, and the form always agreeing with its light source. The negative controls show each of the eight guards is needed, and that the checks can fail. The ABA result is concrete: identity guards are unsound unless same-form reentry is ruled out, and the trap route shows NetHack does not rule it out.</p>
+    <p><b>Nearly true by construction.</b> Once the generation guard is in place, "if we continue, the generation hasn't changed" follows almost directly from the guard's own test. The real content is in two premises the proof doesn't establish: that <i>every</i> installation bumps the counter, and that a guard follows <i>every</i> boundary. The first rests on the audit's reviewed classification (explainer 8). The second rests on the model's list of boundaries matching the source, which is checked by reading and, for the identity version, by <code>audit-patch.mjs</code>.</p>
+    <p><b>Things I noticed while building this page</b> (worth checking; none of them is a bug in the fix itself):</p>
+    <ul>
+      <li><b>The 76/76 WP run proves less than the report implies.</b> <code>run-wp.sh</code> passes <code>-wp-fct verify_polymon_generation_arbitrary_aba,verify_break_armor_generation_arbitrary_aba</code>. As I understand <code>-wp-fct</code>, WP then generates goals only for those two functions. Callees such as <code>generation_boundary_arbitrary_aba()</code>, whose contract and <code>assert choice == 0</code> are the actual boundary argument, and <code>install_form()</code> are used as assumptions but never checked against their bodies. The earlier 344-goal run (<code>e90f8aa</code>) had no <code>-wp-fct</code>, but it predates <code>generation_boundary_arbitrary_aba</code>. The fix is to add the callees to <code>-wp-fct</code> or to drop the flag.</li>
+      <li><b><code>audit-patch.mjs</code> is not run by <code>verify.sh</code></b>, and it checks the identity-guard version (<code>proposed-fix.patch</code>: five <code>u.umonnum != mntmp</code> and three <code>gy.youmonst.data != uptr</code>). No script applies or checks the shape of <code>generation-guard.patch</code>.</li>
+      <li><b>One installation per boundary.</b> Both models allow at most one nested installation per boundary. A chain like <span class="gy">y</span>&rarr;<span class="ga">@</span>&rarr;<span class="gy">y</span> inside one callback is covered by the counter's monotonicity (k installs add k), but that step is argued, not modeled.</li>
+      <li><b>The cleanup-once property is checked only by CBMC.</b> The WP entry points in <code>run-wp.sh</code> prove light consistency but never call <code>cleanup_current_form()</code>.</li>
+      <li><b><code>audit-callgraph.mjs</code> hard-codes line numbers</b>, so any upstream edit to those files trips it even when no form write changed. That errs on the safe side, but it will need re-pinning.</li>
+    </ul>
+    <p><b>Out of scope by design</b> (as <code>REPORT.md</code> says): what the callbacks do to state other than the form, light and cleanup; function pointers; and everything else NetHack does. The claim is a modular one: the re-entrancy protocol is right, and the source matches it at the reviewed sites.</p>
+  </div>
+  <div class="pager"></div>
+</section>
+</div>
+
+<script>
+/* JavaScript transcription of proof/polyself_model.c (the CBMC model).
+ * Each run takes an explicit list of callback choices in place of CBMC's
+ * nondet_uint(), and records every step so the page can show the trace. */
+(function (root) {
+  const FORM = { HUMAN: 0, TARGET: 1, OTHER: 2 };
+  const FORM_GLYPH = ['@', 'y', ':'];
+  const FORM_NAME = ['human', 'yellow light', 'newt'];
+  const GUARD = { NONE: 0, IDENTITY: 1, EPOCH: 2 };
+  const CHOICE_LABEL = ['nothing happens', 'revert to human', 'become another form', 'reinstall the same form'];
+  const BOUNDARY = [
+    { id: 0, name: 'POLY_BREAK_ARMOR', code: 'break_armor(); drop_weapon(1);' },
+    { id: 1, name: 'POLY_EXPELS', code: 'expels(...)' },
+    { id: 2, name: 'POLY_DISMOUNT', code: 'instapetrify(...) / dismount_steed(...)' },
+    { id: 3, name: 'POLY_SPOTEFFECTS', code: 'spoteffects(TRUE)' },
+    { id: 4, name: 'POLY_RETOUCH', code: 'retouch_equipment(2)' },
+    { id: 5, name: 'ARMOR_AFTER_GLOVES', code: 'drop_weapon(0); Gloves_off(); dropp(...)' },
+    { id: 6, name: 'ARMOR_BEFORE_BOOTS', code: 'shield / helmet blocks' },
+    { id: 7, name: 'ARMOR_BEFORE_EYEWEAR', code: 'boots block' },
+  ];
+
+  const emits = f => f === FORM.TARGET;
+
+  class Stop extends Error {}
+
+  function makeRun(opts) {
+    const o = Object.assign({ mode: GUARD.EPOCH, omit: -1, force: -1, allowSame: true, choices: [] }, opts);
+    const w = { form: 0, epoch: 0, light: false, cleanupSeen: false, cleanupEpoch: null };
+    const log = [];
+    let k = 0; // index into o.choices
+    let failed = null;
+    let pruned = false; // path excluded by __CPROVER_assume
+    const snap = () => ({ form: w.form, epoch: w.epoch, light: w.light, cleanupSeen: w.cleanupSeen, cleanupEpoch: w.cleanupEpoch });
+    const ev = (kind, text, extra) => log.push(Object.assign({ kind, text, w: snap() }, extra || {}));
+
+    let curAt;
+    function check(cond, msg) {
+      if (!cond) { failed = msg; ev('fail', 'assertion violated: ' + msg, { at: curAt }); throw new Stop(); }
+      ev('ok', 'assert ' + msg);
+    }
+    const lightOK = () => check(w.light === emits(w.form), 'form and hero light source agree');
+
+    function reset() {
+      Object.assign(w, { form: 0, epoch: 0, light: false, cleanupSeen: false, cleanupEpoch: null });
+    }
+    function install(next, quiet) {
+      const old = emits(w.form);
+      w.form = next; ++w.epoch;
+      const nl = emits(w.form);
+      if (old !== nl) w.light = nl;
+      ev('install', `install_form(${FORM_GLYPH[next]} ${FORM_NAME[next]}): generation is now ${w.epoch}`, { depth: quiet ? 1 : 0 });
+      lightOK();
+    }
+    function installNoLight(next) {
+      w.form = next; ++w.epoch;
+      ev('install', `set_uasmon() to ${FORM_GLYPH[next]} with the light update deferred (old code)`);
+    }
+    function cleanup(depth) {
+      check(!w.cleanupSeen || w.cleanupEpoch !== w.epoch, 'cleanup runs at most once for each form generation');
+      w.cleanupSeen = true; w.cleanupEpoch = w.epoch;
+      ev('cleanup', `cleanup for generation ${w.epoch} (encumber_msg, retouch_equipment)`, { depth });
+    }
+    function maybeNested(at) {
+      let c;
+      if (at === o.force) c = 1;
+      else if (o.force >= 0) c = 0;
+      else { c = o.choices[k++]; if (c === undefined) c = 0; }
+      if (!o.allowSame && c === 3) { pruned = true; ev('prune', 'excluded by assumption: no same-form reentry'); throw new Stop(); }
+      ev('callback', `${BOUNDARY[at].code}: callback ${CHOICE_LABEL[c]}`, { choice: c, at });
+      if (c === 1) { install(FORM.HUMAN, true); cleanup(1); }
+      else if (c === 2) { install(FORM.OTHER, true); cleanup(1); }
+      else if (c === 3) { install(FORM.TARGET, true); cleanup(1); }
+      return c;
+    }
+    function guardStops(at, ownerForm, ownerEpoch) {
+      if (at === o.omit) { ev('guard', `guard at ${BOUNDARY[at].name} omitted: always continue`, { at }); return false; }
+      let stop = false, why;
+      if (o.mode === GUARD.IDENTITY) { stop = w.form !== ownerForm; why = `form ${FORM_GLYPH[w.form]} ${stop ? '≠' : '='} owner ${FORM_GLYPH[ownerForm]}`; }
+      else if (o.mode === GUARD.EPOCH) { stop = w.epoch !== ownerEpoch; why = `generation ${w.epoch} ${stop ? '≠' : '='} saved ${ownerEpoch}`; }
+      else { why = 'no guard'; }
+      ev(stop ? 'stop' : 'guard', stop ? `guard: ${why}, so return early` : `guard: ${why}, so continue`, { at });
+      return stop;
+    }
+    function applyOwned(ownerEpoch, at) {
+      curAt = at;
+      check(w.epoch === ownerEpoch, 'old transformation never applies a stale-form effect');
+      lightOK();
+      ev('effect', `apply the ${FORM_GLYPH[FORM.TARGET]} form's own effects after ${BOUNDARY[at].name}`, { at });
+    }
+    function cross(at, ownerForm, ownerEpoch) {
+      maybeNested(at);
+      if (guardStops(at, ownerForm, ownerEpoch)) return false;
+      applyOwned(ownerEpoch, at);
+      return true;
+    }
+
+    const programs = {
+      polymon() {
+        const ownerForm = FORM.TARGET;
+        reset(); ev('start', 'polymon(y): begin');
+        install(ownerForm);
+        const ownerEpoch = w.epoch;
+        ev('note', `save my_generation = ${ownerEpoch}`);
+        for (const b of [0, 1, 2, 3]) if (!cross(b, ownerForm, ownerEpoch)) return;
+        maybeNested(4);
+        if (guardStops(4, ownerForm, ownerEpoch)) return;
+        applyOwned(ownerEpoch, 4);
+        cleanup(0);
+        ev('note', 'selftouch() follows; later tests read the fresh form');
+        maybeNested(4);
+        lightOK();
+      },
+      break_armor() {
+        const ownerForm = FORM.TARGET;
+        reset(); ev('start', 'break_armor(): begin');
+        install(ownerForm);
+        const ownerEpoch = w.epoch;
+        ev('note', `save my_generation = ${ownerEpoch}`);
+        for (const b of [5, 6, 7]) if (!cross(b, ownerForm, ownerEpoch)) return;
+      },
+      polytrap() {
+        const ownerForm = FORM.TARGET;
+        reset(); ev('start', 'polymon(y), then the polymorph-trap route');
+        install(ownerForm);
+        const ownerEpoch = w.epoch;
+        ev('callback', 'drop artifact → float_down → dotrap(POLY_TRAP) → polyself → polymon(y) again', { choice: 3, at: 5 });
+        install(ownerForm, true); cleanup(1);
+        if (guardStops(5, ownerForm, ownerEpoch)) return;
+        applyOwned(ownerEpoch, 5);
+      },
+      light() {
+        reset(); ev('start', 'immediate light bookkeeping');
+        install(FORM.TARGET);
+        maybeNested(0);
+        lightOK();
+      },
+      delayedLight() {
+        reset(); ev('start', 'old delayed light bookkeeping');
+        installNoLight(FORM.TARGET);
+        ev('callback', 'nested rehumanize() runs before polyself() reaches made_change:');
+        check(!emits(w.form) || w.light, 'rehumanize must not delete a light source that does not exist');
+      },
+    };
+
+    return {
+      exec(name) {
+        try { programs[name](); if (!failed) ev('done', 'return'); }
+        catch (e) { if (!(e instanceof Stop)) throw e; }
+        return { log, failed, pruned, used: k };
+      },
+    };
+  }
+
+  function run(name, opts) { return makeRun(opts).exec(name); }
+
+  // Number of nondeterministic points each harness can reach.
+  const DEPTH = { polymon: 6, break_armor: 3, light: 1, polytrap: 0, delayedLight: 0 };
+
+  /* Exhaustive search, standing in for CBMC's SAT search: explore the
+   * choice tree, extending a prefix whenever the run asked for one more
+   * nondeterministic choice than the prefix supplied. */
+  function exploreAll(name, opts) {
+    const leaves = [];
+    function go(prefix) {
+      let asked = false;
+      const probe = new Proxy(prefix, {
+        get(t, p) { if (p === String(prefix.length)) asked = true; return t[p]; },
+      });
+      const r = run(name, Object.assign({}, opts, { choices: probe }));
+      if (asked) for (let c = 0; c < 4; ++c) go(prefix.concat(c));
+      else leaves.push({ choices: prefix.slice(), result: r });
+    }
+    go([]);
+    return leaves;
+  }
+
+  function verdict(name, opts) {
+    const leaves = exploreAll(name, opts);
+    const bad = leaves.find(l => l.result.failed);
+    return { pass: !bad, counterexample: bad || null, paths: leaves.filter(l => !l.result.pruned).length };
+  }
+
+  const api = { FORM, FORM_GLYPH, FORM_NAME, GUARD, CHOICE_LABEL, BOUNDARY, run, exploreAll, verdict, DEPTH };
+  if (typeof module !== 'undefined') module.exports = api; else root.PolyModel = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+<script>
+const SRC = {"polymon": {"file": "src/polyself.c", "start": 735, "end": 1075, "rows": [{"n": 735, "t": "polymon(int mntmp)"}, {"n": 736, "t": "{"}, {"n": 737, "t": "    char buf[BUFSZ], ustuckNam[BUFSZ];"}, {"n": 738, "t": "    boolean sticking = sticks(gy.youmonst.data) && u.ustuck && !u.uswallow,"}, {"n": 739, "t": "            was_blind = !!Blind, dochange = FALSE, was_expelled = FALSE,"}, {"n": 740, "t": "            was_hiding_under = u.uundetected && hides_under(gy.youmonst.data);"}, {"n": 741, "t": "    int mlvl, newMaxStr;"}, {"n": 742, "t": ""}, {"n": 743, "t": "    if (svm.mvitals[mntmp].mvflags & G_GENOD) { /* allow G_EXTINCT */"}, {"n": 744, "t": "        You_feel(\"rather %s-ish.\","}, {"n": 745, "t": "                 pmname(&mons[mntmp], flags.female ? FEMALE : MALE));"}, {"n": 746, "t": "        exercise(A_WIS, TRUE);"}, {"n": 747, "t": "        return 0;"}, {"n": 748, "t": "    }"}, {"n": 749, "t": ""}, {"n": 750, "t": "    /* KMH, conduct */"}, {"n": 751, "t": "    if (!u.uconduct.polyselfs++)"}, {"n": 752, "t": "        livelog_printf(LL_CONDUCT,"}, {"n": 753, "t": "                       \"changed form for the first time, becoming %s\","}, {"n": 754, "t": "                       an(pmname(&mons[mntmp], flags.female ? FEMALE : MALE)));"}, {"n": 755, "t": ""}, {"n": 756, "t": "    /* exercise used to be at the very end but only Wis was affected"}, {"n": 757, "t": "       there since the polymorph was always in effect by then */"}, {"n": 758, "t": "    exercise(A_CON, FALSE);"}, {"n": 759, "t": "    exercise(A_WIS, TRUE);"}, {"n": 760, "t": ""}, {"n": 761, "t": "    if (!Upolyd) {"}, {"n": 762, "t": "        /* Human to monster; save human stats */"}, {"n": 763, "t": "        u.macurr = u.acurr;"}, {"n": 764, "t": "        u.mamax = u.amax;"}, {"n": 765, "t": "        u.mfemale = flags.female;"}, {"n": 766, "t": "    } else {"}, {"n": 767, "t": "        /* Monster to monster; restore human stats, to be"}, {"n": 768, "t": "         * immediately changed to provide stats for the new monster"}, {"n": 769, "t": "         */"}, {"n": 770, "t": "        u.acurr = u.macurr;"}, {"n": 771, "t": "        u.amax = u.mamax;"}, {"n": 772, "t": "        flags.female = u.mfemale;"}, {"n": 773, "t": "    }"}, {"n": 774, "t": ""}, {"n": 775, "t": "    /* if stuck mimicking gold, stop immediately */"}, {"n": 776, "t": "    if (gm.multi < 0 && U_AP_TYPE == M_AP_OBJECT"}, {"n": 777, "t": "        && gy.youmonst.data->mlet != S_MIMIC)"}, {"n": 778, "t": "        unmul(\"\");"}, {"n": 779, "t": "    /* if becoming a non-mimic, stop mimicking anything */"}, {"n": 780, "t": "    if (mons[mntmp].mlet != S_MIMIC) {"}, {"n": 781, "t": "        /* as in polyman() */"}, {"n": 782, "t": "        gy.youmonst.m_ap_type = M_AP_NOTHING;"}, {"n": 783, "t": "        gy.youmonst.mappearance = 0;"}, {"n": 784, "t": "    }"}, {"n": 785, "t": "    if (is_male(&mons[mntmp])) {"}, {"n": 786, "t": "        if (flags.female)"}, {"n": 787, "t": "            dochange = TRUE;"}, {"n": 788, "t": "    } else if (is_female(&mons[mntmp])) {"}, {"n": 789, "t": "        if (!flags.female)"}, {"n": 790, "t": "            dochange = TRUE;"}, {"n": 791, "t": "    } else if (!is_neuter(&mons[mntmp]) && mntmp != u.ulycn) {"}, {"n": 792, "t": "        if (gs.sex_change_ok && !rn2(10))"}, {"n": 793, "t": "            dochange = TRUE;"}, {"n": 794, "t": "    }"}, {"n": 795, "t": ""}, {"n": 796, "t": "    Strcpy(ustuckNam, u.ustuck ? Some_Monnam(u.ustuck) : \"\");"}, {"n": 797, "t": ""}, {"n": 798, "t": "    Strcpy(buf, (u.umonnum != mntmp) ? \"\" : \"new \");"}, {"n": 799, "t": "    if (dochange) {"}, {"n": 800, "t": "        flags.female = !flags.female;"}, {"n": 801, "t": "        Strcat(buf, (is_male(&mons[mntmp]) || is_female(&mons[mntmp]))"}, {"n": 802, "t": "                       ? \"\" : flags.female ? \"female \" : \"male \");"}, {"n": 803, "t": "    }"}, {"n": 804, "t": "    Strcat(buf, pmname(&mons[mntmp], flags.female ? FEMALE : MALE));"}, {"n": 805, "t": "    You(\"%s %s!\", (u.umonnum != mntmp) ? \"turn into\" : \"feel like\", an(buf));"}, {"n": 806, "t": ""}, {"n": 807, "t": "    if (Stoned && poly_when_stoned(&mons[mntmp])) {"}, {"n": 808, "t": "        /* poly_when_stoned already checked stone golem genocide */"}, {"n": 809, "t": "        mntmp = PM_STONE_GOLEM;"}, {"n": 810, "t": "        make_stoned(0L, \"You turn to stone!\", 0, (char *) 0);"}, {"n": 811, "t": "    }"}, {"n": 812, "t": ""}, {"n": 813, "t": "    u.mtimedone = rn1(500, 500);"}, {"n": 814, "t": "    u.umonnum = mntmp;"}, {"n": 815, "t": "    set_uasmon();"}, {"n": 816, "t": ""}, {"n": 817, "t": "    /* New stats for monster, to last only as long as polymorphed."}, {"n": 818, "t": "     * Currently only strength gets changed."}, {"n": 819, "t": "     */"}, {"n": 820, "t": "    newMaxStr = uasmon_maxStr();"}, {"n": 821, "t": "    if (strongmonst(&mons[mntmp])) {"}, {"n": 822, "t": "        ABASE(A_STR) = AMAX(A_STR) = (schar) newMaxStr;"}, {"n": 823, "t": "    } else {"}, {"n": 824, "t": "        /* not a strongmonst(); if hero has exceptional strength, remove it"}, {"n": 825, "t": "           (note: removal is temporary until returning to original form);"}, {"n": 826, "t": "           we don't attempt to enforce lower maximum for wimpy forms;"}, {"n": 827, "t": "           unlike for strongmonst, current strength does not get set to max */"}, {"n": 828, "t": "        AMAX(A_STR) = (schar) newMaxStr;"}, {"n": 829, "t": "        /* make sure current is not higher than max (strip exceptional Str) */"}, {"n": 830, "t": "        if (ABASE(A_STR) > AMAX(A_STR))"}, {"n": 831, "t": "            ABASE(A_STR) = AMAX(A_STR);"}, {"n": 832, "t": "    }"}, {"n": 833, "t": ""}, {"n": 834, "t": "    if (Stone_resistance && Stoned) { /* parnes@eniac.seas.upenn.edu */"}, {"n": 835, "t": "        make_stoned(0L, \"You no longer seem to be petrifying.\", 0,"}, {"n": 836, "t": "                    (char *) 0);"}, {"n": 837, "t": "    }"}, {"n": 838, "t": "    if (Sick_resistance && Sick) {"}, {"n": 839, "t": "        make_sick(0L, (char *) 0, FALSE, SICK_ALL);"}, {"n": 840, "t": "        You(\"no longer feel sick.\");"}, {"n": 841, "t": "    }"}, {"n": 842, "t": "    if (Slimed) {"}, {"n": 843, "t": "        if (flaming(gy.youmonst.data)) {"}, {"n": 844, "t": "            make_slimed(0L, \"The slime burns away!\");"}, {"n": 845, "t": "        } else if (mntmp == PM_GREEN_SLIME) {"}, {"n": 846, "t": "            /* do it silently */"}, {"n": 847, "t": "            make_slimed(0L, (char *) 0);"}, {"n": 848, "t": "        }"}, {"n": 849, "t": "    }"}, {"n": 850, "t": "    check_strangling(FALSE); /* maybe stop strangling */"}, {"n": 851, "t": "    if (nohands(gy.youmonst.data))"}, {"n": 852, "t": "        make_glib(0);"}, {"n": 853, "t": ""}, {"n": 854, "t": "    /*"}, {"n": 855, "t": "    mlvl = adj_lev(&mons[mntmp]);"}, {"n": 856, "t": "     * We can't do the above, since there's no such thing as an"}, {"n": 857, "t": "     * \"experience level of you as a monster\" for a polymorphed character."}, {"n": 858, "t": "     */"}, {"n": 859, "t": "    mlvl = (int) mons[mntmp].mlevel;"}, {"n": 860, "t": "    if (gy.youmonst.data->mlet == S_DRAGON && mntmp >= PM_GRAY_DRAGON) {"}, {"n": 861, "t": "        u.mhmax = In_endgame(&u.uz) ? (8 * mlvl) : (4 * mlvl + d(mlvl, 4));"}, {"n": 862, "t": "    } else if (is_golem(gy.youmonst.data)) {"}, {"n": 863, "t": "        u.mhmax = golemhp(mntmp);"}, {"n": 864, "t": "    } else {"}, {"n": 865, "t": "        if (!mlvl)"}, {"n": 866, "t": "            u.mhmax = rnd(4);"}, {"n": 867, "t": "        else"}, {"n": 868, "t": "            u.mhmax = d(mlvl, 8);"}, {"n": 869, "t": "        if (is_home_elemental(&mons[mntmp]))"}, {"n": 870, "t": "            u.mhmax *= 3;"}, {"n": 871, "t": "    }"}, {"n": 872, "t": "    u.mh = u.mhmax;"}, {"n": 873, "t": ""}, {"n": 874, "t": "    if (u.ulevel < mlvl) {"}, {"n": 875, "t": "        /* Low level characters can't become high level monsters for long */"}, {"n": 876, "t": "#ifdef DUMB"}, {"n": 877, "t": "        /* DRS/NS 2.2.6 messes up -- Peter Kendell */"}, {"n": 878, "t": "        int mtd = u.mtimedone, ulv = u.ulevel;"}, {"n": 879, "t": ""}, {"n": 880, "t": "        u.mtimedone = mtd * ulv / mlvl;"}, {"n": 881, "t": "#else"}, {"n": 882, "t": "        u.mtimedone = u.mtimedone * u.ulevel / mlvl;"}, {"n": 883, "t": "#endif"}, {"n": 884, "t": "    }"}, {"n": 885, "t": ""}, {"n": 886, "t": "    if (uskin && mntmp != armor_to_dragon(uskin->otyp))"}, {"n": 887, "t": "        skinback(FALSE);"}, {"n": 888, "t": "    break_armor();"}, {"n": 889, "t": "    drop_weapon(1);"}, {"n": 890, "t": "    find_ac(); /* (repeated below) */"}, {"n": 891, "t": "    /* if hiding under something and can't hide anymore, unhide now;"}, {"n": 892, "t": "       but don't auto-hide when not already hiding-under */"}, {"n": 893, "t": "    if (was_hiding_under)"}, {"n": 894, "t": "        (void) hideunder(&gy.youmonst);"}, {"n": 895, "t": ""}, {"n": 896, "t": "    if (u.utrap && u.utraptype == TT_PIT) {"}, {"n": 897, "t": "        set_utrap(rn1(6, 2), TT_PIT); /* time to escape resets */"}, {"n": 898, "t": "    }"}, {"n": 899, "t": "    if (was_blind && !Blind) { /* previous form was eyeless */"}, {"n": 900, "t": "        set_itimeout(&HBlinded, 1L);"}, {"n": 901, "t": "        make_blinded(0L, TRUE); /* remove blindness */"}, {"n": 902, "t": "    }"}, {"n": 903, "t": "    newsym(u.ux, u.uy); /* Change symbol */"}, {"n": 904, "t": ""}, {"n": 905, "t": "    /* you now know what an egg of your type looks like; [moved from"}, {"n": 906, "t": "       below in case expels() -> spoteffects() drops hero onto any eggs] */"}, {"n": 907, "t": "    if (lays_eggs(gy.youmonst.data)) {"}, {"n": 908, "t": "        learn_egg_type(u.umonnum);"}, {"n": 909, "t": "        /* make queen bees recognize killer bee eggs */"}, {"n": 910, "t": "        learn_egg_type(egg_type_from_parent(u.umonnum, TRUE));"}, {"n": 911, "t": "    }"}, {"n": 912, "t": ""}, {"n": 913, "t": "    if (u.uswallow) {"}, {"n": 914, "t": "        uchar usiz;"}, {"n": 915, "t": ""}, {"n": 916, "t": "        /* if new form can't be swallowed, make engulfer expel hero */"}, {"n": 917, "t": "        if (unsolid(gy.youmonst.data)"}, {"n": 918, "t": "            /* subset of engulf_target() */"}, {"n": 919, "t": "            || (usiz = gy.youmonst.data->msize) >= MZ_HUGE"}, {"n": 920, "t": "            || (u.ustuck->data->msize < usiz && !is_whirly(u.ustuck->data))) {"}, {"n": 921, "t": "            boolean expels_mesg = TRUE;"}, {"n": 922, "t": ""}, {"n": 923, "t": "            if (unsolid(gy.youmonst.data)) {"}, {"n": 924, "t": "                if (canspotmon(u.ustuck)) /* [see below for explanation] */"}, {"n": 925, "t": "                    Strcpy(ustuckNam, Monnam(u.ustuck));"}, {"n": 926, "t": "                pline(\"%s can no longer contain you.\", ustuckNam);"}, {"n": 927, "t": "                expels_mesg = FALSE;"}, {"n": 928, "t": "            }"}, {"n": 929, "t": "            expels(u.ustuck, u.ustuck->data, expels_mesg);"}, {"n": 930, "t": "            was_expelled = TRUE;"}, {"n": 931, "t": "            /* FIXME? if expels() triggered rehumanize then we should"}, {"n": 932, "t": "               return early */"}, {"n": 933, "t": "        }"}, {"n": 934, "t": ""}, {"n": 935, "t": "    /* [note:  this 'sticking' handling is only sufficient for changing from"}, {"n": 936, "t": "       grabber to engulfer or vice versa because engulfing by poly'd hero"}, {"n": 937, "t": "       always ends immediately so won't be in effect during a polymorph] */"}, {"n": 938, "t": "    } else if (u.ustuck && !sticking /* && !u.uswallow */"}, {"n": 939, "t": "               /* being held; if now capable of holding, make holder"}, {"n": 940, "t": "                  release so that hero doesn't automagically start holding"}, {"n": 941, "t": "                  it; or, release if no longer capable of being held */"}, {"n": 942, "t": "               && (sticks(gy.youmonst.data) || unsolid(gy.youmonst.data))) {"}, {"n": 943, "t": "        /* u.ustuck name was saved above in case we're changing from can-see"}, {"n": 944, "t": "           to can't-see; but might have changed from can't-see to can-see so"}, {"n": 945, "t": "           override here if hero knows who u.ustuck is */"}, {"n": 946, "t": "        if (canspotmon(u.ustuck))"}, {"n": 947, "t": "            Strcpy(ustuckNam, Monnam(u.ustuck));"}, {"n": 948, "t": "        set_ustuck((struct monst *) 0);"}, {"n": 949, "t": "        pline(\"%s loses its grip on you.\", ustuckNam);"}, {"n": 950, "t": "    } else if (sticking && !sticks(gy.youmonst.data)) {"}, {"n": 951, "t": "        /* was holding onto u.ustuck but no longer capable of that */"}, {"n": 952, "t": "        uunstick();"}, {"n": 953, "t": "    }"}, {"n": 954, "t": ""}, {"n": 955, "t": "    if (u.usteed) {"}, {"n": 956, "t": "        if (touch_petrifies(u.usteed->data) && !Stone_resistance && rnl(3)) {"}, {"n": 957, "t": "            pline(\"%s touch %s.\", no_longer_petrify_resistant,"}, {"n": 958, "t": "                  mon_nam(u.usteed));"}, {"n": 959, "t": "            Sprintf(buf, \"riding %s\","}, {"n": 960, "t": "                    an(pmname(u.usteed->data, Mgender(u.usteed))));"}, {"n": 961, "t": "            instapetrify(buf);"}, {"n": 962, "t": "        }"}, {"n": 963, "t": "        if (!can_ride(u.usteed))"}, {"n": 964, "t": "            dismount_steed(DISMOUNT_POLY);"}, {"n": 965, "t": "    }"}, {"n": 966, "t": ""}, {"n": 967, "t": "    find_ac();"}, {"n": 968, "t": "    if (((!Levitation && !u.ustuck && !Flying && is_pool_or_lava(u.ux, u.uy))"}, {"n": 969, "t": "         || (Underwater && !Swimming))"}, {"n": 970, "t": "        /* if expelled above, expels() already called spoteffects() */"}, {"n": 971, "t": "        && !was_expelled) {"}, {"n": 972, "t": "        spoteffects(TRUE);"}, {"n": 973, "t": "        /* FIXME? if spoteffects() triggered rehumanize then we should"}, {"n": 974, "t": "           return early */"}, {"n": 975, "t": "    }"}, {"n": 976, "t": "    if (Passes_walls && u.utrap"}, {"n": 977, "t": "        && (u.utraptype == TT_INFLOOR || u.utraptype == TT_BURIEDBALL)) {"}, {"n": 978, "t": "        if (u.utraptype == TT_INFLOOR) {"}, {"n": 979, "t": "            pline_The(\"rock seems to no longer trap you.\");"}, {"n": 980, "t": "        } else {"}, {"n": 981, "t": "            pline_The(\"buried ball is no longer bound to you.\");"}, {"n": 982, "t": "            buried_ball_to_freedom();"}, {"n": 983, "t": "        }"}, {"n": 984, "t": "        reset_utrap(TRUE);"}, {"n": 985, "t": "    } else if (likes_lava(gy.youmonst.data) && u.utrap"}, {"n": 986, "t": "               && u.utraptype == TT_LAVA) {"}, {"n": 987, "t": "        pline_The(\"%s now feels soothing.\", hliquid(\"lava\"));"}, {"n": 988, "t": "        reset_utrap(TRUE);"}, {"n": 989, "t": "    }"}, {"n": 990, "t": "    if (amorphous(gy.youmonst.data) || is_whirly(gy.youmonst.data)"}, {"n": 991, "t": "        || unsolid(gy.youmonst.data)) {"}, {"n": 992, "t": "        if (Punished) {"}, {"n": 993, "t": "            You(\"slip out of the iron chain.\");"}, {"n": 994, "t": "            unpunish();"}, {"n": 995, "t": "        } else if (u.utrap && u.utraptype == TT_BURIEDBALL) {"}, {"n": 996, "t": "            You(\"slip free of the buried ball and chain.\");"}, {"n": 997, "t": "            buried_ball_to_freedom();"}, {"n": 998, "t": "        }"}, {"n": 999, "t": "    }"}, {"n": 1000, "t": "    if (u.utrap && (u.utraptype == TT_WEB || u.utraptype == TT_BEARTRAP)"}, {"n": 1001, "t": "        && (amorphous(gy.youmonst.data) || is_whirly(gy.youmonst.data)"}, {"n": 1002, "t": "            || unsolid(gy.youmonst.data)"}, {"n": 1003, "t": "            || (gy.youmonst.data->msize <= MZ_SMALL"}, {"n": 1004, "t": "                && u.utraptype == TT_BEARTRAP))) {"}, {"n": 1005, "t": "        You(\"are no longer stuck in the %s.\","}, {"n": 1006, "t": "            u.utraptype == TT_WEB ? \"web\" : \"bear trap\");"}, {"n": 1007, "t": "        /* probably should burn webs too if PM_FIRE_ELEMENTAL */"}, {"n": 1008, "t": "        reset_utrap(TRUE);"}, {"n": 1009, "t": "    }"}, {"n": 1010, "t": "    if (webmaker(gy.youmonst.data) && u.utrap && u.utraptype == TT_WEB) {"}, {"n": 1011, "t": "        You(\"orient yourself on the web.\");"}, {"n": 1012, "t": "        reset_utrap(TRUE);"}, {"n": 1013, "t": "    }"}, {"n": 1014, "t": "    check_strangling(TRUE); /* maybe start strangling */"}, {"n": 1015, "t": ""}, {"n": 1016, "t": "    disp.botl = TRUE;"}, {"n": 1017, "t": "    gv.vision_full_recalc = 1;"}, {"n": 1018, "t": "    see_monsters();"}, {"n": 1019, "t": "    encumber_msg();"}, {"n": 1020, "t": ""}, {"n": 1021, "t": "    retouch_equipment(2);"}, {"n": 1022, "t": "    /* this might trigger a recursive call to polymon() [stone golem"}, {"n": 1023, "t": "       wielding cockatrice corpse and hit by stone-to-flesh, becomes"}, {"n": 1024, "t": "       flesh golem above, now gets transformed back into stone golem;"}, {"n": 1025, "t": "       fortunately neither form uses #monster] */"}, {"n": 1026, "t": "    if (!uarmg)"}, {"n": 1027, "t": "        selftouch(no_longer_petrify_resistant);"}, {"n": 1028, "t": ""}, {"n": 1029, "t": "    /* the explanation of '#monster' used to be shown sooner, but there are"}, {"n": 1030, "t": "       possible fatalities above and it isn't useful unless hero survives */"}, {"n": 1031, "t": "    if (flags.verbose) {"}, {"n": 1032, "t": "        static const char use_thec[] = \"Use the command #%s to %s.\";"}, {"n": 1033, "t": "        static const char monsterc[] = \"monster\";"}, {"n": 1034, "t": "        struct permonst *uptr = gy.youmonst.data;"}, {"n": 1035, "t": "        boolean might_hide = (is_hider(uptr) || hides_under(uptr));"}, {"n": 1036, "t": ""}, {"n": 1037, "t": "        if (can_breathe(uptr))"}, {"n": 1038, "t": "            pline(use_thec, monsterc, \"use your breath weapon\");"}, {"n": 1039, "t": "        if (attacktype(uptr, AT_SPIT))"}, {"n": 1040, "t": "            pline(use_thec, monsterc, \"spit venom\");"}, {"n": 1041, "t": "        if (uptr->mlet == S_NYMPH)"}, {"n": 1042, "t": "            pline(use_thec, monsterc, \"remove an iron ball\");"}, {"n": 1043, "t": "        if (attacktype(uptr, AT_GAZE))"}, {"n": 1044, "t": "            pline(use_thec, monsterc, \"gaze at monsters\");"}, {"n": 1045, "t": "        if (might_hide && webmaker(uptr))"}, {"n": 1046, "t": "            pline(use_thec, monsterc, \"hide or to spin a web\");"}, {"n": 1047, "t": "        else if (might_hide)"}, {"n": 1048, "t": "            pline(use_thec, monsterc, \"hide\");"}, {"n": 1049, "t": "        else if (webmaker(uptr))"}, {"n": 1050, "t": "            pline(use_thec, monsterc, \"spin a web\");"}, {"n": 1051, "t": "        if (is_were(uptr))"}, {"n": 1052, "t": "            pline(use_thec, monsterc, \"summon help\");"}, {"n": 1053, "t": "        if (u.umonnum == PM_GREMLIN)"}, {"n": 1054, "t": "            pline(use_thec, monsterc, \"multiply in a fountain\");"}, {"n": 1055, "t": "        if (is_unicorn(uptr))"}, {"n": 1056, "t": "            pline(use_thec, monsterc, \"use your horn\");"}, {"n": 1057, "t": "        if (is_mind_flayer(uptr))"}, {"n": 1058, "t": "            pline(use_thec, monsterc, \"emit a mental blast\");"}, {"n": 1059, "t": "        if (uptr->msound == MS_SHRIEK) /* worthless, actually */"}, {"n": 1060, "t": "            pline(use_thec, monsterc, \"shriek\");"}, {"n": 1061, "t": "        if (is_vampire(uptr) || is_vampshifter(&gy.youmonst))"}, {"n": 1062, "t": "            pline(use_thec, monsterc, \"change shape\");"}, {"n": 1063, "t": ""}, {"n": 1064, "t": "        if (lays_eggs(uptr) && flags.female"}, {"n": 1065, "t": "            && !(uptr == &mons[PM_GIANT_EEL]"}, {"n": 1066, "t": "                 || uptr == &mons[PM_ELECTRIC_EEL]))"}, {"n": 1067, "t": "            pline(use_thec, \"sit\","}, {"n": 1068, "t": "                  eggs_in_water(uptr) ? \"spawn in the water\" : \"lay an egg\");"}, {"n": 1069, "t": "    }"}, {"n": 1070, "t": "    return 1;"}, {"n": 1071, "t": "}"}, {"n": 1072, "t": ""}, {"n": 1073, "t": "/* determine hero's temporary strength value used while polymorphed;"}, {"n": 1074, "t": "   hero poly'd into M2_STRONG monster usually gets 18/100 strength but"}, {"n": 1075, "t": "   there are exceptions; non-M2_STRONG get maximum strength set to 18 */"}], "ann": {"735": [{"tag": "entry", "note": "polymon(mntmp) installs form mntmp and then applies its consequences. In the model this is verify_polymon_guards(), with mntmp as FORM_TARGET (y)."}], "798": [{"tag": "aba", "note": "Polymorphing into the form you already have is allowed (\"You feel like a new yellow light!\"). u.umonnum ends up unchanged, which is the A\u2192A case an identity guard cannot see."}], "814": [{"tag": "install", "note": "The form installation. The patch records the old light state first, then updates the light immediately after set_uasmon(). The generation patch also bumps the counter and saves it as my_generation. Model: install_form(FORM_TARGET).", "before": ["    old_light = emits_light(gy.youmonst.data);"], "after_line": "set_uasmon();", "after": ["    uasmon_light(old_light);", "    note_uasmon_install();", "    my_generation = uasmon_generation;"]}], "889": [{"tag": "B0", "note": "Boundary B0, POLY_BREAK_ARMOR. break_armor() and drop_weapon() can drop an artifact whose invoked levitation is holding you up. You fall into water or lava, the damage reverts you with rehumanize(), or a polymorph trap re-polymorphs you.", "after": ["    if (uasmon_generation != my_generation)", "        return 1;"]}], "929": [{"tag": "B1", "note": "Boundary B1, POLY_EXPELS. expels() ends in spoteffects(), which can land you on a trap or in lava."}], "931": [{"tag": "fixme", "note": "The DevTeam already knew about this boundary. The patch replaces this FIXME with the guard below.", "remove": 2, "after_n": 1, "after": ["    if (uasmon_generation != my_generation)", "        return 1;"]}], "961": [{"tag": "B2", "note": "Boundary B2, POLY_DISMOUNT. instapetrify() can call polymon() directly (stone golem), and dismount_steed() \u2192 teleds() \u2192 spoteffects()."}], "967": [{"tag": "B2g", "note": "Guard for B2, placed after the whole steed block.", "before": ["    if (uasmon_generation != my_generation)", "        return 1;"]}], "972": [{"tag": "B3", "note": "Boundary B3, POLY_SPOTEFFECTS. Landing in water or lava while polymorphed damages u.mh; at zero you are reverted."}], "973": [{"tag": "fixme", "note": "The second DevTeam FIXME, replaced by the guard.", "remove": 2, "after_n": 1, "after": ["    if (uasmon_generation != my_generation)", "        return 1;"]}], "1019": [{"tag": "cleanup", "note": "End-of-form-change cleanup. rehumanize() \u2192 polyman() also runs encumber_msg() and retouch_equipment(). When a nested revert has already done this, running it again here is bug 06. Model: cleanup_current_form(), which asserts it runs at most once per generation."}], "1021": [{"tag": "B4", "note": "Boundary B4, POLY_RETOUCH. A cross-aligned artifact blasts you, and the damage can revert a frail form. Stone-to-flesh can also polymon() recursively."}], "1026": [{"tag": "B4g", "note": "Guard for B4. selftouch() below is left unguarded; the model checks only that the light stays consistent after it.", "before": ["    if (uasmon_generation != my_generation)", "        return 1;"]}], "1070": [{"tag": "end", "note": "Normal completion."}]}}, "break_armor": {"file": "src/polyself.c", "start": 1157, "end": 1300, "rows": [{"n": 1157, "t": "break_armor(void)"}, {"n": 1158, "t": "{"}, {"n": 1159, "t": "    struct obj *otmp;"}, {"n": 1160, "t": "    struct permonst *uptr = gy.youmonst.data;"}, {"n": 1161, "t": ""}, {"n": 1162, "t": "    if (breakarm(uptr)) {"}, {"n": 1163, "t": "        if ((otmp = uarm) != 0) {"}, {"n": 1164, "t": "            if (donning(otmp))"}, {"n": 1165, "t": "                cancel_don();"}, {"n": 1166, "t": "            /* for gold DSM, we don't want Armor_gone() to report that it"}, {"n": 1167, "t": "               stops shining _after_ we've been told that it is destroyed */"}, {"n": 1168, "t": "            if (otmp->lamplit)"}, {"n": 1169, "t": "                end_burn(otmp, FALSE);"}, {"n": 1170, "t": ""}, {"n": 1171, "t": "            You(\"break out of your armor!\");"}, {"n": 1172, "t": "            exercise(A_STR, FALSE);"}, {"n": 1173, "t": "            (void) Armor_gone();"}, {"n": 1174, "t": "            useup(otmp);"}, {"n": 1175, "t": "        }"}, {"n": 1176, "t": "        if ((otmp = uarmc) != 0"}, {"n": 1177, "t": "            /* mummy wrapping adapts to small and very big sizes */"}, {"n": 1178, "t": "            && (otmp->otyp != MUMMY_WRAPPING || !WrappingAllowed(uptr))) {"}, {"n": 1179, "t": "            if (otmp->otyp == MUMMY_WRAPPING) {"}, {"n": 1180, "t": "                /* doesn't have a clasp to break open */"}, {"n": 1181, "t": "                Your(\"%s tears apart!\", cloak_simple_name(otmp));"}, {"n": 1182, "t": "                (void) Cloak_off();"}, {"n": 1183, "t": "                useup(otmp);"}, {"n": 1184, "t": "            } else if (otmp->otyp == ALCHEMY_SMOCK) {"}, {"n": 1185, "t": "                pline_The(\"knot on your %s is pulled apart!\", cloak_simple_name(otmp));"}, {"n": 1186, "t": "                (void) Cloak_off();"}, {"n": 1187, "t": "                dropp(otmp);"}, {"n": 1188, "t": "            } else {"}, {"n": 1189, "t": "                pline_The(\"clasp on your %s breaks open!\", cloak_simple_name(otmp));"}, {"n": 1190, "t": "                (void) Cloak_off();"}, {"n": 1191, "t": "                dropp(otmp);"}, {"n": 1192, "t": "            }"}, {"n": 1193, "t": "        }"}, {"n": 1194, "t": "        if (uarmu) {"}, {"n": 1195, "t": "            Your(\"shirt rips to shreds!\");"}, {"n": 1196, "t": "            useup(uarmu);"}, {"n": 1197, "t": "        }"}, {"n": 1198, "t": "    } else if (sliparm(uptr)) {"}, {"n": 1199, "t": "        if ((otmp = uarm) != 0 && racial_exception(&gy.youmonst, otmp) < 1) {"}, {"n": 1200, "t": "            if (donning(otmp))"}, {"n": 1201, "t": "                cancel_don();"}, {"n": 1202, "t": "            Your(\"armor falls around you!\");"}, {"n": 1203, "t": "            /* [note: _gone() instead of _off() dates to when life-saving"}, {"n": 1204, "t": "               could force fire resisting armor back on if hero burned in"}, {"n": 1205, "t": "               hell (3.0, predating Gehennom); the armor isn't actually"}, {"n": 1206, "t": "               gone here but also isn't available to be put back on] */"}, {"n": 1207, "t": "            (void) Armor_gone();"}, {"n": 1208, "t": "            dropp(otmp);"}, {"n": 1209, "t": "        }"}, {"n": 1210, "t": "        if ((otmp = uarmc) != 0"}, {"n": 1211, "t": "            /* mummy wrapping adapts to small and very big sizes */"}, {"n": 1212, "t": "            && (otmp->otyp != MUMMY_WRAPPING || !WrappingAllowed(uptr))) {"}, {"n": 1213, "t": "            if (is_whirly(uptr))"}, {"n": 1214, "t": "                Your(\"%s falls, unsupported!\", cloak_simple_name(otmp));"}, {"n": 1215, "t": "            else"}, {"n": 1216, "t": "                You(\"shrink out of your %s!\", cloak_simple_name(otmp));"}, {"n": 1217, "t": "            (void) Cloak_off();"}, {"n": 1218, "t": "            dropp(otmp);"}, {"n": 1219, "t": "        }"}, {"n": 1220, "t": "        if ((otmp = uarmu) != 0) {"}, {"n": 1221, "t": "            if (is_whirly(uptr))"}, {"n": 1222, "t": "                You(\"seep right through your shirt!\");"}, {"n": 1223, "t": "            else"}, {"n": 1224, "t": "                You(\"become much too small for your shirt!\");"}, {"n": 1225, "t": "            setworn((struct obj *) 0, otmp->owornmask & W_ARMU);"}, {"n": 1226, "t": "            dropp(otmp);"}, {"n": 1227, "t": "        }"}, {"n": 1228, "t": "    }"}, {"n": 1229, "t": "    if (has_horns(uptr)) {"}, {"n": 1230, "t": "        if ((otmp = uarmh) != 0) {"}, {"n": 1231, "t": "            if (is_flimsy(otmp) && !donning(otmp)) {"}, {"n": 1232, "t": "                char hornbuf[BUFSZ];"}, {"n": 1233, "t": ""}, {"n": 1234, "t": "                /* Future possibilities: This could damage/destroy helmet */"}, {"n": 1235, "t": "                Sprintf(hornbuf, \"horn%s\", plur(num_horns(uptr)));"}, {"n": 1236, "t": "                Your(\"%s %s through %s.\", hornbuf, vtense(hornbuf, \"pierce\"),"}, {"n": 1237, "t": "                     yname(otmp));"}, {"n": 1238, "t": "            } else {"}, {"n": 1239, "t": "                if (donning(otmp))"}, {"n": 1240, "t": "                    cancel_don();"}, {"n": 1241, "t": "                Your(\"%s falls to the %s!\", helm_simple_name(otmp),"}, {"n": 1242, "t": "                     surface(u.ux, u.uy));"}, {"n": 1243, "t": "                (void) Helmet_off();"}, {"n": 1244, "t": "                dropp(otmp);"}, {"n": 1245, "t": "            }"}, {"n": 1246, "t": "        }"}, {"n": 1247, "t": "    }"}, {"n": 1248, "t": "    if (nohands(uptr) || verysmall(uptr)) {"}, {"n": 1249, "t": "        if ((otmp = uarmg) != 0) {"}, {"n": 1250, "t": "            if (donning(otmp))"}, {"n": 1251, "t": "                cancel_don();"}, {"n": 1252, "t": "            /* Drop weapon along with gloves */"}, {"n": 1253, "t": "            You(\"drop your gloves%s!\", uwep ? \" and weapon\" : \"\");"}, {"n": 1254, "t": "            drop_weapon(0);"}, {"n": 1255, "t": "            (void) Gloves_off();"}, {"n": 1256, "t": "            /* Glib manipulation (ends immediately) handled by Gloves_off */"}, {"n": 1257, "t": "            dropp(otmp);"}, {"n": 1258, "t": "        }"}, {"n": 1259, "t": "        if ((otmp = uarms) != 0) {"}, {"n": 1260, "t": "            You(\"can no longer hold your shield!\");"}, {"n": 1261, "t": "            (void) Shield_off();"}, {"n": 1262, "t": "            dropp(otmp);"}, {"n": 1263, "t": "        }"}, {"n": 1264, "t": "        if ((otmp = uarmh) != 0) {"}, {"n": 1265, "t": "            if (donning(otmp))"}, {"n": 1266, "t": "                cancel_don();"}, {"n": 1267, "t": "            Your(\"%s falls to the %s!\", helm_simple_name(otmp),"}, {"n": 1268, "t": "                 surface(u.ux, u.uy));"}, {"n": 1269, "t": "            (void) Helmet_off();"}, {"n": 1270, "t": "            dropp(otmp);"}, {"n": 1271, "t": "        }"}, {"n": 1272, "t": "    }"}, {"n": 1273, "t": "    if (nohands(uptr) || verysmall(uptr)"}, {"n": 1274, "t": "        || slithy(uptr) || uptr->mlet == S_CENTAUR) {"}, {"n": 1275, "t": "        if ((otmp = uarmf) != 0) {"}, {"n": 1276, "t": "            if (donning(otmp))"}, {"n": 1277, "t": "                cancel_don();"}, {"n": 1278, "t": "            if (is_whirly(uptr))"}, {"n": 1279, "t": "                Your(\"boots fall away!\");"}, {"n": 1280, "t": "            else"}, {"n": 1281, "t": "                Your(\"boots %s off your feet!\","}, {"n": 1282, "t": "                     verysmall(uptr) ? \"slide\" : \"are pushed\");"}, {"n": 1283, "t": "            (void) Boots_off();"}, {"n": 1284, "t": "            dropp(otmp);"}, {"n": 1285, "t": "        }"}, {"n": 1286, "t": "    }"}, {"n": 1287, "t": "    /* not armor, but eyewear shouldn't stay worn without a head to wear"}, {"n": 1288, "t": "       it/them on (should also come off if head is too tiny or too huge,"}, {"n": 1289, "t": "       but putting accessories on doesn't reject those cases [yet?]);"}, {"n": 1290, "t": "       amulet stays worn */"}, {"n": 1291, "t": "    if ((otmp = ublindf) != 0 && !has_head(uptr)) {"}, {"n": 1292, "t": "        int l;"}, {"n": 1293, "t": "        const char *eyewear = simpleonames(otmp); /* blindfold|towel|lenses */"}, {"n": 1294, "t": ""}, {"n": 1295, "t": "        if (!strncmp(eyewear, \"pair of \", l = 8)) /* lenses */"}, {"n": 1296, "t": "            eyewear += l;"}, {"n": 1297, "t": "        Your(\"%s %s off!\", eyewear, vtense(eyewear, \"fall\"));"}, {"n": 1298, "t": "        (void) Blindf_off((struct obj *) 0); /* Null: skip usual off mesg */"}, {"n": 1299, "t": "        dropp(otmp);"}, {"n": 1300, "t": "    }"}], "ann": {"1157": [{"tag": "entry", "note": "break_armor() decides what to strip by asking the form it cached at entry. Model: verify_break_armor_guards()."}], "1160": [{"tag": "install", "note": "uptr is cached once. Every test below (nohands(uptr), slithy(uptr), has_head(uptr)) asks about this form, even after a nested change replaces it. The generation patch saves my_generation here too.", "after": ["    unsigned long my_generation = uasmon_generation;"]}], "1254": [{"tag": "B5", "note": "Boundary B5, ARMOR_AFTER_GLOVES. Dropping the weapon can release an #invoked levitation artifact. float_down() then puts you in lava, the damage kills the newt form, and rehumanize() makes you human."}], "1259": [{"tag": "B5g", "note": "Guard for B5, at the end of the gloves sub-block so no item is left half-removed.", "before": ["    if (uasmon_generation != my_generation)", "        return;"]}], "1273": [{"tag": "B6", "note": "Boundary B6, ARMOR_BEFORE_BOOTS. Without a guard here, bug 08 continues: a human standing in lava has their water walking boots removed because a newt could not wear them.", "before": ["    if (uasmon_generation != my_generation)", "        return;"]}], "1283": [{"tag": "reent", "note": "Boots_off() \u2192 spoteffects() is another re-entrant call (water walking ends while you are over water or lava)."}], "1291": [{"tag": "B7", "note": "Boundary B7, ARMOR_BEFORE_EYEWEAR. The guard stops here if the boots block changed the form.", "before": ["    if (uasmon_generation != my_generation)", "        return;"]}]}}, "light": {"parts": [{"file": "src/polyself.c", "start": 688, "end": 731, "rows": [{"n": 688, "t": "        /* if polymon fails, \"you feel\" message has been given"}, {"n": 689, "t": "           so don't follow up with another polymon or newman;"}, {"n": 690, "t": "           sex_change_ok left disabled here */"}, {"n": 691, "t": "        if (mntmp == PM_HUMAN)"}, {"n": 692, "t": "            newman(); /* werecritter */"}, {"n": 693, "t": "        else"}, {"n": 694, "t": "            (void) polymon(mntmp);"}, {"n": 695, "t": "        goto made_change; /* maybe not, but this is right anyway */"}, {"n": 696, "t": "    }"}, {"n": 697, "t": ""}, {"n": 698, "t": "    if (mntmp < LOW_PM) {"}, {"n": 699, "t": "        tryct = 200;"}, {"n": 700, "t": "        do {"}, {"n": 701, "t": "            /* randomly pick an \"ordinary\" monster */"}, {"n": 702, "t": "            mntmp = rn1(SPECIAL_PM - LOW_PM, LOW_PM);"}, {"n": 703, "t": "            if (polyok(&mons[mntmp]) && !is_placeholder(&mons[mntmp]))"}, {"n": 704, "t": "                break;"}, {"n": 705, "t": "        } while (--tryct > 0);"}, {"n": 706, "t": "    }"}, {"n": 707, "t": ""}, {"n": 708, "t": "    /* The below polyok() fails either if everything is genocided, or if"}, {"n": 709, "t": "     * we deliberately chose something illegal to force newman()."}, {"n": 710, "t": "     */"}, {"n": 711, "t": "    gs.sex_change_ok++;"}, {"n": 712, "t": "    if (!polyok(&mons[mntmp]) || (!forcecontrol && !rn2(5))"}, {"n": 713, "t": "        || your_race(&mons[mntmp])) {"}, {"n": 714, "t": "        newman();"}, {"n": 715, "t": "    } else {"}, {"n": 716, "t": "        (void) polymon(mntmp);"}, {"n": 717, "t": "    }"}, {"n": 718, "t": "    gs.sex_change_ok--; /* reset */"}, {"n": 719, "t": ""}, {"n": 720, "t": " made_change:"}, {"n": 721, "t": "    new_light = emits_light(gy.youmonst.data);"}, {"n": 722, "t": "    if (old_light != new_light) {"}, {"n": 723, "t": "        if (old_light)"}, {"n": 724, "t": "            del_light_source(LS_MONSTER, monst_to_any(&gy.youmonst));"}, {"n": 725, "t": "        if (new_light == 1)"}, {"n": 726, "t": "            ++new_light; /* otherwise it's undetectable */"}, {"n": 727, "t": "        if (new_light)"}, {"n": 728, "t": "            new_light_source(u.ux, u.uy, new_light, LS_MONSTER,"}, {"n": 729, "t": "                             monst_to_any(&gy.youmonst));"}, {"n": 730, "t": "    }"}, {"n": 731, "t": "}"}], "ann": {"694": [{"tag": "reent", "note": "polymon() returns here. Any nested revert inside it has already happened."}], "720": [{"tag": "removed", "note": "Before the patch, polyself() created the hero light source only here, after polymon() had returned. A rehumanize() nested inside polymon() therefore ran before any light source existed and tried to delete it: bug 07. The patch removes this block and calls uasmon_light() immediately after each set_uasmon().", "remove": 11}]}}, {"file": "src/polyself.c", "start": 574, "end": 584, "rows": [{"n": 574, "t": "                              the text explicitly contains \"aligned\" */"}, {"n": 575, "t": "                           || (u.umonster == PM_CLERIC"}, {"n": 576, "t": "                               && mntmp == PM_ALIGNED_CLERIC"}, {"n": 577, "t": "                               && !strstri(buf, \"aligned\")))) {"}, {"n": 578, "t": "                /* in wizard mode, picking own role while poly'd reverts to"}, {"n": 579, "t": "                   normal without newman()'s chance of level or sex change */"}, {"n": 580, "t": "                rehumanize();"}, {"n": 581, "t": "                old_light = 0; /* rehumanize() extinguishes u-as-mon light */"}, {"n": 582, "t": "                goto made_change;"}, {"n": 583, "t": "            } else if (iswere && (were_beastie(mntmp) == u.ulycn"}, {"n": 584, "t": "                                  || mntmp == counter_were(u.ulycn)"}], "ann": {"581": [{"tag": "removed", "note": "A hand-written workaround for one case of the same ownership problem. The patch removes it.", "remove": 2, "after": ["                return;"]}]}}, {"file": "src/polyself.c", "start": 1386, "end": 1395, "rows": [{"n": 1386, "t": "    }"}, {"n": 1387, "t": ""}, {"n": 1388, "t": "    /*"}, {"n": 1389, "t": "     * Right now, dying while being a shifted vampire (bat, cloud, wolf)"}, {"n": 1390, "t": "     * reverts to human rather than to vampire."}, {"n": 1391, "t": "     */"}, {"n": 1392, "t": ""}, {"n": 1393, "t": "    if (emits_light(gy.youmonst.data))"}, {"n": 1394, "t": "        del_light_source(LS_MONSTER, monst_to_any(&gy.youmonst));"}, {"n": 1395, "t": "    polyman(\"You return to %s form!\", gu.urace.adj);"}], "ann": {"1393": [{"tag": "removed", "note": "rehumanize() deletes the glowing form's light source. Called from inside polymon() (before made_change: has run), it deletes a source that was never created: del_light_source: not found, then \"Program in disorder!\".", "remove": 2}]}}, {"file": "src/polyself.c", "start": 200, "end": 216, "rows": [{"n": 200, "t": "polyman(const char *fmt, const char *arg)"}, {"n": 201, "t": "{"}, {"n": 202, "t": "    boolean sticking = (sticks(gy.youmonst.data) && u.ustuck && !u.uswallow),"}, {"n": 203, "t": "            was_mimicking = (U_AP_TYPE != M_AP_NOTHING);"}, {"n": 204, "t": "    boolean was_blind = !!Blind,"}, {"n": 205, "t": "            had_see_invis = !!See_invisible;"}, {"n": 206, "t": ""}, {"n": 207, "t": "    if (Upolyd) {"}, {"n": 208, "t": "        u.acurr = u.macurr; /* restore old attribs */"}, {"n": 209, "t": "        u.amax = u.mamax;"}, {"n": 210, "t": "        u.umonnum = u.umonster;"}, {"n": 211, "t": "        flags.female = u.mfemale;"}, {"n": 212, "t": "    }"}, {"n": 213, "t": "    set_uasmon();"}, {"n": 214, "t": ""}, {"n": 215, "t": "    u.mh = u.mhmax = 0;"}, {"n": 216, "t": "    u.mtimedone = 0;"}], "ann": {"213": [{"tag": "install", "note": "polyman(), the path back to human form. It now does its own light bookkeeping right after installing the form.", "after": ["    uasmon_light(old_light);", "    note_uasmon_install();"]}]}}, {"file": "src/timeout.c", "start": 480, "end": 495, "rows": [{"n": 480, "t": "     * Despite lack of Unchanging, neither done() nor savelife() calls"}, {"n": 481, "t": "     * rehumanize() if hero dies while polymorphed."}, {"n": 482, "t": "     * polymon() undoes the slime countdown's mimick-green-slime hack"}, {"n": 483, "t": "     * but does not perform polyself()'s light source bookkeeping."}, {"n": 484, "t": "     * No longer need to manually increment uconduct.polyselfs to reflect"}, {"n": 485, "t": "     * [formerly implicit] change of form; polymon() takes care of that."}, {"n": 486, "t": "     * Temporarily ungenocide if necessary."}, {"n": 487, "t": "     */"}, {"n": 488, "t": "    if (emits_light(gy.youmonst.data))"}, {"n": 489, "t": "        del_light_source(LS_MONSTER, monst_to_any(&gy.youmonst));"}, {"n": 490, "t": "    save_mvflags = svm.mvitals[PM_GREEN_SLIME].mvflags;"}, {"n": 491, "t": "    svm.mvitals[PM_GREEN_SLIME].mvflags = save_mvflags & ~G_GENOD;"}, {"n": 492, "t": "    /* become a green slime; also resets youmonst.m_ap_type+.mappearance */"}, {"n": 493, "t": "    (void) polymon(PM_GREEN_SLIME);"}, {"n": 494, "t": "    svm.mvitals[PM_GREEN_SLIME].mvflags = save_mvflags;"}, {"n": 495, "t": "    done_timeout(TURNED_SLIME, SLIMED);"}], "ann": {"489": [{"tag": "removed", "note": "Another manual workaround, now redundant because polymon() does the light bookkeeping itself.", "remove": 1, "back": 1}]}}]}, "aba": {"parts": [{"file": "src/artifact.c", "start": 2205, "end": 2216, "rows": [{"n": 2205, "t": "                You_feel(\"like a rabble-rouser.\");"}, {"n": 2206, "t": "            else"}, {"n": 2207, "t": "                You_feel(\"the tension decrease around you.\");"}, {"n": 2208, "t": "            break;"}, {"n": 2209, "t": "        case LEVITATION:"}, {"n": 2210, "t": "            if (on) {"}, {"n": 2211, "t": "                float_up();"}, {"n": 2212, "t": "                spoteffects(FALSE);"}, {"n": 2213, "t": "            } else"}, {"n": 2214, "t": "                (void) float_down(I_SPECIAL | TIMEOUT, W_ARTI);"}, {"n": 2215, "t": "            break;"}, {"n": 2216, "t": "        case INVIS:"}], "ann": {"2214": [{"tag": "B5", "note": "Step 1: invoked levitation ends when the artifact leaves your inventory (for example, dropped by break_armor())."}]}}, {"file": "src/trap.c", "start": 4160, "end": 4172, "rows": [{"n": 4160, "t": "        case STATUE_TRAP:"}, {"n": 4161, "t": "            break;"}, {"n": 4162, "t": "        case HOLE:"}, {"n": 4163, "t": "        case TRAPDOOR:"}, {"n": 4164, "t": "            if (!Can_fall_thru(&u.uz) || u.ustuck)"}, {"n": 4165, "t": "                break;"}, {"n": 4166, "t": "            FALLTHROUGH;"}, {"n": 4167, "t": "            /*FALLTHRU*/"}, {"n": 4168, "t": "        default:"}, {"n": 4169, "t": "            if (!u.utrap) /* not already in the trap */"}, {"n": 4170, "t": "                dotrap(trap, NO_TRAP_FLAGS);"}, {"n": 4171, "t": "        }"}, {"n": 4172, "t": "    }"}], "ann": {"4170": [{"tag": "reent", "note": "Step 2: float_down() triggers the trap you land on."}]}}, {"file": "src/trap.c", "start": 2485, "end": 2497, "rows": [{"n": 2485, "t": "                prinv(NULL, uarmf, 0);"}, {"n": 2486, "t": "        } else if (Antimagic || Unchanging) {"}, {"n": 2487, "t": "            shieldeff(u.ux, u.uy);"}, {"n": 2488, "t": "            You_feel(\"momentarily different.\");"}, {"n": 2489, "t": "            /* Trap did nothing; don't remove it --KAA */"}, {"n": 2490, "t": "        } else {"}, {"n": 2491, "t": "            (void) steedintrap(trap, (struct obj *) 0);"}, {"n": 2492, "t": "            deltrap(trap);      /* delete trap before polymorph */"}, {"n": 2493, "t": "            newsym(u.ux, u.uy); /* get rid of trap symbol */"}, {"n": 2494, "t": "            You_feel(\"a change coming over you.\");"}, {"n": 2495, "t": "            polyself(POLY_NOFLAGS);"}, {"n": 2496, "t": "        }"}, {"n": 2497, "t": "    } else {"}], "ann": {"2495": [{"tag": "reent", "note": "Step 3: a polymorph trap calls polyself(). With polymorph control you can choose the form you already have."}]}}, {"file": "src/polyself.c", "start": 796, "end": 816, "rows": [{"n": 796, "t": "    Strcpy(ustuckNam, u.ustuck ? Some_Monnam(u.ustuck) : \"\");"}, {"n": 797, "t": ""}, {"n": 798, "t": "    Strcpy(buf, (u.umonnum != mntmp) ? \"\" : \"new \");"}, {"n": 799, "t": "    if (dochange) {"}, {"n": 800, "t": "        flags.female = !flags.female;"}, {"n": 801, "t": "        Strcat(buf, (is_male(&mons[mntmp]) || is_female(&mons[mntmp]))"}, {"n": 802, "t": "                       ? \"\" : flags.female ? \"female \" : \"male \");"}, {"n": 803, "t": "    }"}, {"n": 804, "t": "    Strcat(buf, pmname(&mons[mntmp], flags.female ? FEMALE : MALE));"}, {"n": 805, "t": "    You(\"%s %s!\", (u.umonnum != mntmp) ? \"turn into\" : \"feel like\", an(buf));"}, {"n": 806, "t": ""}, {"n": 807, "t": "    if (Stoned && poly_when_stoned(&mons[mntmp])) {"}, {"n": 808, "t": "        /* poly_when_stoned already checked stone golem genocide */"}, {"n": 809, "t": "        mntmp = PM_STONE_GOLEM;"}, {"n": 810, "t": "        make_stoned(0L, \"You turn to stone!\", 0, (char *) 0);"}, {"n": 811, "t": "    }"}, {"n": 812, "t": ""}, {"n": 813, "t": "    u.mtimedone = rn1(500, 500);"}, {"n": 814, "t": "    u.umonnum = mntmp;"}, {"n": 815, "t": "    set_uasmon();"}, {"n": 816, "t": ""}], "ann": {"798": [{"tag": "aba", "note": "Step 4: the same-form polymorph is accepted (\"You feel like a new \u2026\")."}], "814": [{"tag": "install", "note": "Step 5: the form is installed again. u.umonnum is the same number as before, but this is a new installation with its own cleanup. An outer polymon() that compares u.umonnum != mntmp sees no change."}]}}]}};
+const MSRC = {"cbmc": "/*\n * Bounded model for NetHack PR #1681's polymorph reentrancy guards.\n *\n * This is verification-only C.  It intentionally models just the ownership\n * protocol around form installation, reentrant boundaries, cleanup, light\n * sources, and break_armor() block boundaries.  README.md records the mapping\n * to the real C and the limits of the abstraction.\n */\n\n#include <stdbool.h>\n#include <limits.h>\n\n#define GUARD_NONE 0\n#define GUARD_FORM_IDENTITY 1\n#define GUARD_FORM_EPOCH 2\n\n#ifndef GUARD_MODE\n#define GUARD_MODE GUARD_FORM_IDENTITY\n#endif\n\n#ifndef OMIT_GUARD\n#define OMIT_GUARD (-1)\n#endif\n\n#ifndef FORCE_BOUNDARY\n#define FORCE_BOUNDARY (-1)\n#endif\n\n#ifndef ALLOW_SAME_FORM_REENTRY\n#define ALLOW_SAME_FORM_REENTRY 1\n#endif\n\n#ifdef __CPROVER__\nextern unsigned int nondet_uint(void);\n#else\n#include <assert.h>\nstatic unsigned int nondet_uint(void) { return 0; }\n#define __CPROVER_assert(condition, description) assert(condition)\n#define __CPROVER_assume(condition) assert(condition)\n#endif\n\nenum form {\n    FORM_HUMAN = 0,\n    FORM_TARGET = 1,\n    FORM_OTHER = 2\n};\n\nenum boundary {\n    POLY_BREAK_ARMOR = 0,\n    POLY_EXPELS = 1,\n    POLY_DISMOUNT = 2,\n    POLY_SPOTEFFECTS = 3,\n    POLY_RETOUCH = 4,\n    ARMOR_AFTER_GLOVES = 5,\n    ARMOR_BEFORE_BOOTS = 6,\n    ARMOR_BEFORE_EYEWEAR = 7\n};\n\nstruct world {\n    enum form form;\n    unsigned int form_epoch;\n    bool light_source;\n    bool cleanup_seen;\n    unsigned int cleanup_epoch;\n};\n\nstatic struct world w;\n\nstatic bool\nemits_light(enum form form)\n{\n    return form == FORM_TARGET;\n}\n\nstatic void\nassert_light_consistent(void)\n{\n    __CPROVER_assert(w.light_source == emits_light(w.form),\n                     \"form and hero light source agree\");\n}\n\nstatic void\nreset_world(void)\n{\n    w.form = FORM_HUMAN;\n    w.form_epoch = 0;\n    w.light_source = false;\n    w.cleanup_seen = false;\n    w.cleanup_epoch = UINT_MAX;\n    assert_light_consistent();\n}\n\n/* Model PR #1681's set_uasmon(); uasmon_light(old_light) pair. */\nstatic void\ninstall_form(enum form next)\n{\n    bool old_light = emits_light(w.form);\n    bool new_light;\n\n    w.form = next;\n    ++w.form_epoch;\n    new_light = emits_light(w.form);\n    if (old_light != new_light)\n        w.light_source = new_light;\n\n    /* No reentrant call is allowed between installation and bookkeeping. */\n    assert_light_consistent();\n}\n\n/* Model the pre-PR split: set_uasmon() now, polyself::made_change later. */\nstatic void\ninstall_form_without_light_bookkeeping(enum form next)\n{\n    w.form = next;\n    ++w.form_epoch;\n}\n\nstatic void\ncleanup_current_form(void)\n{\n    __CPROVER_assert(!w.cleanup_seen || w.cleanup_epoch != w.form_epoch,\n                     \"cleanup runs at most once for each form generation\");\n    w.cleanup_seen = true;\n    w.cleanup_epoch = w.form_epoch;\n}\n\nstatic void\ncomplete_nested_change(enum form next)\n{\n    install_form(next);\n    cleanup_current_form();\n}\n\n/*\n * A sound default for the ownership pilot: a reentrant boundary may leave the\n * form alone, revert to human, install another monster, or reinstall the same\n * target.  The last choice is deliberately adversarial: identity guards need\n * an independently proved no-ABA contract to exclude it.\n */\nstatic void\nmaybe_nested_change(enum boundary at)\n{\n    unsigned int choice;\n\n    if ((int) at == FORCE_BOUNDARY) {\n        choice = 1; /* deterministic A -> human counterexample */\n    } else if (FORCE_BOUNDARY >= 0) {\n        choice = 0;\n    } else {\n        choice = nondet_uint();\n        __CPROVER_assume(choice <= 3);\n    }\n\n    if (!ALLOW_SAME_FORM_REENTRY)\n        __CPROVER_assume(choice != 3);\n\n    switch (choice) {\n    case 0:\n        break;\n    case 1:\n        complete_nested_change(FORM_HUMAN);\n        break;\n    case 2:\n        complete_nested_change(FORM_OTHER);\n        break;\n    case 3:\n        complete_nested_change(FORM_TARGET);\n        break;\n    }\n}\n\nstatic bool\nguard_stops(enum boundary at, enum form owner_form,\n            unsigned int owner_epoch)\n{\n    if ((int) at == OMIT_GUARD)\n        return false;\n#if GUARD_MODE == GUARD_FORM_IDENTITY\n    (void) owner_epoch;\n    return w.form != owner_form;\n#elif GUARD_MODE == GUARD_FORM_EPOCH\n    (void) owner_form;\n    return w.form_epoch != owner_epoch;\n#else\n    (void) owner_form;\n    (void) owner_epoch;\n    return false;\n#endif\n}\n\nstatic void\napply_owned_effect(unsigned int owner_epoch)\n{\n    __CPROVER_assert(w.form_epoch == owner_epoch,\n                     \"old transformation never applies a stale-form effect\");\n    assert_light_consistent();\n}\n\nstatic bool\ncross_boundary(enum boundary at, enum form owner_form,\n               unsigned int owner_epoch)\n{\n    maybe_nested_change(at);\n    if (guard_stops(at, owner_form, owner_epoch))\n        return false;\n    apply_owned_effect(owner_epoch);\n    return true;\n}\n\n/* Mirrors the five guard locations added to polymon() by PR #1681. */\nvoid\nverify_polymon_guards(void)\n{\n    enum form owner_form = FORM_TARGET;\n    unsigned int owner_epoch;\n\n    reset_world();\n    install_form(owner_form);\n    owner_epoch = w.form_epoch;\n\n    if (!cross_boundary(POLY_BREAK_ARMOR, owner_form, owner_epoch))\n        return;\n    if (!cross_boundary(POLY_EXPELS, owner_form, owner_epoch))\n        return;\n    if (!cross_boundary(POLY_DISMOUNT, owner_form, owner_epoch))\n        return;\n    if (!cross_boundary(POLY_SPOTEFFECTS, owner_form, owner_epoch))\n        return;\n\n    /* retouch_equipment() can rehumanize or recursively polymorph. */\n    maybe_nested_change(POLY_RETOUCH);\n    if (guard_stops(POLY_RETOUCH, owner_form, owner_epoch))\n        return;\n    apply_owned_effect(owner_epoch);\n    cleanup_current_form();\n\n    /* selftouch() follows, but later capability tests read the fresh form. */\n    maybe_nested_change(POLY_RETOUCH);\n    assert_light_consistent();\n}\n\n/* Mirrors the three sub-block guard locations added to break_armor(). */\nvoid\nverify_break_armor_guards(void)\n{\n    enum form owner_form = FORM_TARGET;\n    unsigned int owner_epoch;\n\n    reset_world();\n    install_form(owner_form);\n    owner_epoch = w.form_epoch;\n\n    if (!cross_boundary(ARMOR_AFTER_GLOVES, owner_form, owner_epoch))\n        return;\n    if (!cross_boundary(ARMOR_BEFORE_BOOTS, owner_form, owner_epoch))\n        return;\n    if (!cross_boundary(ARMOR_BEFORE_EYEWEAR, owner_form, owner_epoch))\n        return;\n}\n\n/*\n * Concrete abstraction of the source-audited route:\n * drop invoked levitation -> float_down -> dotrap(POLY_TRAP) -> polyself.\n * Polymorph control can select FORM_TARGET again.  Identity is unchanged,\n * but the nested polymon owns a new generation and has run its cleanup.\n */\nvoid\nverify_same_form_polytrap_route(void)\n{\n    enum form owner_form = FORM_TARGET;\n    unsigned int owner_epoch;\n\n    reset_world();\n    install_form(owner_form);\n    owner_epoch = w.form_epoch;\n\n    complete_nested_change(FORM_TARGET);\n    if (guard_stops(ARMOR_AFTER_GLOVES, owner_form, owner_epoch))\n        return;\n    apply_owned_effect(owner_epoch);\n}\n\n/* Positive model for PR #1681's immediate light-source ownership. */\nvoid\nverify_light_bookkeeping(void)\n{\n    reset_world();\n    install_form(FORM_TARGET);\n    maybe_nested_change(POLY_BREAK_ARMOR);\n    assert_light_consistent();\n}\n\n/* Negative control reproducing the old delete-before-create window. */\nvoid\nreject_delayed_light_bookkeeping(void)\n{\n    reset_world();\n    install_form_without_light_bookkeeping(FORM_TARGET);\n\n    /* A nested rehumanize observes a glowing form before made_change. */\n    __CPROVER_assert(!emits_light(w.form) || w.light_source,\n                     \"legacy rehumanize must not delete a missing source\");\n}\n", "acsl": "/*\n * Unbounded ACSL/WP proof of the polymorph form-generation protocol.\n *\n * Unlike the CBMC pilot, choices are explicit arguments.  WP therefore proves\n * the assertions for every allowed choice without a loop or recursion bound.\n * This remains a protocol model; README.md and ASSESSMENT.md state the proof\n * obligations needed to refine it to the complete NetHack translation unit.\n */\n\n#define FORM_HUMAN 0\n#define FORM_TARGET 1\n#define FORM_OTHER 2\n\n/* Semantic form classes for the reachable nested callbacks.  A petrifying\n * non-stone golem becomes FORM_STONE_GOLEM; rehumanize becomes FORM_BASE.\n * These are deliberately separate from the three display forms above. */\n#define FORM_BASE 0\n#define FORM_NONSTONE_GOLEM 1\n#define FORM_STONE_GOLEM 2\n#define FORM_OTHER_KIND 3\n\nstruct world {\n    int form;\n    int form_epoch;\n    int light_source;\n    int cleanup_seen;\n    int cleanup_epoch;\n};\n\nstatic struct world w;\n\n/*@\n  predicate valid_kind(integer kind) = FORM_BASE <= kind <= FORM_OTHER_KIND;\n*/\n\n/*@\n  requires valid_kind(owner);\n  requires 0 <= callback <= 2;\n  assigns \\nothing;\n  ensures valid_kind(\\result);\n  ensures callback == 0 ==> \\result == owner;\n  ensures callback == 1 ==> \\result == FORM_BASE;\n  ensures callback == 2 && owner == FORM_NONSTONE_GOLEM\n          ==> \\result == FORM_STONE_GOLEM;\n  ensures callback == 2 && owner != FORM_NONSTONE_GOLEM\n          ==> \\result == owner;\n*/\nstatic int\nnested_kind(int owner, int callback)\n{\n    if (callback == 0)\n        return owner;\n    if (callback == 1)\n        return FORM_BASE;\n    if (owner == FORM_NONSTONE_GOLEM)\n        return FORM_STONE_GOLEM;\n    return owner;\n}\n\n/*@\n  requires valid_kind(owner);\n  requires owner != FORM_BASE;\n  requires 0 <= callback <= 2;\n  assigns \\nothing;\n  ensures callback == 0 || callback == 2 && owner != FORM_NONSTONE_GOLEM\n       || (callback == 1 && owner != FORM_BASE)\n       || (callback == 2 && owner == FORM_NONSTONE_GOLEM);\n*/\nstatic void\nprove_nested_change_is_not_aba(int owner, int callback)\n{\n    int next = nested_kind(owner, callback);\n    if (callback == 1)\n        //@ assert next == FORM_BASE && next != owner;\n        return;\n    if (callback == 2 && owner == FORM_NONSTONE_GOLEM)\n        //@ assert next == FORM_STONE_GOLEM && next != owner;\n        return;\n    //@ assert callback == 0 || (callback == 2 && owner != FORM_NONSTONE_GOLEM);\n}\n\n/*@\n  requires valid_kind(owner);\n  requires owner != FORM_BASE;\n  requires 0 <= c0 <= 2;\n  requires 0 <= c1 <= 2;\n  assigns \\nothing;\n*/\nstatic void\nprove_two_nested_callbacks_no_aba(int owner, int c0, int c1)\n{\n    int first = nested_kind(owner, c0);\n    int second = nested_kind(first, c1);\n    prove_nested_change_is_not_aba(owner, c0);\n    if (first != owner)\n        //@ assert second != owner;\n        return;\n    /* The only same-form first callback is a no-op or a failed\n     * petrification.  A second callback has the same endpoint rule. */\n    if (c1 == 0 || (c1 == 2 && owner != FORM_NONSTONE_GOLEM))\n        //@ assert second == owner;\n        return;\n    //@ assert c1 == 1 || (c1 == 2 && owner == FORM_NONSTONE_GOLEM);\n    //@ assert second != owner;\n}\n\n/*@\n  predicate valid_form(integer form) =\n      FORM_HUMAN <= form <= FORM_OTHER;\n\n  predicate light_consistent{L} =\n      w.light_source == (w.form == FORM_TARGET);\n*/\n\n/*@\n  requires valid_form(form);\n  assigns \\nothing;\n  ensures \\result == (form == FORM_TARGET);\n*/\nstatic int\nemits_light(int form)\n{\n    return form == FORM_TARGET;\n}\n\n/*@\n  assigns w;\n  ensures w.form == FORM_HUMAN;\n  ensures w.form_epoch == 0;\n  ensures w.light_source == 0;\n  ensures w.cleanup_seen == 0;\n  ensures w.cleanup_epoch == -1;\n  ensures light_consistent;\n*/\nstatic void\nreset_world(void)\n{\n    w.form = FORM_HUMAN;\n    w.form_epoch = 0;\n    w.light_source = 0;\n    w.cleanup_seen = 0;\n    w.cleanup_epoch = -1;\n}\n\n/*@\n  requires valid_form(next);\n  requires valid_form(w.form);\n  requires 0 <= w.form_epoch < 100;\n  requires light_consistent;\n  assigns w.form, w.form_epoch, w.light_source;\n  ensures w.form == next;\n  ensures w.form_epoch == \\old(w.form_epoch) + 1;\n  ensures light_consistent;\n*/\nstatic void\ninstall_form(int next)\n{\n    int old_light = emits_light(w.form);\n    int new_light;\n\n    w.form = next;\n    ++w.form_epoch;\n    new_light = emits_light(w.form);\n    if (old_light != new_light)\n        w.light_source = new_light;\n\n    //@ assert light_consistent;\n}\n\n/*@\n  requires w.cleanup_seen == 0 || w.cleanup_epoch != w.form_epoch;\n  assigns w.cleanup_seen, w.cleanup_epoch;\n  ensures w.cleanup_seen == 1;\n  ensures w.cleanup_epoch == w.form_epoch;\n*/\nstatic void\ncleanup_current_form(void)\n{\n    w.cleanup_seen = 1;\n    w.cleanup_epoch = w.form_epoch;\n}\n\n/*@\n  requires 0 <= choice <= 3;\n  requires valid_form(w.form);\n  requires 0 <= w.form_epoch < 99;\n  requires light_consistent;\n  requires w.cleanup_seen == 0 || w.cleanup_epoch <= w.form_epoch;\n  assigns w;\n  ensures light_consistent;\n  ensures valid_form(w.form);\n  ensures choice == 0 ==> w.form_epoch == \\old(w.form_epoch);\n  ensures choice != 0 ==> w.form_epoch == \\old(w.form_epoch) + 1;\n  ensures choice == 0 ==> w.form == \\old(w.form);\n  ensures choice == 0 ==> w.cleanup_seen == \\old(w.cleanup_seen);\n  ensures choice == 0 ==> w.cleanup_epoch == \\old(w.cleanup_epoch);\n  ensures choice == 1 ==> w.form == FORM_HUMAN;\n  ensures choice == 2 ==> w.form == FORM_OTHER;\n  ensures choice == 3 ==> w.form == FORM_TARGET;\n  ensures choice != 0 ==> w.cleanup_epoch == w.form_epoch;\n  ensures 0 <= w.form_epoch < 100;\n  ensures w.cleanup_seen == 0 || w.cleanup_epoch <= w.form_epoch;\n*/\nstatic void\nnested_change(int choice)\n{\n    if (choice == 0)\n        return;\n    if (choice == 1)\n        install_form(FORM_HUMAN);\n    else if (choice == 2)\n        install_form(FORM_OTHER);\n    else\n        install_form(FORM_TARGET);\n    cleanup_current_form();\n}\n\n/*@\n  requires 0 <= choice <= 3;\n  requires valid_form(w.form);\n  requires 0 <= w.form_epoch < 99;\n  requires owner_epoch == w.form_epoch;\n  requires light_consistent;\n  assigns w;\n  ensures light_consistent;\n  ensures valid_form(w.form);\n  ensures 0 <= w.form_epoch < 100;\n  ensures w.cleanup_seen == 0 || w.cleanup_epoch <= w.form_epoch;\n  ensures \\result == 0 ==> w.form_epoch == owner_epoch;\n  ensures \\result == 0 ==> w.form_epoch == \\old(w.form_epoch);\n  ensures \\result == 0 ==> w.cleanup_seen == 0;\n*/\nstatic int\nepoch_boundary(int choice, int owner_epoch)\n{\n    nested_change(choice);\n    if (w.form_epoch != owner_epoch)\n        return 1;\n    //@ assert choice == 0;\n    //@ assert w.cleanup_seen == 0;\n    //@ assert w.form_epoch == owner_epoch;\n    return 0;\n}\n\n/*@\n  requires 0 <= choice <= 2;\n  requires valid_form(w.form);\n  requires 0 <= w.form_epoch < 99;\n  requires owner_form == FORM_TARGET;\n  requires w.form == owner_form;\n  requires light_consistent;\n  requires w.cleanup_seen == 0;\n  assigns w;\n  ensures light_consistent;\n  ensures valid_form(w.form);\n  ensures 0 <= w.form_epoch < 100;\n  ensures w.cleanup_seen == 0 || w.cleanup_epoch <= w.form_epoch;\n  ensures \\result == 0 ==> w.form == owner_form;\n  ensures \\result == 0 ==> w.form_epoch == \\old(w.form_epoch);\n  ensures \\result == 0 ==> w.cleanup_seen == 0;\n*/\nstatic int\nidentity_boundary_no_aba(int choice, int owner_form)\n{\n    int owner_epoch = w.form_epoch;\n\n    nested_change(choice);\n    if (w.form != owner_form)\n        return 1;\n    /* choice 3 (same-target reinstall) is excluded by the contract. */\n    //@ assert choice == 0;\n    //@ assert w.cleanup_seen == 0;\n    //@ assert w.form_epoch == owner_epoch;\n    return 0;\n}\n\n/* Generation guards remain sound even when the nested callback performs an\n * arbitrary ABA transition.  Choice 3 deliberately reinstalls the owner\n * form, which is the case identity-only guards cannot distinguish. */\n/*@\n  requires 0 <= choice <= 3;\n  requires valid_form(w.form);\n  requires 0 <= w.form_epoch < 99;\n  requires owner_epoch == w.form_epoch;\n  requires light_consistent;\n  assigns w;\n  ensures light_consistent;\n  ensures valid_form(w.form);\n  ensures \\result == 0 ==> w.form_epoch == owner_epoch;\n  ensures \\result == 1 ==> w.form_epoch != owner_epoch;\n*/\nstatic int\ngeneration_boundary_arbitrary_aba(int choice, int owner_epoch)\n{\n    if (choice == 1)\n        install_form(FORM_HUMAN);\n    else if (choice == 2)\n        install_form(FORM_OTHER);\n    else if (choice == 3)\n        install_form(FORM_TARGET);\n    if (w.form_epoch != owner_epoch)\n        return 1;\n    //@ assert choice == 0;\n    return 0;\n}\n\n/*@\n  requires 0 <= c0 <= 3;\n  requires 0 <= c1 <= 3;\n  requires 0 <= c2 <= 3;\n  requires 0 <= c3 <= 3;\n  requires 0 <= c4 <= 3;\n  assigns w;\n  ensures light_consistent;\n*/\nvoid\nverify_polymon_epoch(int c0, int c1, int c2, int c3, int c4)\n{\n    int owner_epoch;\n\n    reset_world();\n    install_form(FORM_TARGET);\n    owner_epoch = w.form_epoch;\n\n    if (epoch_boundary(c0, owner_epoch)) return;\n    //@ assert w.form_epoch == owner_epoch;\n    if (epoch_boundary(c1, owner_epoch)) return;\n    //@ assert w.form_epoch == owner_epoch;\n    if (epoch_boundary(c2, owner_epoch)) return;\n    //@ assert w.form_epoch == owner_epoch;\n    if (epoch_boundary(c3, owner_epoch)) return;\n    //@ assert w.form_epoch == owner_epoch;\n    if (epoch_boundary(c4, owner_epoch)) return;\n    //@ assert w.form_epoch == owner_epoch;\n    cleanup_current_form();\n}\n\n/*@\n  requires 0 <= c0 <= 2;\n  requires 0 <= c1 <= 2;\n  requires 0 <= c2 <= 2;\n  requires 0 <= c3 <= 2;\n  requires 0 <= c4 <= 2;\n  assigns w;\n  ensures light_consistent;\n*/\nvoid\nverify_polymon_identity_no_aba(int c0, int c1, int c2, int c3, int c4)\n{\n    reset_world();\n    install_form(FORM_TARGET);\n\n    if (identity_boundary_no_aba(c0, FORM_TARGET)) return;\n    if (identity_boundary_no_aba(c1, FORM_TARGET)) return;\n    if (identity_boundary_no_aba(c2, FORM_TARGET)) return;\n    if (identity_boundary_no_aba(c3, FORM_TARGET)) return;\n    if (identity_boundary_no_aba(c4, FORM_TARGET)) return;\n    cleanup_current_form();\n}\n\n/*@\n  requires 0 <= c0 <= 3;\n  requires 0 <= c1 <= 3;\n  requires 0 <= c2 <= 3;\n  requires 0 <= c3 <= 3;\n  requires 0 <= c4 <= 3;\n  assigns w;\n  ensures light_consistent;\n*/\nvoid\nverify_polymon_generation_arbitrary_aba(int c0, int c1, int c2, int c3, int c4)\n{\n    int owner_epoch;\n\n    reset_world();\n    install_form(FORM_TARGET);\n    owner_epoch = w.form_epoch;\n\n    if (generation_boundary_arbitrary_aba(c0, owner_epoch)) return;\n    if (generation_boundary_arbitrary_aba(c1, owner_epoch)) return;\n    if (generation_boundary_arbitrary_aba(c2, owner_epoch)) return;\n    if (generation_boundary_arbitrary_aba(c3, owner_epoch)) return;\n    if (generation_boundary_arbitrary_aba(c4, owner_epoch)) return;\n}\n\n/*@\n  requires 0 <= c0 <= 3;\n  requires 0 <= c1 <= 3;\n  requires 0 <= c2 <= 3;\n  assigns w;\n  ensures light_consistent;\n*/\nvoid\nverify_break_armor_epoch(int c0, int c1, int c2)\n{\n    int owner_epoch;\n\n    reset_world();\n    install_form(FORM_TARGET);\n    owner_epoch = w.form_epoch;\n\n    if (epoch_boundary(c0, owner_epoch)) return;\n    //@ assert w.form_epoch == owner_epoch;\n    if (epoch_boundary(c1, owner_epoch)) return;\n    //@ assert w.form_epoch == owner_epoch;\n    if (epoch_boundary(c2, owner_epoch)) return;\n    //@ assert w.form_epoch == owner_epoch;\n}\n\n/*@\n  requires 0 <= c0 <= 2;\n  requires 0 <= c1 <= 2;\n  requires 0 <= c2 <= 2;\n  assigns w;\n  ensures light_consistent;\n*/\nvoid\nverify_break_armor_identity_no_aba(int c0, int c1, int c2)\n{\n    reset_world();\n    install_form(FORM_TARGET);\n\n    if (identity_boundary_no_aba(c0, FORM_TARGET)) return;\n    if (identity_boundary_no_aba(c1, FORM_TARGET)) return;\n    if (identity_boundary_no_aba(c2, FORM_TARGET)) return;\n}\n\n/*@\n  requires 0 <= c0 <= 3;\n  requires 0 <= c1 <= 3;\n  requires 0 <= c2 <= 3;\n  assigns w;\n  ensures light_consistent;\n*/\nvoid\nverify_break_armor_generation_arbitrary_aba(int c0, int c1, int c2)\n{\n    int owner_epoch;\n\n    reset_world();\n    install_form(FORM_TARGET);\n    owner_epoch = w.form_epoch;\n\n    if (generation_boundary_arbitrary_aba(c0, owner_epoch)) return;\n    if (generation_boundary_arbitrary_aba(c1, owner_epoch)) return;\n    if (generation_boundary_arbitrary_aba(c2, owner_epoch)) return;\n}\n\n/*@\n  requires 0 <= choice <= 3;\n  assigns w;\n  ensures light_consistent;\n*/\nvoid\nverify_light_protocol(int choice)\n{\n    reset_world();\n    install_form(FORM_TARGET);\n    nested_change(choice);\n    //@ assert light_consistent;\n}\n", "runcbmc": "#!/usr/bin/env bash\nset -euo pipefail\n\nreadonly IMAGE=\"diffblue/cbmc:6.10.0\"\nreadonly SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\nreadonly REPO_ROOT=\"$(cd \"${SCRIPT_DIR}/../../..\" && pwd)\"\nreadonly MODEL=\"bugs/10-polyself-reentrant-form-changes/proof/polyself_model.c\"\n\nrun_cbmc() {\n    docker run --rm \\\n        -v \"${REPO_ROOT}:/src:ro\" \\\n        -w /src \\\n        \"${IMAGE}\" \\\n        cbmc \"${MODEL}\" \\\n        --function \"$1\" \\\n        --bounds-check \\\n        --pointer-check \\\n        --div-by-zero-check \\\n        --signed-overflow-check \\\n        --unsigned-overflow-check \\\n        --unwinding-assertions \\\n        \"${@:2}\"\n}\n\nexpect_pass() {\n    local name=\"$1\"\n    shift\n    echo \"PASS expected: ${name}\"\n    run_cbmc \"$@\"\n}\n\nexpect_fail() {\n    local name=\"$1\"\n    shift\n    echo \"FAIL expected: ${name}\"\n    set +e\n    run_cbmc \"$@\"\n    local status=$?\n    set -e\n    if [[ ${status} -eq 0 ]]; then\n        echo \"negative control unexpectedly passed: ${name}\" >&2\n        return 1\n    fi\n    if [[ ${status} -ne 10 ]]; then\n        echo \"CBMC failed operationally (${status}): ${name}\" >&2\n        return \"${status}\"\n    fi\n}\n\n# Immediate light bookkeeping is sufficient; the old delayed scheme is not.\nexpect_pass \"immediate light bookkeeping\" \\\n    verify_light_bookkeeping\nexpect_fail \"legacy delete-before-create window\" \\\n    reject_delayed_light_bookkeeping\n\n# Epoch guards prove the ownership property under arbitrary nested changes,\n# including same-form reinstallations.\nexpect_pass \"polymon epoch guards, including ABA\" \\\n    verify_polymon_guards -DGUARD_MODE=2\nexpect_pass \"break_armor epoch guards, including ABA\" \\\n    verify_break_armor_guards -DGUARD_MODE=2\n\n# The PR's identity guards pass only under an explicit no-ABA assumption.\nexpect_pass \"polymon identity guards under no-ABA contract\" \\\n    verify_polymon_guards -DGUARD_MODE=1 -DALLOW_SAME_FORM_REENTRY=0\nexpect_pass \"break_armor identity guards under no-ABA contract\" \\\n    verify_break_armor_guards -DGUARD_MODE=1 -DALLOW_SAME_FORM_REENTRY=0\nexpect_fail \"polymon identity guard does not itself exclude ABA\" \\\n    verify_polymon_guards -DGUARD_MODE=1 -DALLOW_SAME_FORM_REENTRY=1\nexpect_fail \"break_armor identity guard does not itself exclude ABA\" \\\n    verify_break_armor_guards -DGUARD_MODE=1 -DALLOW_SAME_FORM_REENTRY=1\nexpect_fail \"reachable same-form polymorph-trap route defeats identity\" \\\n    verify_same_form_polytrap_route -DGUARD_MODE=1\nexpect_pass \"epoch guard detects same-form polymorph-trap route\" \\\n    verify_same_form_polytrap_route -DGUARD_MODE=2\n\n# Every proposed guard must be independently necessary.  Force an ordinary\n# A -> human invalidation at that boundary and omit just that guard.\nfor boundary in 0 1 2 3 4; do\n    expect_fail \"polymon omitted guard ${boundary}\" \\\n        verify_polymon_guards -DGUARD_MODE=1 \\\n        -DALLOW_SAME_FORM_REENTRY=0 \\\n        -DFORCE_BOUNDARY=\"${boundary}\" -DOMIT_GUARD=\"${boundary}\"\ndone\n\nfor boundary in 5 6 7; do\n    expect_fail \"break_armor omitted guard ${boundary}\" \\\n        verify_break_armor_guards -DGUARD_MODE=1 \\\n        -DALLOW_SAME_FORM_REENTRY=0 \\\n        -DFORCE_BOUNDARY=\"${boundary}\" -DOMIT_GUARD=\"${boundary}\"\ndone\n\necho \"CBMC pilot matrix completed successfully\"\n"};
+const M = PolyModel;
+const PIN = '16ff59115315917b93185d026aeefea06db9b0f4';
+const ghURL = (file, n) => `https://github.com/NetHack/NetHack/blob/${PIN}/${file}#L${n}`;
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const GLYPH_CLS = {'@':'ga','y':'gy',':':'gn'};
+const glyph = g => `<span class="mono ${GLYPH_CLS[g]||''}" style="font-weight:600">${esc(g)}</span>`;
+const glyphs = s => esc(s).replace(/(^|[\s(])([@y:])(?=[\s),]|$)/g, (m, p, g) => p + glyph(g));
+const fam = t => t ? t.replace(/g$/,'') : t;
+const tagClass = t => /^B\d/.test(t) ? 'tag-B' : 'tag-' + t;
+const tagLabel = t => ({install:'form', cleanup:'clean', aba:'ABA', removed:'old', fixme:'FIXME', reent:'re-ent', entry:'fn', end:'end'}[t] || t.replace(/g$/,''));
+
+/* ------------------------------------------------------------ Explainer list */
+const VIEWS = [
+  {id:'window', tag:'The bugs', title:'The window: a form change that isn’t atomic', what:'Three recorded bugs drawn as timelines of polymon() and break_armor(): a light source deleted before it exists, cleanup that runs twice, and a human stripped of boots by a newt’s rules. Switch between NetHack 5.0 and the fix, and click any step to see its source.'},
+  {id:'model', tag:'Abstraction', title:'From NetHack to a model', what:'The real polymon() side by side with polyself_model.c. Each re-entrant call becomes a four-way choice, and the world shrinks to five variables. Click a boundary on either side to find its counterpart.'},
+  {id:'path', tag:'Running the model', title:'One path, step by step', what:'Choose what each callback does and step through the model, with the world state and the matching NetHack line updating as you go. Compare no guard, the identity guard, and the generation guard on the same path.'},
+  {id:'cbmc', tag:'CBMC', title:'Every path at once', what:'The complete tree of callback outcomes, colored by result for each guard. Then what CBMC does in place of walking this tree: one SAT formula, and exit codes 0 and 10.'},
+  {id:'controls', tag:'Negative controls', title:'Breaking the fix on purpose', what:'All 18 checks from run-cbmc.sh, run live. Remove any one of the eight guards and the checker must find a counterexample, which shows the proof isn’t passing for lack of anything to find.'},
+  {id:'aba', tag:'ABA', title:'A→B→A: why a counter, not the form number', what:'Build a history of nested installations and watch the identity guard miss a same-form reinstall that the generation counter catches. Includes the real route through NetHack: invoked levitation, float_down(), polymorph trap.'},
+  {id:'wp', tag:'Frama-C/WP', title:'Weakest preconditions', what:'Step backward through an ACSL-annotated boundary, rewriting the postcondition line by line until it becomes a formula a solver can decide. The generation version proves; the identity version leaves an unprovable goal whose counterexample is ABA.'},
+  {id:'audits', tag:'Source audits', title:'Tying the model to NetHack', what:'The 16 reviewed form-write sites, each linked to the pinned source, and what the two audit scripts do and do not check.'},
+  {id:'scope', tag:'Scope', title:'What is proved, and what isn’t', what:'What the proof does and doesn’t establish, plus five things I noticed while building this, including a -wp-fct flag that narrows what the 76/76 WP result covers.'},
+];
+$('#qs').innerHTML = VIEWS.map(v => `<li><div class="qtag">${v.tag}</div><h2><a href="#${v.id}">${esc(v.title)}</a></h2><p class="what">${esc(v.what)}</p><a class="go" href="#${v.id}">Open the explainer &rarr;</a></li>`).join('');
+VIEWS.forEach((v, i) => {
+  const p = $(`#v-${v.id} .pager`);
+  const prev = VIEWS[i-1], next = VIEWS[i+1];
+  p.innerHTML = `<span>${prev ? `<a href="#${prev.id}">&larr; ${i}. ${esc(prev.title)}</a>` : '<a href="#">&larr; All explainers</a>'}</span><span>${next ? `<a href="#${next.id}">${i+2}. ${esc(next.title)} &rarr;</a>` : '<a href="#">All explainers &rarr;</a>'}</span>`;
+  const h = $(`#v-${v.id} h1`); h.insertAdjacentHTML('beforebegin', `<p class="eyebrow" style="margin:0 0 4px">${i+1} of 9 &middot; ${esc(v.tag)}</p>`);
+});
+const INIT = {};
+function route() {
+  const id = location.hash.replace('#','');
+  const known = VIEWS.some(v => v.id === id);
+  $('#index').hidden = known;
+  VIEWS.forEach(v => { $(`#v-${v.id}`).hidden = v.id !== id; });
+  if (known) { if (INIT[id]) { INIT[id](); INIT[id] = null; } window.scrollTo(0, 0); }
+}
+window.addEventListener('hashchange', route);
+
+function segInit(el, value, onChange) {
+  const set = v => { $$('button', el).forEach(b => b.classList.toggle('on', b.dataset.v == v)); };
+  set(value);
+  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; set(b.dataset.v); onChange(b.dataset.v); });
+  return set;
+}
+
+/* ------------------------------------------------------------ Source viewer */
+const PART_TITLES = {
+  polymon: ['<b>src/polyself.c</b> &middot; polymon()'],
+  break_armor: ['<b>src/polyself.c</b> &middot; break_armor()'],
+  light: ['<b>src/polyself.c</b> &middot; the end of polyself(): where the light used to be handled', '<b>src/polyself.c</b> &middot; polyself(): wizard-mode revert', '<b>src/polyself.c</b> &middot; rehumanize()', '<b>src/polyself.c</b> &middot; polyman()', '<b>src/timeout.c</b> &middot; slimed_to_death()'],
+  aba: ['<b>src/artifact.c</b> &middot; arti_invoke(): an #invoked levitation ends', '<b>src/trap.c</b> &middot; float_down(): land, then trigger the trap', '<b>src/trap.c</b> &middot; trapeffect_poly_trap(): polymorph', '<b>src/polyself.c</b> &middot; polymon(): the same form is accepted'],
+};
+function SourceView(host, opts = {}) {
+  const st = { key: opts.key || 'polymon', patched: opts.patched !== false, all: false, open: new Set(), unfold: new Set(), hi: null };
+  host.classList.add('srcv');
+  host.innerHTML = `<div class="srcbar"><div class="seg sm"><button data-v="0">NetHack 5.0</button><button data-v="1">with the fix</button></div><button class="sm" data-all>Show every line</button><span class="lg">Click a tagged line for its note. Line numbers open GitHub.</span></div><div class="codebox${opts.tall?' tall':''}"></div>`;
+  const box = $('.codebox', host);
+  const setSeg = segInit($('.seg', host), st.patched ? 1 : 0, v => { st.patched = v == 1; render(); });
+  $('[data-all]', host).addEventListener('click', e => { st.all = !st.all; e.target.textContent = st.all ? 'Fold quiet lines' : 'Show every line'; render(); });
+  const parts = () => SRC[st.key].parts || [SRC[st.key]];
+
+  function layout(ex) {
+    const removed = new Set(), before = {}, after = {}, interesting = new Set();
+    const push = (m, k, list, a) => { (m[k] ||= []).push(...list.map(t => ({ t, a }))); };
+    for (const [k, list] of Object.entries(ex.ann)) {
+      const n = +k;
+      for (const a of list) {
+        for (let i = n - 3; i <= n + 3; i++) interesting.add(i);
+        if (a.remove) {
+          for (let i = n - (a.back || 0); i < n + a.remove; i++) { removed.add(i); interesting.add(i); interesting.add(i + 1); }
+          if (a.after) push(after, n + a.remove - 1, a.after, a);
+        } else if (a.after) {
+          let at = n;
+          if (a.after_line) { const r = ex.rows.find(r => r.n > n && r.n <= n + 4 && r.t.includes(a.after_line)); if (r) at = r.n; }
+          push(after, at, a.after, a); interesting.add(at + 1);
+        }
+        if (a.before) push(before, n, a.before, a);
+      }
+    }
+    return { removed, before, after, interesting };
+  }
+  function lineHTML(ex, r, L) {
+    const anns = ex.ann[r.n] || [];
+    const a = anns[0];
+    const key = ex.file + ':' + r.n;
+    const isHi = st.hi && anns.some(x => fam(x.tag) === st.hi);
+    const rm = st.patched && L.removed.has(r.n);
+    let h = `<div class="ln${a ? ' tagged' : ''}${rm ? ' rm' : ''}${isHi ? ' hi' : ''}" data-key="${key}"${a ? ` tabindex="0" data-tag="${a.tag}"` : ''}><a class="no" href="${ghURL(ex.file, r.n)}" target="_blank" rel="noopener">${r.n}</a><span class="tg ${a ? tagClass(a.tag) : ''}">${a ? tagLabel(a.tag) : ''}</span><code>${esc(r.t) || ' '}</code></div>`;
+    if (a && st.open.has(key)) h += anns.map(x => `<div class="note">${esc(x.note)}${opts.noteAction ? opts.noteAction(x.tag) : ''}</div>`).join('');
+    return h;
+  }
+  function addHTML(list, hiTag) {
+    if (!st.patched || !list) return '';
+    return list.map(x => `<div class="ln add${hiTag && fam(x.a.tag) === hiTag ? ' hi' : ''}"><span class="no">+</span><span class="tg"></span><code>${esc(x.t)}</code></div>`).join('');
+  }
+  function render() {
+    let h = '';
+    parts().forEach((ex, pi) => {
+      const L = layout(ex);
+      if (parts().length > 1 || opts.showTitle) h += `<div class="parth">${(PART_TITLES[st.key] || [])[pi] || ex.file}</div>`;
+      const rows = ex.rows;
+      let i = 0;
+      while (i < rows.length) {
+        const r = rows[i];
+        if (!st.all && !L.interesting.has(r.n)) {
+          let j = i; while (j < rows.length && !L.interesting.has(rows[j].n)) j++;
+          const runKey = ex.file + ':' + r.n;
+          if (j - i >= 4 && !st.unfold.has(runKey)) {
+            h += `<div class="fold" data-fold="${runKey}" tabindex="0">&#8943; ${j - i} more lines (${rows[i].n}&ndash;${rows[j-1].n}), click to show</div>`;
+            i = j; continue;
+          }
+        }
+        h += addHTML(L.before[r.n], st.hi);
+        h += lineHTML(ex, r, L);
+        h += addHTML(L.after[r.n], st.hi);
+        i++;
+      }
+    });
+    box.innerHTML = h;
+  }
+  box.addEventListener('click', e => {
+    if (e.target.closest('a')) return;
+    const f = e.target.closest('.fold');
+    if (f) { st.unfold.add(f.dataset.fold); render(); return; }
+    const ln = e.target.closest('.ln.tagged');
+    if (ln) {
+      const k = ln.dataset.key;
+      st.open.has(k) ? st.open.delete(k) : st.open.add(k);
+      st.hi = fam(ln.dataset.tag);
+      render();
+      if (opts.onTag) opts.onTag(ln.dataset.tag);
+    }
+  });
+  box.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.target.classList.contains('fold') || e.target.classList.contains('tagged'))) e.target.click(); });
+  function focus(tag, openNote = true) {
+    let found = null;
+    for (const ex of parts()) {
+      for (const [n, list] of Object.entries(ex.ann)) {
+        if (list.some(a => a.tag === tag)) { found = ex.file + ':' + n; break; }
+      }
+      if (found) break;
+    }
+    if (!found) for (const ex of parts()) {
+      for (const [n, list] of Object.entries(ex.ann)) if (list.some(a => fam(a.tag) === fam(tag))) { found = found || ex.file + ':' + n; }
+    }
+    st.hi = fam(tag);
+    if (found && openNote) { st.open.clear(); st.open.add(found); }
+    render();
+    if (found) {
+      const el = box.querySelector(`[data-key="${CSS.escape(found)}"]`);
+      if (el) box.scrollTop = Math.max(0, el.offsetTop - box.clientHeight * 0.3);
+    }
+  }
+  function load(key) { if (st.key !== key) { st.key = key; st.open.clear(); st.unfold.clear(); st.hi = null; } render(); }
+  render();
+  return { focus, load, render, highlight(t) { st.hi = fam(t); render(); } };
+}
+
+/* ------------------------------------------------------------ Model code viewer */
+function extractFn(text, name) {
+  const lines = text.split('\n');
+  let i = lines.findIndex(l => l.startsWith(name + '('));
+  if (i < 0) return '';
+  let s = i - 1;
+  if (s > 0 && lines[s-1].trim() === '*/') { s = s - 1; while (s > 0 && !lines[s].trim().startsWith('/*')) s--; }
+  let e = i; while (e < lines.length && lines[e] !== '}') e++;
+  return lines.slice(s, e + 1).join('\n');
+}
+const MODEL_TAGS = [[/POLY_BREAK_ARMOR/, 'B0'], [/POLY_EXPELS/, 'B1'], [/POLY_DISMOUNT/, 'B2'], [/POLY_SPOTEFFECTS/, 'B3'], [/POLY_RETOUCH/, 'B4'], [/ARMOR_AFTER_GLOVES/, 'B5'], [/ARMOR_BEFORE_BOOTS/, 'B6'], [/ARMOR_BEFORE_EYEWEAR/, 'B7'], [/install_form\(owner_form\)/, 'install'], [/cleanup_current_form\(\);/, 'cleanup']];
+function ModelView(host, opts = {}) {
+  let text = '', hi = null;
+  host.classList.add('srcv');
+  host.innerHTML = `<div class="codebox${opts.tall ? ' tall' : ''}"></div>`;
+  const box = $('.codebox', host);
+  function render() {
+    box.innerHTML = text.split('\n').map((l, i) => {
+      const t = (MODEL_TAGS.find(([re]) => re.test(l)) || [])[1];
+      return `<div class="ln${t ? ' tagged' : ''}${t && hi && fam(t) === hi ? ' hi' : ''}"${t ? ` data-tag="${t}" tabindex="0"` : ''}><span class="no">${i + 1}</span><span class="tg ${t ? tagClass(t) : ''}">${t ? tagLabel(t) : ''}</span><code>${esc(l) || ' '}</code></div>`;
+    }).join('');
+  }
+  box.addEventListener('click', e => { const ln = e.target.closest('.ln.tagged'); if (!ln) return; hi = fam(ln.dataset.tag); render(); opts.onTag && opts.onTag(ln.dataset.tag); });
+  box.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('tagged')) e.target.click(); });
+  return {
+    set(t) { text = t; render(); },
+    highlight(t) { hi = fam(t); render(); const el = box.querySelector('.ln.hi'); if (el) box.scrollTop = Math.max(0, el.offsetTop - box.clientHeight * 0.3); },
+  };
+}
+const MODEL_NOTES = {
+  install: 'Form installation. The model’s install_form() sets the form, increments the generation, and updates the light source in the same step, like the patched set_uasmon(); uasmon_light(old_light); note_uasmon_install();.',
+  cleanup: 'End-of-change cleanup (encumber_msg(), retouch_equipment()). The model asserts it runs at most once for each generation.',
+  B0: 'break_armor(); drop_weapon(1); can drop an invoked levitation artifact, so you fall into lava or onto a trap.', B1: 'expels() ends in spoteffects().', B2: 'instapetrify() can call polymon(); dismount_steed() reaches spoteffects().', B3: 'spoteffects(TRUE): water or lava damage can revert the form.', B4: 'retouch_equipment(2): an artifact blast can revert the form; stone-to-flesh can re-polymorph.',
+  B5: 'The gloves block drops the weapon, possibly the levitation artifact.', B6: 'Before the boots block, the guard for bug 08.', B7: 'Before the eyewear block. Boots_off() reaches spoteffects().',
+  entry: 'The function entry.', aba: 'The same-form polymorph path.', removed: 'Code the patch deletes.', fixme: 'A DevTeam FIXME that the patch resolves.', reent: 'A re-entrant call.', end: 'Normal return.'
+};
+
+/* ------------------------------------------------------------ 1. The window */
+const V = 'https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/';
+const COLS_POLY = [
+  {code:'u.umonnum = mntmp;\nset_uasmon();', tag:'install'},
+  {code:'break_armor();\ndrop_weapon(1);', tag:'B0'},
+  {code:'expels()', tag:'B1'},
+  {code:'instapetrify()\ndismount_steed()', tag:'B2'},
+  {code:'spoteffects(TRUE)', tag:'B3'},
+  {code:'encumber_msg()', tag:'cleanup'},
+  {code:'retouch_equipment(2)', tag:'B4'},
+  {code:'selftouch()\n#monster hints', tag:'B4g'},
+];
+const SCEN = {
+  b07: { label:'Bug 07: light', title:'polymon() into a glowing yellow light, carrying a cross-aligned artifact', extraLabel:'light source', links:[['recorded bug, step 127', V+'07-polyself-light-delete-before-create/session.json#step=127'], ['with the fix', V+'07-polyself-light-delete-before-create/session-fixed.json#step=127'], ['bundle 07', 'https://github.com/davidbau/nethack-bugreport/tree/main/bugs/07-polyself-light-delete-before-create']],
+    cols: [...COLS_POLY, {code:'polyself():\nmade_change:', tag:'removed', src:'light'}], sel: 6,
+    old: { form:['y','y','y','y','y','y','y→@','@','@'], outer:['run','run','run','run','run','run','run','stale','run'],
+      extra:[['glows, no source','warn'],['missing','warn'],['missing','warn'],['missing','warn'],['missing','warn'],['missing','warn'],['delete: not found','bad'],['none','mut'],['0 → 0: no-op','mut']],
+      nested:{6:'artifact blast → u.mh < 1 → rehumanize() → del_light_source(): not found → impossible(): "Program in disorder!"'},
+      say:{0:'The form is installed and it glows, but no light source is created. Before the patch only polyself() created one, at <code>made_change:</code>, after <code>polymon()</code> returned.',
+        6:'<code>retouch_equipment(2)</code> blasts you with a cross-aligned artifact. The frail form dies, and <code>rehumanize()</code> runs here, <b>inside</b> <code>polymon()</code>. It deletes the glowing form’s light source, which does not exist yet, so <code>del_light_source()</code> calls <code>impossible()</code>.',
+        7:'<code>polymon()</code> carries on, offering #monster hints for a form the hero no longer has.',
+        8:'<code>polyself()</code> finally reaches <code>made_change:</code>. The form was human before and is human now, so nothing happens. No light source was ever created, and the game tried to delete one.'} },
+    fix: { form:['y','y','y','y','y','y','y→@','@','@'], outer:['run','run','run','run','run','run','run','skip','run'], guard:[6],
+      extra:[['created','ok'],['on','ok'],['on','ok'],['on','ok'],['on','ok'],['on','ok'],['deleted by polyman()','ok'],['none','mut'],['block removed','mut']],
+      nested:{6:'artifact blast → u.mh < 1 → rehumanize() → polyman() → uasmon_light(): deletes the source it owns'},
+      say:{0:'<code>uasmon_light(old_light)</code> runs right after <code>set_uasmon()</code>, so the light source exists as soon as the glowing form does.',
+        6:'The same nested <code>rehumanize()</code> happens. <code>polyman()</code> now calls <code>uasmon_light()</code> itself, which deletes the source that exists. Then the guard after <code>retouch_equipment()</code> sees that the generation has moved, and <code>polymon()</code> returns 1.',
+        7:'Skipped: the guard already returned.', 8:'The <code>made_change:</code> block is gone, and <code>polyself()</code> has nothing left to do.'} } },
+  b06: { label:'Bug 06: cleanup twice', title:'polymon() into a level-0 newt while standing on lava, carrying a cross-aligned artifact', extraLabel:'artifact blasts', links:[['recorded bug, step 178', V+'06-polymon-nested-rehumanize/session.json#step=178'], ['with the fix', V+'06-polymon-nested-rehumanize/session-fixed.json#step=178'], ['bundle 06', 'https://github.com/davidbau/nethack-bugreport/tree/main/bugs/06-polymon-nested-rehumanize']],
+    cols: COLS_POLY, sel: 4,
+    old: { form:[':',':',':',':',':→@','@','@','@'], outer:['run','run','run','run','run','stale','stale','stale'],
+      extra:[['',''],['',''],['',''],['',''],['blast #1','warn'],['',''],['blast #2','bad'],['','']],
+      nested:{4:'lava burns the level-0 form → u.mh < 1 → rehumanize() → encumber_msg(), retouch_equipment(): artifact blast #1'},
+      say:{4:'You are on lava, so <code>polymon()</code> calls <code>spoteffects()</code>. The burn kills the new form, and <code>rehumanize()</code> runs its own end-of-change cleanup: <code>encumber_msg()</code> and <code>retouch_equipment()</code>, which blasts you once.',
+        5:'<code>polymon()</code> runs <code>encumber_msg()</code> again, for a form change that has already been cleaned up.', 6:'<code>retouch_equipment(2)</code> runs again: a second blast and a second damage roll for one polymorph.', 7:'#monster hints for a form you no longer have.'} },
+    fix: { form:[':',':',':',':',':→@','@','@','@'], outer:['run','run','run','run','run','skip','skip','skip'], guard:[4],
+      extra:[['',''],['',''],['',''],['',''],['blast #1','warn'],['',''],['—','mut'],['','']],
+      nested:{4:'lava burns the level-0 form → u.mh < 1 → rehumanize() → encumber_msg(), retouch_equipment(): artifact blast #1'},
+      say:{4:'The same nested revert happens and blasts you once. The new guard after <code>spoteffects()</code>, which replaces the DevTeam’s <code>FIXME?</code>, sees a new generation and returns.', 5:'Skipped.', 6:'Skipped: one polymorph, one blast.', 7:'Skipped.'} } },
+  b08: { label:'Bug 08: stale rules', title:'polymon() into a newt while levitating over lava on an #invoked artifact, wearing water walking boots', extraLabel:'water walking boots', links:[['recorded bug, step 202', V+'08-break-armor-stale-form/session.json#step=202'], ['with the fix', V+'08-break-armor-stale-form/session-fixed.json#step=200'], ['bundle 08', 'https://github.com/davidbau/nethack-bugreport/tree/main/bugs/08-break-armor-stale-form']],
+    cols: [ {code:'polymon(newt):\nset_uasmon();', tag:'install', src:'polymon'}, {code:'break_armor():\nuptr = newt', tag:'install', src:'break_armor'}, {code:'gloves block:\ndrop_weapon(0);', tag:'B5', src:'break_armor'}, {code:'shield, helmet\n(uptr rules)', tag:'B5g', src:'break_armor'}, {code:'boots block:\nBoots_off();', tag:'B6', src:'break_armor'}, {code:'eyewear\n(uptr head)', tag:'B7', src:'break_armor'}, {code:'polymon():\nafter break_armor()', tag:'B0', src:'polymon'} ], sel: 4,
+    old: { form:[':',':',':→@','@','@','@','@'], outer:['run','run','run','stale','stale','stale','stale'],
+      extra:[['worn','ok'],['worn','ok'],['worn','ok'],['worn','ok'],['removed in lava','bad'],['—','mut'],['you die','bad']],
+      nested:{2:'the dropped weapon is the #invoked levitation artifact → levitation ends → float_down() into lava → u.mh < 1 → rehumanize(): human, in lava'},
+      say:{1:'<code>break_armor()</code> caches <code>uptr = gy.youmonst.data</code>, the newt, and decides everything below by asking about <code>uptr</code>.',
+        2:'Losing your gloves drops your weapon. It is the artifact whose #invoked levitation holds you above lava, so you fall. The lava kills the newt, and <code>rehumanize()</code> leaves you human, standing in lava.',
+        3:'Shield and helmet are tested with <code>nohands(uptr)</code> and <code>verysmall(uptr)</code>: the newt’s rules applied to a human.',
+        4:'The boots block asks whether a newt can wear boots. It can’t, so the game takes the water walking boots off a human standing in lava. The hero dies.',
+        5:'Eyewear is judged by the newt’s head.', 6:'Back in <code>polymon()</code>, which also carries on configuring the newt.'} },
+    fix: { form:[':',':',':→@','@','@','@','@'], outer:['run','run','run','skip','skip','skip','run'], guard:[2,6],
+      extra:[['worn','ok'],['worn','ok'],['worn','ok'],['worn','ok'],['still worn','ok'],['worn','ok'],['you survive','ok']],
+      nested:{2:'the dropped weapon is the #invoked levitation artifact → levitation ends → float_down() into lava → u.mh < 1 → rehumanize(): human, in lava'},
+      say:{2:'The same fall and revert happen. The new guard at the end of the gloves block sees a new generation, and <code>break_armor()</code> returns with no item half-removed.', 3:'Skipped.', 4:'Skipped: the boots stay on and you survive.', 5:'Skipped.', 6:'<code>polymon()</code>’s own guard after <code>break_armor(); drop_weapon(1);</code> sees the new generation too, and returns 1.'} } },
+};
+const WIN = { s:'b08', fixed:false, sel:null };
+let winSrc;
+function wrap(text, max) {
+  const out = [];
+  for (const para of String(text).split('\n')) {
+    let line = '';
+    for (const w of para.split(' ')) {
+      if ((line + ' ' + w).trim().length > max && line) { out.push(line); line = w; } else line = (line ? line + ' ' : '') + w;
+    }
+    out.push(line);
+  }
+  return out;
+}
+function drawWindow() {
+  const sc = SCEN[WIN.s], m = sc[WIN.fixed ? 'fix' : 'old'], n = sc.cols.length;
+  const W = 1060, L = 104, CW = (W - L - 10) / n, cx = i => L + CW * i + CW / 2;
+  const TY = 96, NY = 128, NH = 74, FY = 246, EY = 288, H = 318;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Timeline of ${esc(sc.title)}">`;
+  if (WIN.sel != null) s += `<rect x="${L + CW * WIN.sel}" y="4" width="${CW}" height="${H - 8}" rx="8" fill="var(--hi-bg)"/>`;
+  sc.cols.forEach((c, i) => {
+    wrap(c.code, Math.max(10, Math.floor(CW / 7.4))).slice(0, 3).forEach((t, k) => { s += `<text x="${cx(i)}" y="${22 + k * 15}" text-anchor="middle" class="mono" style="font-size:11.5px" fill="var(--text-primary)">${esc(t)}</text>`; });
+    if (c.tag) s += `<text x="${cx(i)}" y="${70}" text-anchor="middle" style="font-size:10.5px;font-weight:700" fill="var(--${/^B/.test(c.tag)?'warm':'text-muted'}-ink, var(--text-muted))">${esc(tagLabel(c.tag))}</text>`;
+  });
+  [['outer call', TY], ['nested call', NY + 30], ['hero form', FY], [sc.extraLabel, EY]].forEach(([t, y]) => { s += `<text x="10" y="${y + 4}" class="tn">${esc(t)}</text>`; });
+  for (let i = 0; i < n - 1; i++) {
+    const nxt = m.outer[i + 1];
+    const col = nxt === 'stale' ? 'var(--red)' : nxt === 'skip' ? 'var(--border-strong)' : 'var(--text-secondary)';
+    s += `<line x1="${cx(i) + 10}" y1="${TY}" x2="${cx(i + 1) - 10}" y2="${TY}" stroke="${col}" stroke-width="2" ${nxt === 'skip' ? 'stroke-dasharray="3 5"' : nxt === 'stale' ? 'stroke-dasharray="7 4"' : ''}/>`;
+  }
+  sc.cols.forEach((c, i) => {
+    const o = m.outer[i];
+    if (o === 'run') s += `<circle cx="${cx(i)}" cy="${TY}" r="9" fill="var(--text-secondary)"/>`;
+    else if (o === 'stale') s += `<circle cx="${cx(i)}" cy="${TY}" r="10" fill="var(--red)"/><text x="${cx(i)}" y="${TY + 4.5}" text-anchor="middle" style="font-size:13px;font-weight:700" fill="#fff">!</text>`;
+    else s += `<circle cx="${cx(i)}" cy="${TY}" r="8" fill="var(--surface)" stroke="var(--border-strong)" stroke-dasharray="3 3" stroke-width="1.5"/>`;
+  });
+  (m.guard || []).forEach(g => {
+    const x = cx(g) + CW / 2 - 4;
+    s += `<rect x="${x - 4}" y="${TY - 16}" width="8" height="32" rx="2" fill="var(--violet)"/><text x="${x}" y="${TY - 21}" text-anchor="middle" style="font-size:10.5px;font-weight:600" fill="var(--violet-ink)" class="gl">guard: return</text>`;
+  });
+  for (const [k, text] of Object.entries(m.nested || {})) {
+    const i = +k, bw = Math.min(W - L - 20, Math.max(CW * 3.1, 300));
+    let bx = Math.min(Math.max(cx(i) - bw / 2, L), W - 10 - bw);
+    s += `<path d="M${cx(i)},${TY + 10} L${cx(i)},${NY}" stroke="var(--warm)" stroke-width="2" fill="none"/>`;
+    const nl = wrap(text, Math.floor(bw / 6.9)).slice(0, 4);
+    s += `<rect x="${bx}" y="${NY}" width="${bw}" height="${Math.min(NH, nl.length * 15 + 14)}" rx="8" fill="var(--surface-1)" stroke="var(--warm)" stroke-width="1.5"/>`;
+    nl.forEach((t, j) => { s += `<text x="${bx + 10}" y="${NY + 18 + j * 15}" style="font-size:12px" fill="var(--text-primary)">${esc(t)}</text>`; });
+    s += `<path d="M${bx + bw - 30},${NY} C${bx + bw - 30},${TY + 24} ${cx(i) + CW / 2 - 16},${TY + 24} ${cx(i) + CW / 2 - 12},${TY + 6}" stroke="var(--warm)" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>`;
+    s += `<text x="${bx + bw - 26}" y="${NY - 6}" style="font-size:10.5px" fill="var(--warm-ink)" class="gl">returns</text>`;
+  }
+  s += `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--warm)"/></marker></defs>`;
+  sc.cols.forEach((c, i) => {
+    const f = m.form[i];
+    const parts = f.split('→');
+    const txt = parts.map(p => `<tspan fill="var(--${p === '@' ? 'blue' : p === 'y' ? 'warm' : 'green'}-ink)">${esc(p)}</tspan>`).join('<tspan fill="var(--text-muted)" style="font-size:15px"> → </tspan>');
+    s += `<text x="${cx(i)}" y="${FY + 8}" text-anchor="middle" class="mono" style="font-size:24px;font-weight:600">${txt}</text>`;
+    const [et, ec] = m.extra[i] || ['', ''];
+    if (et) {
+      const colr = ec === 'bad' ? 'var(--red-ink)' : ec === 'ok' ? 'var(--green-ink)' : ec === 'warn' ? 'var(--warm-ink)' : 'var(--text-muted)';
+      wrap(et, Math.floor(CW / 6.4)).slice(0, 2).forEach((t, j) => { s += `<text x="${cx(i)}" y="${EY + 4 + j * 14}" text-anchor="middle" style="font-size:11.5px;font-weight:${ec === 'bad' ? 700 : 500}" fill="${colr}">${esc(t)}</text>`; });
+    }
+    s += `<rect x="${L + CW * i}" y="0" width="${CW}" height="${H}" fill="transparent" style="cursor:pointer" data-col="${i}"><title>${esc(c.code.replace('\n', ' '))}</title></rect>`;
+  });
+  s += `</svg>`;
+  $('#w-fig').innerHTML = s;
+  $$('#w-fig [data-col]').forEach(r => r.addEventListener('click', () => { WIN.sel = +r.dataset.col; drawWindow(); }));
+  const i = WIN.sel, c = sc.cols[i];
+  const say = m.say[i] || (m.outer[i] === 'skip' ? 'Skipped: a guard already returned.' : 'Runs normally; nothing re-enters here in this scenario.');
+  $('#w-read').innerHTML = `<b>${esc(sc.title)}.</b> Step ${i + 1} (<code>${esc(c.code.replace('\n', ' '))}</code>). ${say}`;
+  $('#w-links').innerHTML = `<span class="lg">Watch it happen in the recorded game:</span> ` + sc.links.map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join(' &middot; ');
+  const key = c.src || (WIN.s === 'b08' ? 'break_armor' : 'polymon');
+  winSrc.load(key); winSrc.focus(c.tag);
+}
+INIT.window = () => {
+  winSrc = SourceView($('#w-src'));
+  $('#w-scen').innerHTML = Object.entries(SCEN).map(([k, v]) => `<button data-v="${k}">${esc(v.label)}</button>`).join('');
+  segInit($('#w-scen'), WIN.s, v => { WIN.s = v; WIN.sel = SCEN[v].sel; drawWindow(); });
+  segInit($('#w-mode'), 0, v => { WIN.fixed = v == 1; drawWindow(); });
+  WIN.sel = SCEN[WIN.s].sel;
+  drawWindow();
+};
+
+/* ------------------------------------------------------------ 2. Model */
+let mSrc, mMod, mFn = 'polymon';
+function modelRead(tag) {
+  const t = fam(tag);
+  $('#m-read').innerHTML = t ? `<span class="pill ${tagClass(t)}">${esc(tagLabel(t))}</span> ${esc(MODEL_NOTES[t] || '')}` : 'Click a tagged line on either side.';
+}
+INIT.model = () => {
+  mSrc = SourceView($('#m-src'), { key: 'polymon', onTag: t => { mMod.highlight(t); modelRead(t); } });
+  mMod = ModelView($('#m-mod'), { tall: false, onTag: t => { mSrc.focus(t); modelRead(t); } });
+  const setFn = f => { mFn = f; mSrc.load(f); mMod.set(extractFn(MSRC.cbmc, f === 'polymon' ? 'verify_polymon_guards' : 'verify_break_armor_guards')); modelRead(null); };
+  segInit($('#m-fn'), 'polymon', setFn);
+  setFn('polymon');
+  const hv = ModelView($('#m-helpers'), { tall: true });
+  hv.set(['maybe_nested_change', 'guard_stops', 'apply_owned_effect', 'cross_boundary', 'install_form', 'cleanup_current_form'].map(f => extractFn(MSRC.cbmc, f)).join('\n\n'));
+  const map = [['POLY_BREAK_ARMOR','B0','break_armor(); drop_weapon(1);'],['POLY_EXPELS','B1','expels(...)'],['POLY_DISMOUNT','B2','instapetrify(...) / dismount_steed(...)'],['POLY_SPOTEFFECTS','B3','spoteffects(TRUE)'],['POLY_RETOUCH','B4','retouch_equipment(2)'],['ARMOR_AFTER_GLOVES','B5','drop_weapon(0); Gloves_off(); dropp(...)'],['ARMOR_BEFORE_BOOTS','B6','completed shield/helmet blocks'],['ARMOR_BEFORE_EYEWEAR','B7','completed boots block']];
+  $('#m-map').innerHTML = '<tr><th>tag</th><th>model boundary</th><th>NetHack 5.0 operation</th></tr>' + map.map(([a, t, b]) => `<tr><td><span class="pill tag-B">${t}</span></td><td><code>${a}</code></td><td><code>${esc(b)}</code></td></tr>`).join('');
+};
+
+/* ------------------------------------------------------------ 3. Playground */
+const SLOT_NAMES = { polymon: ['B0 break_armor', 'B1 expels', 'B2 dismount', 'B3 spoteffects', 'B4 retouch', 'selftouch (after cleanup)'], break_armor: ['B5 after gloves', 'B6 before boots', 'B7 before eyewear'] };
+const SLOT_AT = { polymon: [0, 1, 2, 3, 4, 4], break_armor: [5, 6, 7] };
+const CH_OPTS = ['· nothing happens', '@ revert to human', ': another form', 'y same form again'];
+const PG = { h: 'polymon', mode: 2, choices: [0, 0, 0, 0, 0, 0], omit: -1, force: -1, allowSame: true, step: 0, label: null };
+const PRESETS = [
+  ['Quiet path: nothing re-enters', { h: 'polymon', mode: 2, choices: [0, 0, 0, 0, 0, 0] }],
+  ['Bug 06 shape, no guard: revert at spoteffects', { h: 'polymon', mode: 0, choices: [0, 0, 0, 1, 0, 0] }],
+  ['Same path, generation guard', { h: 'polymon', mode: 2, choices: [0, 0, 0, 1, 0, 0] }],
+  ['ABA at retouch vs identity guard', { h: 'polymon', mode: 1, choices: [0, 0, 0, 0, 3, 0] }],
+  ['ABA at retouch vs generation guard', { h: 'polymon', mode: 2, choices: [0, 0, 0, 0, 3, 0] }],
+  ['Bug 08 shape, no guard: revert after gloves', { h: 'break_armor', mode: 0, choices: [1, 0, 0] }],
+  ['Bug 08 shape, generation guard', { h: 'break_armor', mode: 2, choices: [1, 0, 0] }],
+];
+let pgSrc, pgRun, setPgH, setPgMode;
+function pgLoad(cfg) {
+  Object.assign(PG, { omit: -1, force: -1, allowSame: true, label: null }, cfg);
+  const k = SLOT_NAMES[PG.h].length;
+  PG.choices = (PG.choices || []).slice(0, k); while (PG.choices.length < k) PG.choices.push(0);
+  PG.step = 0;
+  if (setPgH) { setPgH(PG.h); setPgMode(PG.mode); pgSrc.load(PG.h); }
+  pgCompute();
+}
+function pgCompute() {
+  pgRun = M.run(PG.h, { mode: +PG.mode, choices: PG.choices.slice(), omit: PG.omit, force: PG.force, allowSame: PG.allowSame });
+  PG.step = PG.jumpEnd ? pgRun.log.length - 1 : Math.min(PG.step, pgRun.log.length - 1);
+  PG.jumpEnd = false;
+  pgRender();
+}
+function evTag(e) {
+  if (e.kind === 'install' && !e.depth) return 'install';
+  if (e.kind === 'cleanup' && !e.depth) return 'cleanup';
+  if (e.at != null) return (e.kind === 'guard' || e.kind === 'stop') && [2, 4, 5].includes(e.at) ? 'B' + e.at + 'g' : 'B' + e.at;
+  return null;
+}
+const EV_ICON = { start: ['▶', 'mut'], install: ['◆', 'ga'], note: ['✎', 'mut'], callback: ['↘', 'gy'], cleanup: ['✓', 'stp'], guard: ['▷', 'mut'], stop: ['■', 'stp'], effect: ['●', 'ok'], ok: ['✓', 'ok'], fail: ['✕', 'bad'], prune: ['○', 'mut'], done: ['⏎', 'ok'] };
+function pgRender() {
+  const log = pgRun.log, used = PG.force >= 0 ? 0 : pgRun.used;
+  $('#p-slots').innerHTML = SLOT_NAMES[PG.h].map((nm, i) => `<div class="slot${i >= used ? ' unused' : ''}"><span class="sl">${esc(nm)}</span><select data-slot="${i}" id="p-slot-${i}" aria-label="${esc(nm)}" ${PG.force >= 0 ? 'disabled' : ''}>${CH_OPTS.map((o, c) => `<option value="${c}" ${PG.choices[i] === c ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('');
+  const chips = [];
+  if (PG.label) chips.push(`<span class="chip">${esc(PG.label)}</span>`);
+  if (PG.force >= 0) chips.push(`<span class="chip">forced revert at ${M.BOUNDARY[PG.force].name}</span>`);
+  if (PG.omit >= 0) chips.push(`<span class="chip">guard ${M.BOUNDARY[PG.omit].name} removed</span>`);
+  if (!PG.allowSame) chips.push(`<span class="chip">assume no same-form reentry</span>`);
+  if (chips.length) chips.push(`<button class="sm" id="p-clear">Clear</button>`);
+  $('#p-chips').innerHTML = chips.join(' ');
+  const cl = $('#p-clear'); if (cl) cl.onclick = () => pgLoad({ h: PG.h, mode: PG.mode, choices: PG.choices });
+  $('#p-trace').innerHTML = log.map((e, i) => {
+    const [ic, cls] = EV_ICON[e.kind] || ['·', 'mut'];
+    const t = evTag(e);
+    return `<div class="ev${i > PG.step ? ' future' : ''}${i === PG.step ? ' cur' : ''}${e.depth ? ' d1' : ''}" data-i="${i}"><span class="i">${i + 1}</span><span class="k ${cls}">${ic}</span><span class="t ${e.kind === 'fail' ? 'bad' : ''}">${glyphs(e.text)}</span><span class="srcl">${t ? `<a href="javascript:void 0" data-src="${t}">source</a>` : ''}</span></div>`;
+  }).join('');
+  const cur = $('#p-trace .ev.cur'); if (cur) { const tr = $('#p-trace'); if (cur.offsetTop < tr.scrollTop || cur.offsetTop > tr.scrollTop + tr.clientHeight - 30) tr.scrollTop = cur.offsetTop - tr.clientHeight / 2; }
+  const e = log[PG.step], w = e.w;
+  const saved = log.slice(0, PG.step + 1).find(x => x.kind === 'note' && /my_generation/.test(x.text));
+  const savedGen = saved ? saved.w.epoch : null;
+  const light = w.light, glows = w.form === M.FORM.TARGET;
+  let verdict = '';
+  if (PG.step === log.length - 1) {
+    if (pgRun.failed) verdict = `<div class="verdict bad"><b>Counterexample.</b> Assertion violated: <i>${esc(pgRun.failed)}</i>. CBMC would print this path as its trace and exit 10.</div>`;
+    else if (pgRun.pruned) verdict = `<div class="verdict">This path is excluded by <code>__CPROVER_assume(choice != 3)</code>, so CBMC never considers it.</div>`;
+    else if (log.some(x => x.kind === 'stop')) verdict = `<div class="verdict stp"><b>Guard returned early.</b> Every assertion on this path held.</div>`;
+    else verdict = `<div class="verdict ok"><b>Completed.</b> Every assertion on this path held.</div>`;
+  }
+  $('#p-world').innerHTML = `<div class="panel-h">world at step ${PG.step + 1} of ${log.length}</div>
+    <div style="display:flex;gap:14px;align-items:center;margin:6px 0 8px"><div class="big ${GLYPH_CLS[M.FORM_GLYPH[w.form]]}">${M.FORM_GLYPH[w.form]}</div><div class="lg">hero form<br><b style="color:var(--text-primary)">${M.FORM_NAME[w.form]}</b></div></div>
+    <div class="wrow"><span>generation (<code>uasmon_generation</code>)</span><span class="mono">${w.epoch}</span></div>
+    <div class="wrow"><span>saved <code>my_generation</code></span><span class="mono">${savedGen == null ? '—' : savedGen}${savedGen != null ? (savedGen === w.epoch ? ' <span class="ok">= now</span>' : ' <span class="bad">≠ now</span>') : ''}</span></div>
+    <div class="wrow"><span>light source</span><span>${light ? 'exists' : 'none'} ${light === glows ? '<span class="ok">✓ agrees with form</span>' : '<span class="bad">✕ disagrees</span>'}</span></div>
+    <div class="wrow"><span>last cleanup</span><span>${w.cleanupSeen ? 'for generation ' + w.cleanupEpoch : 'not yet'}</span></div>
+    ${verdict}`;
+  $('#p-prev').disabled = $('#p-first').disabled = PG.step === 0;
+  $('#p-next').disabled = $('#p-end').disabled = PG.step === log.length - 1;
+  if (pgSrc && $('#p-follow').checked) { const t = evTag(e); if (t) pgSrc.focus(t); }
+}
+INIT.path = () => {
+  pgSrc = SourceView($('#p-src'), { key: PG.h });
+  setPgH = segInit($('#p-h'), PG.h, v => { pgLoad({ h: v, mode: PG.mode, choices: [] }); });
+  setPgMode = segInit($('#p-mode'), PG.mode, v => { PG.mode = +v; PG.step = 0; pgCompute(); });
+  $('#p-preset').innerHTML = '<option value="">choose a preset…</option>' + PRESETS.map((p, i) => `<option value="${i}">${esc(p[0])}</option>`).join('');
+  $('#p-preset').onchange = e => { const p = PRESETS[e.target.value]; if (p) pgLoad(Object.assign({}, p[1], { choices: p[1].choices.slice() })); e.target.value = ''; };
+  $('#p-slots').addEventListener('change', e => { const s = e.target.dataset.slot; if (s != null) { PG.choices[+s] = +e.target.value; PG.step = 0; pgCompute(); } });
+  $('#p-trace').addEventListener('click', e => {
+    const a = e.target.closest('[data-src]'); if (a) { pgSrc.load(PG.h); pgSrc.focus(a.dataset.src); $('#p-src').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
+    const r = e.target.closest('.ev'); if (r) { PG.step = +r.dataset.i; pgRender(); }
+  });
+  $('#p-first').onclick = () => { PG.step = 0; pgRender(); };
+  $('#p-prev').onclick = () => { PG.step = Math.max(0, PG.step - 1); pgRender(); };
+  $('#p-next').onclick = () => { PG.step = Math.min(pgRun.log.length - 1, PG.step + 1); pgRender(); };
+  $('#p-end').onclick = () => { PG.step = pgRun.log.length - 1; pgRender(); };
+  $('#p-follow').onchange = pgRender;
+  pgSrc.load(PG.h);
+  pgCompute();
+};
+function openInPlayground(cfg) {
+  pgLoad(Object.assign({ jumpEnd: true }, cfg));
+  PG.jumpEnd = !setPgH; /* INIT.path will compute again and jump to the end */
+  location.hash = 'path';
+}
+
+/* ------------------------------------------------------------ 4. CBMC tree */
+const CB = { h: 'polymon', mode: 2, noaba: false };
+const CH_COL = ['var(--text-muted)', 'var(--blue-ink)', 'var(--green-ink)', 'var(--warm-ink)'];
+const CH_G = ['·', '@', ':', 'y'];
+function leafStatus(r) { if (r.failed) return 'fail'; if (r.pruned) return 'pruned'; if (r.log.some(x => x.kind === 'stop')) return 'stop'; return 'ok'; }
+function drawTree() {
+  const leaves = M.exploreAll(CB.h, { mode: CB.mode, allowSame: !CB.noaba });
+  const root = { kids: [], depth: 0 };
+  for (const l of leaves) {
+    let n = root;
+    l.choices.forEach((c, d) => { n.kids[c] ||= { kids: [], depth: d + 1, c }; n = n.kids[c]; });
+    n.leaf = l; n.status = leafStatus(l.result);
+  }
+  const depth = M.DEPTH[CB.h];
+  const nLeaves = leaves.length;
+  const W = 1060, L = 150, R = 20, top = 40, rowH = CB.h === 'polymon' ? 56 : 80;
+  const H = top + depth * rowH + 64;
+  const dx = Math.min(56, (W - L - R) / Math.max(1, nLeaves));
+  const x0 = L + ((W - L - R) - dx * (nLeaves - 1)) / 2;
+  let li = 0;
+  (function place(n) { const ks = n.kids.filter(Boolean); if (!ks.length) { n.x = x0 + dx * li++; } else { ks.forEach(place); n.x = (ks[0].x + ks[ks.length - 1].x) / 2; } n.y = top + n.depth * rowH; })(root);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tree of all callback outcomes">`;
+  const names = SLOT_NAMES[CB.h];
+  s += `<text x="10" y="${top + 4}" class="tn">install y, save gen 1</text>`;
+  for (let d = 0; d < depth; d++) s += `<line x1="${L - 8}" x2="${W - 10}" y1="${top + (d + 1) * rowH}" y2="${top + (d + 1) * rowH}" stroke="var(--border)" stroke-dasharray="2 4"/><text x="10" y="${top + (d + 0.5) * rowH + 4}" class="tn">${esc(names[d])}</text>`;
+  const counts = { ok: 0, stop: 0, fail: 0, pruned: 0 };
+  (function edges(n) {
+    n.kids.forEach((k, c) => { if (!k) return;
+      s += `<line x1="${n.x}" y1="${n.y}" x2="${k.x}" y2="${k.y}" stroke="${CH_COL[c]}" stroke-width="${c ? 1.8 : 1.3}"/>`;
+      const mx = n.x + (k.x - n.x) * 0.55, my = n.y + (k.y - n.y) * 0.55;
+      s += `<text x="${mx}" y="${my + 4}" text-anchor="middle" class="mono gl" style="font-size:12px;font-weight:700" fill="${CH_COL[c]}">${CH_G[c]}</text>`;
+      edges(k); });
+  })(root);
+  (function nodes(n) {
+    const ks = n.kids.filter(Boolean);
+    if (n.leaf) {
+      counts[n.status]++;
+      const x = n.x, y = n.y, tip = esc(n.leaf.choices.map(c => CH_G[c]).join(' ') || '(no choices)') + ' → ' + ({ ok: 'completed, all assertions hold', stop: 'guard returned early', fail: 'assertion failed: ' + n.leaf.result.failed, pruned: 'excluded by assume' }[n.status]);
+      let g = '';
+      if (n.status === 'ok') g = `<circle cx="${x}" cy="${y}" r="8" fill="var(--green)"/>`;
+      else if (n.status === 'stop') g = `<rect x="${x - 7}" y="${y - 7}" width="14" height="14" rx="2" fill="var(--violet)"/>`;
+      else if (n.status === 'fail') g = `<circle cx="${x}" cy="${y}" r="10" fill="var(--red)"/><path d="M${x - 4},${y - 4} L${x + 4},${y + 4} M${x + 4},${y - 4} L${x - 4},${y + 4}" stroke="#fff" stroke-width="2"/>`;
+      else g = `<circle cx="${x}" cy="${y}" r="7" fill="var(--surface)" stroke="var(--text-muted)" stroke-dasharray="2 2"/>`;
+      s += `<g data-leaf="${n.leaf.choices.join(',')}" style="cursor:pointer" tabindex="0"><circle cx="${x}" cy="${y}" r="14" fill="transparent"/>${g}<title>${tip}</title></g>`;
+    } else s += `<circle cx="${n.x}" cy="${n.y}" r="4.5" fill="var(--text-secondary)"/>`;
+    ks.forEach(nodes);
+  })(root);
+  s += '</svg>';
+  $('#c-fig').innerHTML = s;
+  $$('#c-fig [data-leaf]').forEach(g => {
+    const go = () => { const ch = g.dataset.leaf === '' ? [] : g.dataset.leaf.split(',').map(Number); openInPlayground({ h: CB.h, mode: CB.mode, choices: ch, allowSame: !CB.noaba }); };
+    g.addEventListener('click', go); g.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  });
+  const gname = ['no guard', 'the identity guard', 'the generation guard'][CB.mode];
+  const verdict = counts.fail ? `<span class="bad"><b>${counts.fail} counterexample${counts.fail > 1 ? 's' : ''}</b></span>: CBMC exits 10 and prints one of them.` : `<span class="ok"><b>No counterexample</b></span>: the property holds on every path, and CBMC exits 0.`;
+  $('#c-read').innerHTML = `With ${gname}${CB.noaba ? ' and same-form reentry assumed away' : ''}, <code>${CB.h}()</code> has <b>${nLeaves}</b> distinct paths: <span class="ok">${counts.ok} completed</span>, <span class="stp">${counts.stop} stopped by a guard</span>, <span class="bad">${counts.fail} failed</span>${counts.pruned ? `, <span class="mut">${counts.pruned} excluded</span>` : ''}. ${verdict}`;
+}
+INIT.cbmc = () => {
+  segInit($('#c-h'), CB.h, v => { CB.h = v; drawTree(); });
+  segInit($('#c-mode'), CB.mode, v => { CB.mode = +v; drawTree(); });
+  $('#c-noaba').onchange = e => { CB.noaba = e.target.checked; drawTree(); };
+  ModelView($('#c-harness'), { tall: true }).set(['verify_polymon_guards', 'verify_break_armor_guards', 'maybe_nested_change'].map(f => extractFn(MSRC.cbmc, f)).join('\n\n'));
+  drawTree();
+};
+
+/* ------------------------------------------------------------ 5. Negative controls */
+const CHECKS = [
+  ['immediate light bookkeeping', 'light', {}, true, 'patched install_form(): light updated in the same step', 'verify_light_bookkeeping'],
+  ['legacy delete-before-create window', 'delayedLight', {}, false, 'old code: set_uasmon() now, light at made_change: later', 'reject_delayed_light_bookkeeping'],
+  ['polymon generation guards, including ABA', 'polymon', { mode: 2 }, true, '-DGUARD_MODE=2', 'verify_polymon_guards'],
+  ['break_armor generation guards, including ABA', 'break_armor', { mode: 2 }, true, '-DGUARD_MODE=2', 'verify_break_armor_guards'],
+  ['polymon identity guards, no-ABA contract', 'polymon', { mode: 1, allowSame: false }, true, '-DGUARD_MODE=1 -DALLOW_SAME_FORM_REENTRY=0', 'verify_polymon_guards'],
+  ['break_armor identity guards, no-ABA contract', 'break_armor', { mode: 1, allowSame: false }, true, '-DGUARD_MODE=1 -DALLOW_SAME_FORM_REENTRY=0', 'verify_break_armor_guards'],
+  ['polymon identity guard doesn’t exclude ABA', 'polymon', { mode: 1 }, false, '-DGUARD_MODE=1 -DALLOW_SAME_FORM_REENTRY=1', 'verify_polymon_guards'],
+  ['break_armor identity guard doesn’t exclude ABA', 'break_armor', { mode: 1 }, false, '-DGUARD_MODE=1 -DALLOW_SAME_FORM_REENTRY=1', 'verify_break_armor_guards'],
+  ['polymorph-trap route defeats identity', 'polytrap', { mode: 1 }, false, '-DGUARD_MODE=1', 'verify_same_form_polytrap_route'],
+  ['generation guard catches the polymorph-trap route', 'polytrap', { mode: 2 }, true, '-DGUARD_MODE=2', 'verify_same_form_polytrap_route'],
+  ...[0, 1, 2, 3, 4].map(b => [`polymon without guard ${b} (${M.BOUNDARY[b].name})`, 'polymon', { mode: 1, allowSame: false, force: b, omit: b }, false, `-DFORCE_BOUNDARY=${b} -DOMIT_GUARD=${b}`, 'verify_polymon_guards']),
+  ...[5, 6, 7].map(b => [`break_armor without guard ${b} (${M.BOUNDARY[b].name})`, 'break_armor', { mode: 1, allowSame: false, force: b, omit: b }, false, `-DFORCE_BOUNDARY=${b} -DOMIT_GUARD=${b}`, 'verify_break_armor_guards']),
+];
+INIT.controls = () => {
+  let match = 0;
+  const rows = CHECKS.map(([name, h, o, expPass, flags, fn], i) => {
+    const v = M.verdict(h, o);
+    const ok = v.pass === expPass; if (ok) match++;
+    const ce = v.counterexample;
+    const path = ce ? (ce.choices.length ? ce.choices.map(c => CH_G[c]).join(' ') : (o.force >= 0 ? `forced @ at B${o.force}` : 'fixed path')) : '';
+    const canOpen = ['polymon', 'break_armor'].includes(h);
+    return `<tr><td>${esc(name)}<div class="lg"><code>${esc(fn)}</code> ${esc(flags)}</div></td><td>${expPass ? '<span class="pill ok">proof</span>' : '<span class="pill bad">counterexample</span>'}</td><td>${v.pass ? '<span class="ok">✓ holds</span>' : `<span class="bad">✕ found</span> <span class="mono">${glyphs(path)}</span><div class="lg">${esc(ce.result.failed)}</div>`} <div class="lg">${v.paths} path${v.paths > 1 ? 's' : ''}</div></td><td>${ok ? '<span class="ok">match</span>' : '<span class="bad">MISMATCH</span>'}</td><td>${canOpen ? `<button class="sm" data-open="${i}">${v.pass ? 'explore' : 'step through'}</button>` : ''}</td></tr>`;
+  });
+  $('#n-table').innerHTML = '<tr><th>check</th><th>run-cbmc.sh expects</th><th>in-page model finds</th><th></th><th></th></tr>' + rows.join('');
+  $('#n-sum').innerHTML = `<b>${match} of ${CHECKS.length}</b> results match what <code>run-cbmc.sh</code> expects: 8 proofs, 10 counterexamples.`;
+  $('#n-table').addEventListener('click', e => {
+    const b = e.target.closest('[data-open]'); if (!b) return;
+    const [name, h, o] = CHECKS[+b.dataset.open];
+    const v = M.verdict(h, o);
+    openInPlayground(Object.assign({ h, choices: v.counterexample ? v.counterexample.choices : [], label: name }, o, { mode: o.mode ?? 2 }));
+  });
+  $('#n-script').textContent = MSRC.runcbmc;
+};
+
+/* ------------------------------------------------------------ 6. ABA */
+let abaHist = [1], abaSrc;
+function drawAba() {
+  const gen = abaHist.length;
+  $('#a-hist').innerHTML = abaHist.map((f, i) => `${i ? '<span class="arrow">→</span>' : ''}<div class="hchip${i === 0 ? ' saved' : ''}"><span class="g ${GLYPH_CLS[M.FORM_GLYPH[f]]}">${M.FORM_GLYPH[f]}</span><span class="n">gen ${i + 1}${i === 0 ? ' · saved' : ''}</span></div>`).join('');
+  const nowF = abaHist[abaHist.length - 1];
+  const idStop = nowF !== 1, genStop = gen !== 1, truth = gen !== 1;
+  const idWrong = idStop !== truth;
+  $('#a-guards').innerHTML = `
+    <div class="gcard${idWrong ? ' wrong' : ''}"><div class="panel-h">identity guard (PR #1681)</div><code>if (u.umonnum != mntmp) return 1;</code><div class="lg">now ${glyph(M.FORM_GLYPH[nowF])} vs saved ${glyph('y')}</div><div class="res ${idStop ? 'stp' : idWrong ? 'bad' : 'ok'}">${idStop ? 'return 1' : 'continue'}${idWrong ? ' ✕ wrong' : ''}</div></div>
+    <div class="gcard"><div class="panel-h">generation guard</div><code>if (uasmon_generation != my_generation) return 1;</code><div class="lg">now ${gen} vs saved 1</div><div class="res ${genStop ? 'stp' : 'ok'}">${genStop ? 'return 1' : 'continue'}</div></div>`;
+  let msg;
+  if (gen === 1) msg = 'No nested installation yet. Both guards correctly let <code>polymon()</code> continue. Add one with the buttons above.';
+  else if (idWrong) msg = `<b>ABA.</b> ${gen - 1} nested installation${gen > 2 ? 's' : ''} happened, and the last one ran its own cleanup for generation ${gen}. The form number is back to ${glyph('y')}, so the identity guard continues and repeats that cleanup under the old ownership. The counter never goes back, so the generation guard returns.`;
+  else msg = `The form is now ${glyph(M.FORM_GLYPH[nowF])}, so both guards return. The identity guard is right here only because the history didn’t come back to ${glyph('y')}.`;
+  $('#a-read').innerHTML = msg;
+}
+INIT.aba = () => {
+  $$('#v-aba [data-add]').forEach(b => b.onclick = () => { if (abaHist.length < 9) abaHist.push(+b.dataset.add); drawAba(); });
+  $('#a-reset').onclick = () => { abaHist = [1]; drawAba(); };
+  abaSrc = SourceView($('#a-src'), { key: 'aba' });
+  drawAba();
+};
+
+/* ------------------------------------------------------------ 7. WP */
+const WPC = {
+  gen: { legend: 'E = w.form_epoch here, E₀ = its value on entry, O = owner_epoch, c = choice.',
+    code: ['/*@ requires owner_epoch == w.form_epoch;', '    requires 0 <= choice <= 3;', '    ensures \\result == 0 ==> w.form_epoch == owner_epoch;', '    ensures \\result == 1 ==> w.form_epoch != owner_epoch; */', 'int boundary(int choice, int owner_epoch)', '{', '    if (choice == 1)      install_form(FORM_HUMAN);', '    else if (choice == 2) install_form(FORM_OTHER);', '    else if (choice == 3) install_form(FORM_TARGET);', '    if (w.form_epoch != owner_epoch)', '        return 1;', '    //@ assert choice == 0;', '    return 0;', '}'],
+    steps: [
+      { hl: [2, 3], f: '(result = 0 ⇒ E = O)\n∧ (result = 1 ⇒ E ≠ O)', x: 'WP works <b>backwards</b>. Start at the end with the postcondition, the promise to the caller. At each line going up, ask: what must be true <i>before</i> this line for the promise to hold after it?' },
+      { hl: [12], f: 'E = O', x: '<code>return 0</code> sets result to 0. Substitute: the first clause becomes E = O, and the second (0 = 1 ⇒ …) is vacuously true.' },
+      { hl: [11], f: 'c = 0  ∧  E = O', x: 'An <code>assert</code> is a goal to prove at this point, and afterwards a fact. WP adds c = 0. This is the real claim: <b>if the guard lets us continue, no nested installation happened.</b>' },
+      { hl: [10], f: 'E ≠ O', x: 'On the other branch, <code>return 1</code> sets result to 1, and substituting gives E ≠ O.' },
+      { hl: [9], f: '(E ≠ O ⇒ E ≠ O) ∧ (E = O ⇒ c = 0 ∧ E = O)\n\n≡  E = O ⇒ c = 0', x: 'An <code>if</code> joins its two branches: when the test is true the "then" requirement must hold, and when it is false the "else" requirement must. The first half is trivially true. What remains says: if the generation is unchanged, the callback must have done nothing.' },
+      { hl: [6, 7, 8], f: '  c = 0     ⇒ (E₀ = O     ⇒ c = 0)\n∧ c ∈ {1,2,3} ⇒ (E₀ + 1 = O ⇒ c = 0)', side: 'side goals at each call: install_form requires valid_form(next), valid_form(w.form), 0 ≤ E₀ < 100, light_consistent', x: 'WP doesn’t look inside <code>install_form()</code>. It uses its contract, which promises <code>w.form_epoch == \\old(w.form_epoch) + 1</code>. So on the three install branches E becomes E₀ + 1. Each call also creates side goals: the callee’s <code>requires</code> must hold there.' },
+      { hl: [0, 1], f: 'O = E₀ ∧ 0 ≤ c ≤ 3  ⇒\n    (c = 0 ⇒ (E₀ = O ⇒ c = 0))\n  ∧ (c ≠ 0 ⇒ (E₀ + 1 = O ⇒ c = 0))', ok: true, v: '<b class="ok">Valid for all integers.</b>', x: 'Finally, the preconditions become hypotheses. With O = E₀, the first line is trivially true, and E₀ + 1 = E₀ is false, so the second implication holds for every c. That is the whole argument: <b>a counter that only increases can never equal its old value again.</b> A prover closes this by arithmetic, with no enumeration of cases or starting values.' },
+    ] },
+  id: { legend: 'F = w.form here, A = owner_form (y), E = w.form_epoch, E₀ = its value on entry, c = choice.',
+    code: ['/*@ requires w.form == owner_form;', '    requires 0 <= choice <= 3;', '    ensures \\result == 0 ==> w.form_epoch == \\old(w.form_epoch); */', 'int boundary(int choice, int owner_form)', '{', '    if (choice == 1)      install_form(FORM_HUMAN);', '    else if (choice == 2) install_form(FORM_OTHER);', '    else if (choice == 3) install_form(FORM_TARGET);', '    if (w.form != owner_form)', '        return 1;', '    //@ assert choice == 0;', '    return 0;', '}'],
+    steps: [
+      { hl: [2], f: 'result = 0 ⇒ E = E₀', x: 'The same promise, stated against the generation on entry: if the function says "continue", no new form was installed. The generation still exists as a <b>ghost</b> variable for stating the property; only the guard ignores it.' },
+      { hl: [11], f: 'E = E₀', x: 'Substitute result = 0.' },
+      { hl: [10], f: 'c = 0  ∧  E = E₀', x: 'The assertion adds c = 0.' },
+      { hl: [9], f: 'true', x: 'This version promises nothing when it returns 1, so that branch needs nothing.' },
+      { hl: [8], f: 'F = A  ⇒  c = 0 ∧ E = E₀', x: 'This guard tests the <b>form</b>, not the generation. The requirement becomes: if the form number looks unchanged, nothing must have happened.' },
+      { hl: [5, 6, 7], f: 'c = 0:  F₀ = A ⇒ 0 = 0 ∧ E₀ = E₀        ✓\nc = 1:  @ = A  ⇒ …   (@ ≠ y, vacuous)   ✓\nc = 2:  : = A  ⇒ …   (: ≠ y, vacuous)   ✓\nc = 3:  y = A  ⇒ 3 = 0 ∧ E₀+1 = E₀      ✕', x: '<code>install_form(X)</code> promises F = X and E = E₀ + 1. Split by case. Reverting to human or becoming a newt changes the form, so the guard returns and nothing is required. <b>Reinstalling the same form</b> leaves F = A, so the guard continues, and the goal asks for 3 = 0.' },
+      { hl: [0, 1], f: 'F₀ = A ∧ 0 ≤ c ≤ 3  ⇒  (c = 3 ⇒ false)  ∧ …', ok: false, v: '<b class="bad">Not provable.</b> c = 3 satisfies the precondition and falsifies the goal.', x: 'The solver can’t prove a false formula, so WP reports this goal as unknown or timed out and the run fails. The failing case is <b>ABA</b>: the same form, installed again.' },
+    ] },
+};
+WPC.noaba = JSON.parse(JSON.stringify(WPC.id));
+WPC.noaba.code[1] = '    requires 0 <= choice <= 2;   /* no-ABA contract */';
+WPC.noaba.steps[5].f = WPC.id.steps[5].f.replace(/c = 3:.*$/, 'c = 3:  excluded by requires 0 <= choice <= 2');
+WPC.noaba.steps[5].x = 'The same case split, but the precondition no longer allows c = 3, so the bad case never arises.';
+WPC.noaba.steps[6] = { hl: [0, 1], f: 'F₀ = A ∧ 0 ≤ c ≤ 2  ⇒  …', ok: true, v: '<b class="ok">Valid</b>, but only under the contract.', x: 'This is how the identity-guard version was proved first (344/344 goals in commit <code>e90f8aa</code>): by <b>assuming</b> callbacks never reinstall the same form. The source audit then found a route where NetHack does exactly that, the polymorph trap in explainer 6, so the assumption is false for the real game and the identity guards were replaced.' };
+const WPS = { mode: 'gen', step: 0 };
+function drawWp() {
+  const P = WPC[WPS.mode], st = P.steps[WPS.step];
+  $('#wp-code').innerHTML = P.code.map((l, i) => `<div class="${st.hl.includes(i) ? 'on' : ''}${/^\s*(\/\*@|\/\/@|requires|ensures)/.test(l) ? ' acsl' : ''}">${esc(l) || ' '}</div>`).join('');
+  $('#wp-legend').textContent = P.legend;
+  $('#wp-f').innerHTML = esc(st.f) + (st.v ? `\n\n${st.v}` : '');
+  $('#wp-f').style.borderColor = st.ok === true ? 'var(--green)' : st.ok === false ? 'var(--red)' : '';
+  $('#wp-side').textContent = st.side || '';
+  $('#wp-x').innerHTML = st.x;
+  $('#wp-dots').innerHTML = P.steps.map((_, i) => `<span class="${i <= WPS.step ? 'on' : ''}" data-s="${i}" title="step ${i + 1}"></span>`).join('');
+  $('#wp-count').textContent = `step ${WPS.step + 1} of ${P.steps.length}`;
+  $('#wp-prev').disabled = WPS.step === 0; $('#wp-next').disabled = WPS.step === P.steps.length - 1;
+}
+INIT.wp = () => {
+  segInit($('#wp-mode'), 'gen', v => { WPS.mode = v; drawWp(); });
+  $('#wp-prev').onclick = () => { WPS.step = Math.max(0, WPS.step - 1); drawWp(); };
+  $('#wp-next').onclick = () => { WPS.step = Math.min(WPC[WPS.mode].steps.length - 1, WPS.step + 1); drawWp(); };
+  $('#wp-dots').addEventListener('click', e => { const d = e.target.dataset.s; if (d != null) { WPS.step = +d; drawWp(); } });
+  ModelView($('#wp-real'), { tall: true }).set(['install_form', 'generation_boundary_arbitrary_aba', 'verify_polymon_generation_arbitrary_aba'].map(f => extractFn(MSRC.acsl, f)).join('\n\n'));
+  drawWp();
+};
+
+/* ------------------------------------------------------------ 8. Audits */
+const SITES = [
+  ['include/extern.h', 2499, 'set_uasmon', 'public declaration', 'n/a'],
+  ['src/allmain.c', 349, 'set_uasmon', 'refresh form-derived intrinsics after were-change activity', 'no: refresh, not a new form'],
+  ['src/invent.c', 5363, 'youmonst.data =', 'temporary display substitution, not a gameplay form transition', 'no: display only'],
+  ['src/invent.c', 5374, 'youmonst.data =', 'restore after temporary display substitution', 'no: display only'],
+  ['src/polyself.c', 38, 'set_uasmon', 'definition of the form/intrinsic installer', 'n/a'],
+  ['src/polyself.c', 210, 'umonnum =', 'polyman installs the base form', 'yes: note_uasmon_install()'],
+  ['src/polyself.c', 213, 'set_uasmon', 'polyman commits the base form', 'yes: note_uasmon_install()', 'light', 'install'],
+  ['src/polyself.c', 293, 'umonnum =', 'change_sex normal-form refresh', 'no: reviewed'],
+  ['src/polyself.c', 299, 'umonnum =', 'disabled succubus/incubus form switch site retained in source', 'no: disabled code'],
+  ['src/polyself.c', 301, 'set_uasmon', 'change_sex commits or refreshes form data', 'no: reviewed'],
+  ['src/polyself.c', 814, 'umonnum =', 'polymon installs its target form number', 'yes: note_uasmon_install()', 'polymon', 'install'],
+  ['src/polyself.c', 815, 'set_uasmon', 'polymon commits its target form', 'yes: note_uasmon_install()', 'polymon', 'install'],
+  ['src/restore.c', 627, 'set_uasmon', 'restore rebuilds derived hero-monster state', 'no: outside any call chain'],
+  ['src/u_init.c', 991, 'umonnum =', 'initial hero form', 'no: game start'],
+  ['src/u_init.c', 993, 'set_uasmon', 'initial derived hero-monster state', 'no: game start'],
+  ['src/were.c', 236, 'set_uasmon', 'lycanthropy intrinsic refresh without a form-number change', 'no: refresh'],
+];
+INIT.audits = () => {
+  $('#au-table').innerHTML = '<tr><th>site</th><th>kind</th><th>reviewed purpose (from the audit)</th><th>bumps the generation?</th></tr>' + SITES.map((s, i) => `<tr data-i="${i}"><td class="mono" style="white-space:nowrap"><a href="${ghURL(s[0], s[1])}" target="_blank" rel="noopener">${s[0]}:${s[1]}</a>${s[5] ? ` <button class="sm" data-show="${i}">show</button>` : ''}</td><td><code>${esc(s[2])}</code></td><td>${esc(s[3])}</td><td class="${s[4].startsWith('yes') ? 'ok' : s[4] === 'n/a' ? 'mut' : ''}">${esc(s[4])}</td></tr>`).join('');
+  const box = $('#au-src');
+  let sv = null;
+  $('#au-read').innerHTML = `16 sites, two of which bump the counter. Rows with <b>show</b> open the annotated source here, and every file:line opens the pinned upstream file on GitHub.`;
+  $('#au-table').addEventListener('click', e => {
+    const b = e.target.closest('[data-show]'); if (!b) return;
+    const s = SITES[+b.dataset.show];
+    $$('#au-table tr').forEach(r => r.classList.toggle('now', r.dataset.i === b.dataset.show));
+    if (!sv) sv = SourceView(box, { key: s[5] });
+    sv.load(s[5]); sv.focus(s[6]);
+  });
+};
+
+route();
+</script>
+
+</body>
+</html>
