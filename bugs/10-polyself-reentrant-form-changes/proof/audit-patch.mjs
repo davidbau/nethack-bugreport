@@ -10,8 +10,14 @@ import { execFileSync } from 'node:child_process';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../..');
 const upstream = join(root, 'nethack-c/upstream');
-const patch = join(root,
-    'bugs/10-polyself-reentrant-form-changes/proposed-fix.patch');
+// PR #1681 is these two patches applied in order: the first three commits
+// (identity guards, light ownership) and then the generation counter commit
+// 97b843554, which replaces every identity guard.
+const patches = [
+    join(root, 'bugs/10-polyself-reentrant-form-changes/proposed-fix.patch'),
+    join(root, 'bugs/10-polyself-reentrant-form-changes/proof/generation-guard.patch'),
+];
+const GEN_GUARD = 'if (uasmon_generation != my_generation)';
 
 function count(text, needle) {
     return text.split(needle).length - 1;
@@ -40,10 +46,28 @@ function auditPatched(polyself, timeout) {
     const breakArmor = functionBody(polyself, 'break_armor');
     const polyman = functionBody(polyself, 'polyman');
 
-    assert.equal(count(polymon, 'if (u.umonnum != mntmp)'), 5,
-        'polymon must have exactly five identity guards');
-    assert.equal(count(breakArmor, 'if (gy.youmonst.data != uptr)'), 3,
-        'break_armor must have exactly three identity guards');
+    const setUasmon = functionBody(polyself, 'set_uasmon');
+
+    assert.equal(count(polymon, GEN_GUARD), 5,
+        'polymon must have exactly five generation guards');
+    assert.equal(count(breakArmor, GEN_GUARD), 3,
+        'break_armor must have exactly three generation guards');
+    assert.equal(count(polymon, 'if (u.umonnum != mntmp)'), 0,
+        'no identity guard may remain in polymon');
+    assert.equal(count(breakArmor, 'if (gy.youmonst.data != uptr)'), 0,
+        'no identity guard may remain in break_armor');
+    // The counter is bumped by set_uasmon() itself, so every installation,
+    // including a same-form one, is a new generation.
+    assert.equal(count(setUasmon, 'note_uasmon_install();'), 1,
+        'set_uasmon must bump the form generation');
+    requireText(functionBody(polyself, 'note_uasmon_install'),
+        'if (++uasmon_generation == 0UL)',
+        'generation wraparound check');
+    requireText(polymon,
+        'set_uasmon();\n    uasmon_light(old_light);\n    my_generation = uasmon_generation;',
+        'polymon owning the generation it just installed');
+    requireText(breakArmor, 'unsigned long my_generation = uasmon_generation;',
+        'break_armor owning the generation current at entry');
     assert.equal(count(polyself, 'uasmon_light(old_light);'), 2,
         'both semantic form installers must complete light bookkeeping');
     requireText(polyman, 'set_uasmon();\n    uasmon_light(old_light);',
@@ -92,7 +116,8 @@ function main() {
         mkdirSync(join(scratch, 'src'));
         cpSync(join(upstream, 'src/polyself.c'), join(scratch, 'src/polyself.c'));
         cpSync(join(upstream, 'src/timeout.c'), join(scratch, 'src/timeout.c'));
-        execFileSync('git', ['apply', '--recount', patch], { cwd: scratch });
+        for (const patch of patches)
+            execFileSync('git', ['apply', '--recount', patch], { cwd: scratch });
 
         const polyself = readFileSync(join(scratch, 'src/polyself.c'), 'utf8');
         const timeout = readFileSync(join(scratch, 'src/timeout.c'), 'utf8');
@@ -100,11 +125,17 @@ function main() {
 
         assert.throws(
             () => auditPatched(
-                polyself.replace('if (u.umonnum != mntmp)',
-                                 'if (0 /* removed guard */)'),
+                polyself.replace(GEN_GUARD, 'if (0 /* removed guard */)'),
                 timeout),
-            /five identity guards/,
+            /five generation guards/,
             'negative fixture must detect a missing polymon guard');
+        assert.throws(
+            () => auditPatched(
+                polyself.replace('    note_uasmon_install();\n    /* we can reset',
+                                 '    /* we can reset'),
+                timeout),
+            /set_uasmon must bump/,
+            'negative fixture must detect a set_uasmon() that does not bump');
         assert.throws(
             () => auditPatched(
                 polyself.replace('uasmon_light(old_light);',
@@ -117,7 +148,8 @@ function main() {
     }
 
     auditAbaRoute();
-    console.log('patch audit: source pin, 8 guards, light ownership, and ABA route verified');
+    console.log('patch audit: source pin, PR patches apply, 8 generation guards, '
+        + 'set_uasmon() bumps, light ownership, and ABA route verified');
 }
 
 main();

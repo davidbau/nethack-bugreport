@@ -1,6 +1,9 @@
 # Formal verification report
 
 This report checks the re-entrant polymorph fix described in `README.md`.
+For a visual walkthrough of the same argument, with the model running in the
+browser and every boundary linked to the source, see the
+[interactive proof explainer](https://davidbau.github.io/nethack-bugreport/bugs/10-polyself-reentrant-form-changes/proof/explainer/).
 The question is narrow: after a callback changes the hero's form, can the
 old operation continue applying effects that belong to the old form?
 
@@ -39,13 +42,25 @@ The proof uses two complementary approaches:
 - **ACSL/WP** uses annotations written in ACSL (the ANSI/ISO C Specification
   Language). Frama-C's WP ( weakest-precondition ) engine turns those
   annotations into mathematical proof obligations and discharges them with
-  Qed and Alt-Ergo. The arbitrary-ABA generation model proves **76/76**
-  obligations.
+  Qed and Alt-Ergo. Every function in the model is checked against its own
+  contract, and nothing is left assumed: **488/488** obligations. This
+  includes a boundary at which one callback may install any number of forms
+  (a loop with an invariant), and a WP negative control in which the identity
+  guard, allowed a same-form reinstall, leaves its key assertion unproved.
 
 The source audits then connect the model to the pinned NetHack source. They
 inventory all direct form writes and `set_uasmon()` edges, enumerate 21 direct
 `polymon()` callers, and include the trap route that demonstrates reachable
-ABA. The audits fail if a new installation edge appears without review.
+ABA. The audits fail if a new installation edge appears without review. The
+patch audit applies the two patches that make up PR #1681 and checks the
+shape the model assumes: `set_uasmon()` bumps the counter, and all eight
+generation guards are present with no identity guard left behind.
+
+The model is only as good as three premises that the provers do not see:
+every form installation goes through `set_uasmon()`; every counter bump that
+can happen inside the window belongs to an installer that finishes its own
+form's setup; and a guard follows every re-entrant boundary.
+[`proof/README.md`](proof/README.md) says how each is checked.
 
 Run everything from the repository root:
 

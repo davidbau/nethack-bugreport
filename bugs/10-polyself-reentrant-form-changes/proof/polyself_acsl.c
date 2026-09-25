@@ -7,6 +7,17 @@
  * obligations needed to refine it to the complete NetHack translation unit.
  */
 
+/* The identity-guard model allows callback choices 0..IDENTITY_MAX_CHOICE.
+ * The default, 2, is the no-ABA contract: no callback reinstalls the owner
+ * form.  run-wp.sh also builds with -DIDENTITY_MAX_CHOICE=3, admitting the
+ * same-form reinstallation, and requires WP to FAIL: a negative control
+ * showing that identity guards alone cannot exclude ABA. */
+#ifndef IDENTITY_MAX_CHOICE
+#define IDENTITY_MAX_CHOICE 2
+#endif
+
+#include <limits.h>
+
 #define FORM_HUMAN 0
 #define FORM_TARGET 1
 #define FORM_OTHER 2
@@ -145,7 +156,7 @@ reset_world(void)
 /*@
   requires valid_form(next);
   requires valid_form(w.form);
-  requires 0 <= w.form_epoch < 100;
+  requires 0 <= w.form_epoch < INT_MAX;
   requires light_consistent;
   assigns w.form, w.form_epoch, w.light_source;
   ensures w.form == next;
@@ -221,6 +232,7 @@ nested_change(int choice)
   requires 0 <= w.form_epoch < 99;
   requires owner_epoch == w.form_epoch;
   requires light_consistent;
+  requires w.cleanup_seen == 0;
   assigns w;
   ensures light_consistent;
   ensures valid_form(w.form);
@@ -243,7 +255,7 @@ epoch_boundary(int choice, int owner_epoch)
 }
 
 /*@
-  requires 0 <= choice <= 2;
+  requires 0 <= choice <= IDENTITY_MAX_CHOICE;
   requires valid_form(w.form);
   requires 0 <= w.form_epoch < 99;
   requires owner_form == FORM_TARGET;
@@ -304,6 +316,69 @@ generation_boundary_arbitrary_aba(int choice, int owner_epoch)
     return 0;
 }
 
+/* A callback may install any number of forms before it returns: rehumanize,
+ * then a polymorph trap, then another.  kinds[0..n-1] lists them (each one
+ * of FORM_HUMAN, FORM_TARGET, FORM_OTHER, so A->B->A chains of any length are
+ * included).  The loop invariant carries the one fact the guard needs: after
+ * i installations the generation is exactly i past where it started. */
+/*@
+  requires 0 <= n;
+  requires \valid_read(kinds + (0 .. n - 1));
+  requires \forall integer j; 0 <= j < n ==> valid_form(kinds[j]);
+  requires valid_form(w.form);
+  requires 0 <= w.form_epoch;
+  requires w.form_epoch <= INT_MAX - n;
+  requires light_consistent;
+  assigns w.form, w.form_epoch, w.light_source;
+  ensures w.form_epoch == \old(w.form_epoch) + n;
+  ensures valid_form(w.form);
+  ensures light_consistent;
+*/
+static void
+nested_installs(int n, const int *kinds)
+{
+    int i;
+
+    /*@
+      loop invariant 0 <= i <= n;
+      loop invariant w.form_epoch == \at(w.form_epoch, Pre) + i;
+      loop invariant valid_form(w.form);
+      loop invariant light_consistent;
+      loop assigns i, w.form, w.form_epoch, w.light_source;
+      loop variant n - i;
+    */
+    for (i = 0; i < n; ++i)
+        install_form(kinds[i]);
+}
+
+/* The boundary argument without the one-installation-per-callback limit:
+ * the guard lets the owner continue exactly when the callback installed
+ * nothing. */
+/*@
+  requires 0 <= n;
+  requires \valid_read(kinds + (0 .. n - 1));
+  requires \forall integer j; 0 <= j < n ==> valid_form(kinds[j]);
+  requires valid_form(w.form);
+  requires 0 <= w.form_epoch;
+  requires w.form_epoch <= INT_MAX - n;
+  requires owner_epoch == w.form_epoch;
+  requires light_consistent;
+  assigns w.form, w.form_epoch, w.light_source;
+  ensures light_consistent;
+  ensures valid_form(w.form);
+  ensures \result == 0 <==> n == 0;
+  ensures \result == 0 ==> w.form_epoch == owner_epoch;
+*/
+int
+generation_boundary_any_installs(int n, const int *kinds, int owner_epoch)
+{
+    nested_installs(n, kinds);
+    if (w.form_epoch != owner_epoch)
+        return 1;
+    //@ assert n == 0;
+    return 0;
+}
+
 /*@
   requires 0 <= c0 <= 3;
   requires 0 <= c1 <= 3;
@@ -336,11 +411,11 @@ verify_polymon_epoch(int c0, int c1, int c2, int c3, int c4)
 }
 
 /*@
-  requires 0 <= c0 <= 2;
-  requires 0 <= c1 <= 2;
-  requires 0 <= c2 <= 2;
-  requires 0 <= c3 <= 2;
-  requires 0 <= c4 <= 2;
+  requires 0 <= c0 <= IDENTITY_MAX_CHOICE;
+  requires 0 <= c1 <= IDENTITY_MAX_CHOICE;
+  requires 0 <= c2 <= IDENTITY_MAX_CHOICE;
+  requires 0 <= c3 <= IDENTITY_MAX_CHOICE;
+  requires 0 <= c4 <= IDENTITY_MAX_CHOICE;
   assigns w;
   ensures light_consistent;
 */
@@ -408,9 +483,9 @@ verify_break_armor_epoch(int c0, int c1, int c2)
 }
 
 /*@
-  requires 0 <= c0 <= 2;
-  requires 0 <= c1 <= 2;
-  requires 0 <= c2 <= 2;
+  requires 0 <= c0 <= IDENTITY_MAX_CHOICE;
+  requires 0 <= c1 <= IDENTITY_MAX_CHOICE;
+  requires 0 <= c2 <= IDENTITY_MAX_CHOICE;
   assigns w;
   ensures light_consistent;
 */

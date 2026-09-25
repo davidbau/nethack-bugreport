@@ -63,15 +63,53 @@ nondeterministic callback outcome at each modeled boundary:
   admits a concrete ordinary form-change counterexample;
 - the old delayed light bookkeeping admits the delete-before-create state.
 
-Frama-C/WP proves the generation-guard protocol with arbitrary nested form
-installations, including explicit same-form ABA reinstallations. The current
-entry points discharge **76/76** WP obligations with Qed or Alt-Ergo. The
-earlier restricted no-ABA transition model remains in the source for
-comparison, but is not used as the final safety argument.
+Frama-C/WP proves the generation-guard protocol for every choice, with no
+bound on the starting generation, and checks every function in the file
+against its own contract: **488/488** goals (433 by Qed, 47 by Alt-Ergo, 8
+trivially), with no property left assumed. That includes:
 
-There are no loops in the model, so no behavior is excluded by an unwind
-bound.  `--unwinding-assertions` remains enabled to make that fact checked by
+- the boundary lemma itself (`generation_boundary_arbitrary_aba()`: the
+  owner continues only if nothing was installed, same-form reinstalls
+  included);
+- `generation_boundary_any_installs()`, which lets one callback install **any
+  number** of forms in any order (a loop with an invariant), and proves the
+  owner continues if and only if the callback installed none;
+- the cleanup-once and light-consistency properties of the epoch model.
+
+`run-wp.sh` also runs a WP negative control: rebuilt with
+`-DIDENTITY_MAX_CHOICE=3`, which lets a callback reinstall the same form, the
+identity-guard model must leave exactly one goal unproved, its
+`assert choice == 0`.  The earlier restricted no-ABA transition model remains
+in the source for comparison, but is not the final safety argument.
+
+(An earlier `run-wp.sh` passed `-wp-fct` with only the two top-level entry
+points, reporting 76/76.  WP then assumed the contracts of the functions they
+call, so the boundary lemma was never checked; checking every function also
+exposed a missing precondition in `epoch_boundary()`, now fixed.)
+
+There are no loops in the CBMC model, so no behavior is excluded by an
+unwind bound.  `--unwinding-assertions` remains enabled to make that fact checked by
 CBMC rather than assumed.
+
+## What the proof rests on
+
+The model is connected to NetHack by three premises, each checked by an audit
+or by review rather than by the provers:
+
+1. **Every form installation goes through `set_uasmon()`, and `set_uasmon()`
+   bumps the counter.**  `audit-form-transitions.mjs` fails if a new write to
+   `u.umonnum` or `gy.youmonst.data`, or a new `set_uasmon()` call, appears
+   without review; `audit-patch.mjs` checks the bump is in `set_uasmon()`.
+2. **Every bump inside the window belongs to an installer that finishes its
+   own form's setup** (a nested `polymon()` or `polyman()`).  The only
+   refresh-only callers of `set_uasmon()`, `set_ulycn()` (eating, quaffing,
+   attacking, praying) and the were-change refresh in `moveloop_core()`,
+   cannot run inside `polymon()` or `break_armor()`.  If one ever could, the
+   guard would still stop the stale work, but nobody would finish it.
+3. **A guard follows every re-entrant boundary.**  The eight boundaries are the
+   model's `POLY_*`/`ARMOR_*` list above; `audit-patch.mjs` applies the PR's
+   patches and checks all eight generation guards exist, and the CBMC
+   guard-necessity controls show each one is needed.
 
 ## What it does not prove
 
@@ -89,8 +127,9 @@ ownership/light/cleanup properties under arbitrary form-installation choices,
 plus negative controls showing that each guard is needed. It is not a blanket
 proof of all NetHack behavior.
 
-## Interactive explainer (draft)
+## Interactive explainer
 
-[`explainer/`](explainer/) walks through this proof interactively and links
-each step to the NetHack source. Its README lists open questions that need
-CBMC and Frama-C runs.
+The [interactive proof explainer](https://davidbau.github.io/nethack-bugreport/bugs/10-polyself-reentrant-form-changes/proof/explainer/) (source in [`explainer/`](explainer/))
+walks through this proof in six parts and links each step to the NetHack
+source. Its in-page model is a transcription of `polyself_model.c`, checked
+against every expected `run-cbmc.sh` outcome by `explainer/test-model.mjs`.

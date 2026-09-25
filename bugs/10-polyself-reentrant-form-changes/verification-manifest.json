@@ -15,7 +15,9 @@
     "alt_ergo": "2.5.4"
   },
   "claims": [
-    {"id":"P1", "property":"arbitrary_aba_generation_guard", "status":"proved", "obligations":"76/76"},
+    {"id":"P1", "property":"arbitrary_aba_generation_guard", "status":"proved", "obligations":"488/488", "scope":"every function in polyself_acsl.c; no property assumed"},
+    {"id":"P1a", "property":"any_number_of_nested_installs", "status":"proved", "function":"generation_boundary_any_installs"},
+    {"id":"P1b", "property":"identity_guard_aba_wp_control", "status":"expected_unproved", "goal":"typed_identity_boundary_no_aba_assert"},
     {"id":"P2", "property":"all_reentrancy_boundaries", "status":"passed"},
     {"id":"P3", "property":"form_installation_callgraph_inventory", "status":"passed", "sites":16, "polymon_callers":21},
     {"id":"P4", "property":"identity_guard_aba_counterexample", "status":"expected_counterexample"},
