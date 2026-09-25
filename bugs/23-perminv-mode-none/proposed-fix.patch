@@ -1,0 +1,14 @@
+diff --git a/src/options.c b/src/options.c
+index 05f4979ef..e700de179 100644
+--- a/src/options.c
++++ b/src/options.c
+@@ -3088,7 +3088,8 @@ optfn_perminv_mode(
+                     }
+ #endif
+                     iflags.perminv_mode = (uchar) i;
+-                    iflags.perm_invent = TRUE;
++                    /* "none" means perm_invent is off */
++                    iflags.perm_invent = (i != InvOptNone);
+                     break;
+                 }
+             }

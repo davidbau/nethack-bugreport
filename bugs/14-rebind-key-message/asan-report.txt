@@ -1,0 +1,43 @@
+=================================================================
+==3850130==ERROR: AddressSanitizer: heap-use-after-free on address 0x60300004c190 at pc 0x0000005a4a17 bp 0x7ffd2b8f1110 sp 0x7ffd2b8f1108
+READ of size 8 at 0x60300004c190 thread T0
+    #0 0x5a4a16 in handler_rebind_keys_add src/cmd.c:2394:37
+    #1 0x5a56e6 in handler_rebind_keys src/cmd.c:2440:13
+    #2 0xb333d7 in optfn_o_bind_keys src/options.c:8340:9
+    #3 0xb26947 in doset src/options.c:8935:29
+    #4 0x590fb9 in doextcmd src/cmd.c:516:18
+    #5 0x59d601 in rhack src/cmd.c:3748:23
+    #6 0x4c9524 in moveloop_core src/allmain.c:536:9
+    #7 0x4cbe8d in moveloop src/allmain.c:595:9
+    #8 0xfbaf46 in main sys/unix/unixmain.c:321:5
+    #9 0x7f7e0b034082 in __libc_start_main glibc/csu/libc-start.c:308:16
+    #10 0x41c81d in _start (nethack+0x41c81d)
+
+0x60300004c190 is located 16 bytes inside of 32-byte region [0x60300004c180,0x60300004c1a0)
+freed by thread T0 here:
+    #0 0x494cdd in free (nethack+0x494cdd)
+    #1 0x5a23d9 in cmdbind_remove src/cmd.c:2171:13
+    #2 0x5a4c4f in bind_key src/cmd.c:2670:9
+    #3 0x5a49d2 in handler_rebind_keys_add src/cmd.c:2393:13
+    #4 0x5a56e6 in handler_rebind_keys src/cmd.c:2440:13
+    #5 0xb333d7 in optfn_o_bind_keys src/options.c:8340:9
+    #6 0xb26947 in doset src/options.c:8935:29
+    #7 0x590fb9 in doextcmd src/cmd.c:516:18
+    #8 0x59d601 in rhack src/cmd.c:3748:23
+    #9 0x4c9524 in moveloop_core src/allmain.c:536:9
+    #10 0x4cbe8d in moveloop src/allmain.c:595:9
+    #11 0xfbaf46 in main sys/unix/unixmain.c:321:5
+    #12 0x7f7e0b034082 in __libc_start_main glibc/csu/libc-start.c:308:16
+
+previously allocated by thread T0 here:
+    #0 0x494f5d in malloc (nethack+0x494f5d)
+    #1 0x4ce27d in alloc src/alloc.c:73:11
+    #2 0x5a1fb2 in cmdbind_add src/cmd.c:2147:36
+    #3 0x5a7f2a in bind_key_fn src/cmd.c:2741:9
+    #4 0x5add1f in reset_commands src/cmd.c:3465:20
+    #5 0xb1b236 in initoptions_init src/options.c:7158:5
+    #6 0xb1ac2f in initoptions src/options.c:7088:10
+    #7 0xfba199 in main sys/unix/unixmain.c:151:5
+    #8 0x7f7e0b034082 in __libc_start_main glibc/csu/libc-start.c:308:16
+
+SUMMARY: AddressSanitizer: heap-use-after-free src/cmd.c:2394:37 in handler_rebind_keys_add

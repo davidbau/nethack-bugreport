@@ -1,0 +1,41 @@
+diff --git a/include/you.h b/include/you.h
+index d788046bf..c43e9497f 100644
+--- a/include/you.h
++++ b/include/you.h
+@@ -502,6 +502,8 @@ struct you {
+     struct skills weapon_skills[P_NUM_SKILLS];
+     boolean twoweap;         /* KMH -- Using two-weapon combat */
+     short mcham;             /* vampire mndx if shapeshifted to bat/cloud */
++    uchar um_ap_type;        /* youmonst.m_ap_type, for save/restore */
++    unsigned umappearance;   /* youmonst.mappearance, for save/restore */
+     short umovement;         /* instead of youmonst.movement */
+     schar uachieved[N_ACH];  /* list of achievements in the order attained */
+     struct monst *umonst;    /* for future conversion of &gy.youmonst to u.umonst */
+diff --git a/src/restore.c b/src/restore.c
+index fab825de3..e6cff9424 100644
+--- a/src/restore.c
++++ b/src/restore.c
+@@ -602,6 +602,8 @@ restgamestate(NHFILE *nhfp)
+     Sfi_int32(nhfp, &svw.wtreserved, "wtreserved");
+     Sfi_you(nhfp, &u, "gamestate-you");
+     gy.youmonst.cham = u.mcham;
++    gy.youmonst.m_ap_type = u.um_ap_type;
++    gy.youmonst.mappearance = u.umappearance;
+ 
+ #ifndef SFCTOOL
+     if (restoring_special && iflags.explore_error_flag) {
+diff --git a/src/save.c b/src/save.c
+index 1d61ee751..b37938951 100644
+--- a/src/save.c
++++ b/src/save.c
+@@ -284,6 +284,10 @@ savegamestate(NHFILE *nhfp)
+                                       urealtime.start_timing);
+     Sfo_long(nhfp, &svw.wreserve, "wreserve");
+     Sfo_int32(nhfp, &svw.wtreserved, "wtreserved");
++    /* youmonst isn't saved; keep hero's disguise (mimic hiding via
++       #monster) with u, the way u.mcham keeps youmonst.cham */
++    u.um_ap_type = gy.youmonst.m_ap_type;
++    u.umappearance = gy.youmonst.mappearance;
+     Sfo_you(nhfp, &u, "gamestate-you");
+     Sfo_char(nhfp, yyyymmddhhmmss(ubirthday), "gamestate-ubirthday", 14);
+     Sfo_long(nhfp, &urealtime.realtime, "gamestate-realtime");

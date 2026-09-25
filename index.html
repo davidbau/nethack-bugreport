@@ -366,6 +366,214 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
             <td>low</td>
             <td>still present<br>upstream</td>
         </tr>
+        <tr>
+            <td class="num">13</td>
+            <td>
+                <div class="bug-title">
+                    After the first revisit, subroom squares can belong to the wrong subroom: a shop stops being a shop (its goods are free) and an ordinary room reports "This shop seems to be untended."
+                </div>
+                <span class="bug-meta">seed 895, naturally generated Dlvl 17 · verified by rebuild</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/13-subroom-roomno-stale-on-restore/session.json#step=183">▶ replay (revisit: shop untended)</a>
+                    <a href="tools/session-viewer/?session=bugs/13-subroom-roomno-stale-on-restore/session-fixed.json#step=183">▶ replay (after fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/13-subroom-roomno-stale-on-restore">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/34928fe03b426cee973c6aaebabbed9112e4f722">fix as a diff</a>
+                </div>
+            </td>
+            <td>low<br>(rare)</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">14</td>
+            <td>
+                <div class="bug-title">
+                    Rebinding a key from the <code>O</code> menu never says so, and unbinding one reads a freed struct
+                </div>
+                <span class="bug-meta">AddressSanitizer report included · verified by rebuild</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/14-rebind-key-message/session.json#step=37">▶ replay (silent rebind)</a>
+                    <a href="tools/session-viewer/?session=bugs/14-rebind-key-message/session.json#step=40">▶ replay (message read from freed memory)</a>
+                    <a href="tools/session-viewer/?session=bugs/14-rebind-key-message/session-fixed.json#step=37">▶ replay (after fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/14-rebind-key-message">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/a2c2cb68cea8cb401758c7ab9bb74c4b783a6fda">fix as a diff</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">16</td>
+            <td>
+                <div class="bug-title">
+                    A shopkeeper at his post never blocks a diagonal move through a broken shop door: <code>block_door()</code>/<code>block_entry()</code> pass a <code>ROOMOFFSET</code> room number to <code>IS_SHOP()</code>
+                </div>
+                <span class="bug-meta">seed 5, Dlvl 2 · both directions · verified by rebuild</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/16-shk-block-door-wrong-room/session.json#step=85">▶ replay (walks out with unpaid goods)</a>
+                    <a href="tools/session-viewer/?session=bugs/16-shk-block-door-wrong-room/session-fixed.json#step=81">▶ replay (after fix: blocked)</a>
+                    <a href="tools/session-viewer/?session=bugs/16-shk-block-door-wrong-room/session-entry.json#step=57">▶ replay (pick-axe entry)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/16-shk-block-door-wrong-room">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/b96713d8427714b7eb2dcd46feb828bfe9d2c8a5">fix as a diff</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">17</td>
+            <td>
+                <div class="bug-title">
+                    <code>alter_cost()</code> can loop forever: it passes the current shopkeeper back to <code>next_shkp()</code>, which starts its scan at its argument
+                </div>
+                <span class="bug-meta">static repro.c shows the stuck loop</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/17-alter-cost-next-shkp-loop/session.json#step=79">▶ replay (normal case, unchanged by the fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/17-alter-cost-next-shkp-loop">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/e5aad0a4e13b71f8e5f350ad3c13403352158fa3">fix as a diff</a>
+                </div>
+            </td>
+            <td>low<br>(latent)</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">18</td>
+            <td>
+                <div class="bug-title">
+                    The water-surrounded vault's "forced unlocked" escape chest can be locked: <code>themerms.lua</code> passes <code>olocked</code>, <code>des.object()</code> reads <code>locked</code>
+                </div>
+                <span class="bug-meta">seed 13 with THEMERM · data-file fix</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/18-water-vault-chest-locked/session.json#step=22">▶ replay (chest locked)</a>
+                    <a href="tools/session-viewer/?session=bugs/18-water-vault-chest-locked/session-fixed.json#step=23">▶ replay (after fix: opens)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/18-water-vault-chest-locked">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/50dd50e46b16113f73e839e5ee5b3ad6fe6f2348">fix as a diff</a>
+                </div>
+            </td>
+            <td>low<br>(rare)</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">19</td>
+            <td>
+                <div class="bug-title">
+                    Farlook writes one byte past a stack buffer when it quotes an engraving of 219 or more characters
+                </div>
+                <span class="bug-meta">AddressSanitizer report included · static repro.c</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/19-farlook-engraving-overflow/session.json#step=264">▶ replay (the farlook that overflows)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/19-farlook-engraving-overflow">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/2ef159dd82bcd1ad2b0c7b8f307126885fa8ebeb">fix as a diff</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">20</td>
+            <td>
+                <div class="bug-title">
+                    A fixed crysknife on the floor takes another 10% chance of turning into a worm tooth every time its level is loaded (level change, save, restore)
+                </div>
+                <span class="bug-meta">seed 28, real stairs, then save/restore · verified by rebuild</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/20-crysknife-reload-reversion/session.json#step=200">▶ replay (three worm teeth)</a>
+                    <a href="tools/session-viewer/?session=bugs/20-crysknife-reload-reversion/session.json#seg=2&amp;step=5">▶ replay (after save and restore)</a>
+                    <a href="tools/session-viewer/?session=bugs/20-crysknife-reload-reversion/session-fixed.json#seg=2&amp;step=5">▶ replay (after fix: five crysknives)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/20-crysknife-reload-reversion">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/64b11e7e251cd2856ea564d5a7b46ca449e8bdba">fix as a diff</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">21</td>
+            <td>
+                <div class="bug-title">
+                    Saving a hero who is hiding as a mimic (<code>#monster</code>) loses the disguise: after the restore the hero is drawn as the mimic and is no longer hiding
+                </div>
+                <span class="bug-meta">save/restore session · fix changes the save format</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/21-mimic-disguise-save/session.json#step=33">▶ replay (disguised before save)</a>
+                    <a href="tools/session-viewer/?session=bugs/21-mimic-disguise-save/session.json#seg=2&amp;step=0">▶ replay (undisguised after restore)</a>
+                    <a href="tools/session-viewer/?session=bugs/21-mimic-disguise-save/session-fixed.json#seg=2&amp;step=0">▶ replay (after fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/21-mimic-disguise-save">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/03dacd04eae6fde6253d209b9f07a03bf74c27a4">fix as a diff</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">22</td>
+            <td>
+                <div class="bug-title">
+                    The engravings list shows the wrong symbol for an object lying on a ~190-200 character engraving: the overflow guard cuts the encoded glyph in half
+                </div>
+                <span class="bug-meta">seed 2, wizard mode · verified by rebuild</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/22-look-engrs-glyph-cut/session.json#step=230">▶ replay (&quot;obscured by S&quot;)</a>
+                    <a href="tools/session-viewer/?session=bugs/22-look-engrs-glyph-cut/session-fixed.json#step=230">▶ replay (after fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/22-look-engrs-glyph-cut">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/1079647d5ab5ba6f8a83353456369fa1d803f620">fix as a diff</a>
+                </div>
+            </td>
+            <td>low<br>(cosmetic)</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">23</td>
+            <td>
+                <div class="bug-title">
+                    <code>OPTIONS=perminv_mode:none</code> turns persistent inventory on, the opposite of what the Guidebook says
+                </div>
+                <span class="bug-meta">needs a TTY_PERM_INVENT build; repro.sh builds one</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/23-perminv-mode-none/session.json#step=0">▶ replay (TTY_PERM_INVENT build)</a>
+                    <a href="tools/session-viewer/?session=bugs/23-perminv-mode-none/session-fixed.json#step=0">▶ replay (after fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/23-perminv-mode-none">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/7f0e07a645a9464ff0a480862b100dadbcad0fd7">fix as a diff</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">24</td>
+            <td>
+                <div class="bug-title">
+                    With <code>statuslines:3</code>, <code>weaponstatus</code>/<code>armorstatus</code> collide with the indented third-row conditions: weapon and armor vanish, stale condition text is left behind ("Blindnd"), and with <code>showvers</code> the conditions are hidden
+                </div>
+                <span class="bug-meta">verified by rebuild</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/24-status-condition-indent/session.json#step=32">▶ replay (&quot;Blindnd&quot;)</a>
+                    <a href="tools/session-viewer/?session=bugs/24-status-condition-indent/session-showvers.json#step=13">▶ replay (showvers: condition hidden)</a>
+                    <a href="tools/session-viewer/?session=bugs/24-status-condition-indent/session-fixed.json#step=32">▶ replay (after fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/24-status-condition-indent">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/7c0a3df29893d13aaf12896355f2612853f66345">fix as a diff</a>
+                </div>
+            </td>
+            <td>low<br>(display)</td>
+            <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">25</td>
+            <td>
+                <div class="bug-title">
+                    Identifying a gem does not reprice it on a shop bill that has a used-up item ahead of it: <code>gem_learned()</code>'s <code>continue</code> skips the <code>++bp</code>
+                </div>
+                <span class="bug-meta">seed 6260, Minetown · verified by rebuild</span>
+                <div class="actions">
+                    <a href="tools/session-viewer/?session=bugs/25-gem-learned-bill-skip/session.json#step=117">▶ replay (still 800 zm)</a>
+                    <a href="tools/session-viewer/?session=bugs/25-gem-learned-bill-skip/session-unread.json#step=114">▶ replay (control: repriced)</a>
+                    <a href="tools/session-viewer/?session=bugs/25-gem-learned-bill-skip/session-fixed.json#step=117">▶ replay (after fix)</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/25-gem-learned-bill-skip">README + patch</a>
+                    <a href="https://github.com/davidbau/NetHack/commit/c7aa8a2cc74bf5190bcf1d9a99a711fdccc4d98f">fix as a diff</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>still present<br>upstream</td>
+        </tr>
     </tbody>
 </table>
 

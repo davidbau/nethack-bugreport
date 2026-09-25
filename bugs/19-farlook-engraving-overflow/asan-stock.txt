@@ -1,0 +1,62 @@
+==PID===============================================================
+==PID==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x7fff49a96b90 at pc 0x00000048060b bp 0x7fff49a96770 sp 0x7fff49a95f18
+WRITE of size 2 at 0x7fff49a96b90 thread T0
+    #0 0x48060a in strcat (nethack+0x48060a)
+    #1 0xb596ba in do_screen_description recorder/src/pager.c:1613:17
+    #2 0x7e056e in auto_describe recorder/src/getpos.c:649:9
+    #3 0x7e3b66 in getpos recorder/src/getpos.c:866:13
+    #4 0xb5ce5c in do_look recorder/src/pager.c:1910:23
+    #5 0xb637e1 in doquickwhatis recorder/src/pager.c:2331:12
+    #6 0x59d601 in rhack recorder/src/cmd.c:3748:23
+    #7 0x4c9524 in moveloop_core recorder/src/allmain.c:536:9
+    #8 0x4cbe8d in moveloop recorder/src/allmain.c:595:9
+    #9 0xfbaf46 in main recorder/src/../sys/unix/unixmain.c:321:5
+    #10 0x7f8c9ba29082 in __libc_start_main /build/glibc-B3wQXB/glibc-2.31/csu/../csu/libc-start.c:308:16
+    #11 0x41c81d in _start (nethack+0x41c81d)
+
+Address 0x7fff49a96b90 is located in stack of thread T0 at offset 1040 in frame
+    #0 0xb55a5f in do_screen_description recorder/src/pager.c:1252
+
+  This frame has 6 object(s):
+    [32, 36) 'cc'
+    [48, 304) 'prefix' (line 1256)
+    [368, 369) 'hit_trap' (line 1259)
+    [384, 432) 'glyphinfo' (line 1264)
+    [464, 720) 'monbuf' (line 1596)
+    [784, 1040) 'temp_buf' (line 1597) <== Memory access at offset 1040 overflows this variable
+HINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork
+      (longjmp and C++ exceptions *are* supported)
+SUMMARY: AddressSanitizer: stack-buffer-overflow (nethack+0x48060a) in strcat
+Shadow bytes around the buggy address:
+  0x10006934ad20: 00 00 00 00 00 00 f2 f2 f2 f2 00 00 00 00 00 00
+  0x10006934ad30: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10006934ad40: 00 00 00 00 00 00 00 00 00 00 f2 f2 f2 f2 f2 f2
+  0x10006934ad50: f2 f2 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10006934ad60: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x10006934ad70: 00 00[f3]f3 f3 f3 f3 f3 f3 f3 f3 f3 00 00 00 00
+  0x10006934ad80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10006934ad90: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10006934ada0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10006934adb0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10006934adc0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+  Shadow gap:              cc
+==PID==ABORTING
