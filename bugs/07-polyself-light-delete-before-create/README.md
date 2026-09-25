@@ -274,6 +274,8 @@ light, which is what the form implies.
 
 ## Verification
 
+The fix is also checked formally, together with bugs 06 and 08: the [interactive proof explainer](https://davidbau.github.io/nethack-bugreport/bugs/10-polyself-reentrant-form-changes/proof/explainer/) draws this bug as a timeline in its [first part](https://davidbau.github.io/nethack-bugreport/bugs/10-polyself-reentrant-form-changes/proof/explainer/#window) and walks through the model checking and proof behind the fix.
+
 Applied to the pinned upstream tree (`16ff59115`) and rebuilt:
 
 | | stock | patched |

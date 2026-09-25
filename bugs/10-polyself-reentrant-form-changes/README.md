@@ -37,7 +37,11 @@ See the [older analysis](README-old.md) for that approach and its history.
 
 ## Verification
 
-The formal analysis is summarized in the [verification report](REPORT.md).
+The formal analysis is summarized in the [verification report](REPORT.md),
+and the [interactive proof explainer](https://davidbau.github.io/nethack-bugreport/bugs/10-polyself-reentrant-form-changes/proof/explainer/) walks through it in six short
+parts: the three bugs as timelines, the model, every path through it, why a
+counter rather than the form number, what the WP proof adds, and what the
+proof rests on.
 Run the complete, pinned CBMC/ACSL proof and source audit with:
 
 ```sh

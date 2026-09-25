@@ -143,16 +143,11 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
 .verdict.stp{border-color:var(--violet);color:var(--text-primary)}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;border:1px solid var(--pink);color:var(--pink-ink);padding:2px 9px;border-radius:999px}
 
-/* WP */
-.wpcode{font-size:13px;line-height:1.7;border:1px solid var(--border);border-radius:10px;background:var(--code-bg);padding:8px 0;overflow-x:auto}
-.wpcode div{white-space:pre;padding:0 12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.wpcode div.on{background:var(--hi-bg);box-shadow:inset 3px 0 0 var(--warm)}
-.wpcode div.acsl{color:var(--green-ink)}
-.formula{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:15px;white-space:pre-wrap;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px;line-height:1.6;min-height:4.4em}
-.side{font-size:13px;color:var(--text-muted);margin-top:6px}
-.stepdots{display:flex;gap:5px}
-.stepdots span{width:10px;height:10px;border-radius:50%;border:1px solid var(--border-strong);cursor:pointer}
-.stepdots span.on{background:var(--warm);border-color:var(--warm)}
+/* premises and sub-headings */
+.prem{margin:0 0 12px;padding-left:22px;max-width:84ch;font-size:15.5px;color:var(--text-secondary)}
+.prem li{margin:6px 0}
+.prem b{color:var(--text-primary)}
+h2.sub{font-size:19px;margin:28px 0 6px}
 .callout{border-left:3px solid var(--orange);padding:6px 12px;background:var(--surface);margin:10px 0;font-size:15px;color:var(--text-secondary);max-width:84ch}
 .callout b{color:var(--text-primary)}
 
@@ -179,8 +174,10 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
   <div class="nav"><a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/10-polyself-reentrant-form-changes">&larr; nethack-bugreport, bug 10</a></div>
   <p class="eyebrow">NetHack 5.0 &middot; polyself.c &middot; formal verification</p>
   <h1>How the polymorph proof works</h1>
-  <p>Bug 10 fixes a family of re-entrancy bugs in <code>polymon()</code> and <code>break_armor()</code>, and then checks the fix with two formal-methods tools that don't appear in ordinary game development: <b>CBMC</b>, a bounded model checker that tries every path through a small C model, and <b>Frama-C/WP</b>, which turns annotated C into logic formulas and proves them. Text audits of the source then tie the model back to NetHack.</p>
-  <p>These nine explainers go through the argument in order. Each has a live figure: the model runs in your browser, and every boundary links to the real NetHack 5.0 source at <a href="https://github.com/NetHack/NetHack/tree/16ff59115315917b93185d026aeefea06db9b0f4"><code>16ff59115</code></a>, with the patch shown as a diff.</p>
+  <p><b>The bug.</b> <code>polymon()</code> installs a new hero form and then spends about 250 lines applying its consequences. Some of those steps can change the form again (a revert when <code>u.mh</code> hits zero, a polymorph trap), and the outer code then carries on for a form that is gone. Bugs 06, 07 and 08 are three results.</p>
+  <p><b>The fix</b> (PR #1681) gives every form installation a new generation number, bumped inside <code>set_uasmon()</code>. <code>polymon()</code> and <code>break_armor()</code> save the number and stop at eight checkpoints if it has changed.</p>
+  <p><b>The argument</b> has two halves. First, a lemma, proved exhaustively by CBMC and for every input by Frama-C/WP on a small C model: <i>the old operation continues past a checkpoint only if nothing was installed meanwhile</i>, even when a callback reinstalls the same form. Negative controls show every checkpoint is needed and that the checks can fail. Second, three premises connect the model to NetHack, and are checked by source audits and review, not by the provers: every form installation goes through <code>set_uasmon()</code>; every bump inside the window belongs to an installer that finishes its own form's setup; a checkpoint follows every re-entrant call.</p>
+  <p>Six short parts follow. Each has a live figure (the model runs in your browser), and every boundary links to the NetHack 5.0 source at <a href="https://github.com/NetHack/NetHack/tree/16ff59115315917b93185d026aeefea06db9b0f4"><code>16ff59115</code></a>, with the patch shown as a diff.</p>
 </header>
 <ol class="qs" id="qs"></ol>
 <footer>
@@ -233,20 +230,20 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
       <tr><td><code>w.light_source</code></td><td>whether an <code>LS_MONSTER</code> light source exists for the hero</td><td>bug 07: must always equal <code>emits_light(form)</code></td></tr>
       <tr><td><code>w.cleanup_seen</code>, <code>w.cleanup_epoch</code></td><td><code>encumber_msg()</code> + <code>retouch_equipment()</code> having run, and for which generation</td><td>bug 06: cleanup at most once per generation</td></tr>
     </table></div>
-    <p>The four callback outcomes at each boundary are: nothing happens; revert to <span class="ga mono">@</span> (<code>rehumanize()</code>); become <span class="gn mono">:</span> (another polymorph); or reinstall <span class="gy mono">y</span> itself (a same-form polymorph, the ABA case). A nested change always runs its own cleanup, as the real <code>polyman()</code>/<code>polymon()</code> do.</p>
+    <p>The four callback outcomes at each boundary are: nothing happens; revert to <span class="ga mono">@</span> (<code>rehumanize()</code>); become <span class="gn mono">:</span> (another polymorph); or reinstall <span class="gy mono">y</span> itself (a same-form polymorph, the ABA case). A nested change always runs its own cleanup, as the real <code>rehumanize()</code> and <code>polymon()</code> do.</p>
   </div></details>
   <details class="more"><summary>Full model source: <code>maybe_nested_change()</code>, <code>guard_stops()</code>, <code>apply_owned_effect()</code></summary><div class="body"><div id="m-helpers"></div></div></details>
   <details class="more"><summary>The model-to-source mapping table from <code>proof/README.md</code></summary><div class="body"><div class="tablewrap"><table class="bt" id="m-map"></table></div></div></details>
   <div class="cap">
     <p>This step is called <b>abstraction</b>. It is where most of the judgment in a proof like this goes. The callbacks (<code>break_armor()</code>, <code>spoteffects()</code>, and the rest) are not modeled at all. Each is replaced by "anything could happen to the form here", which is an <b>over-approximation</b>: the model allows everything the real code can do, and more. If the property holds under every outcome, it holds under whichever outcome NetHack actually produces.</p>
-    <p>The price is that the model says nothing about what those callbacks do to anything else. The link between the model and the source has to be argued separately, which is what the audits in explainer 8 do.</p>
+    <p>The price is that the model says nothing about what those callbacks do to anything else. The link between the model and the source has to be argued separately, which is what part 6 does.</p>
   </div>
   <div class="pager"></div>
 </section>
 
 <!-- 3 -->
 <section class="view" id="v-path" hidden>
-  <div class="nav"><a href="#">&larr; All explainers</a></div>
+  <div class="nav"><a href="#cbmc">&larr; Back to every path</a></div>
   <h1>One path, step by step <span>&middot; running the model by hand</span></h1>
   <p class="quiz"><b>Question:</b> pick an outcome for each boundary. Does the old form ever apply an effect after it has been replaced?</p>
   <div class="row">
@@ -281,7 +278,7 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
 <section class="view" id="v-cbmc" hidden>
   <div class="nav"><a href="#">&larr; All explainers</a></div>
   <h1>Every path at once <span>&middot; what CBMC does</span></h1>
-  <p class="quiz"><b>Question:</b> explainer 3 checks one path at a time. How can you be sure about all of them?</p>
+  <p class="quiz"><b>Question:</b> is there any choice of callback outcomes that makes the old form apply an effect after it has been replaced?</p>
   <div class="row">
     <span class="klab">function</span><div class="seg" id="c-h"><button data-v="polymon">polymon()</button><button data-v="break_armor">break_armor()</button></div>
     <span class="klab">guard</span><div class="seg" id="c-mode"><button data-v="0">none</button><button data-v="1">identity</button><button data-v="2">generation</button></div>
@@ -290,24 +287,16 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
   <div class="fig" id="c-fig"></div>
   <div class="rd" id="c-read"></div>
   <div class="cap">
-    <p><b>The tree.</b> Each level is a boundary, and each node branches four ways, one per outcome of <code>nondet_uint()</code>: <span class="mut">&middot;</span> nothing, <span class="ga mono">@</span> revert, <span class="gn mono">:</span> another form, <span class="gy mono">y</span> the same form again. A leaf is where a path ends: <span class="ok">&#9679; the function completed with every assertion true</span>, <span class="stp">&#9632; a guard returned early</span>, <span class="bad">&#10005; an assertion failed</span>, or <span class="mut">&#9675; the path was excluded by an <code>__CPROVER_assume</code></span>. Click a leaf to open that path in explainer 3. (This page draws a path as ending at its first failure. CBMC would carry on and report each violated property separately.)</p>
+    <p><b>The tree.</b> Each level is a boundary, and each node branches four ways, one per outcome of <code>nondet_uint()</code>: <span class="mut">&middot;</span> nothing, <span class="ga mono">@</span> revert, <span class="gn mono">:</span> another form, <span class="gy mono">y</span> the same form again. A leaf is where a path ends: <span class="ok">&#9679; the function completed with every assertion true</span>, <span class="stp">&#9632; a guard returned early</span>, <span class="bad">&#10005; an assertion failed</span>, or <span class="mut">&#9675; the path was excluded by an <code>__CPROVER_assume</code></span>. Click a leaf to step through that path against the source. (This page draws a path as ending at its first failure. CBMC would carry on and report each violated property separately.)</p>
     <p><b>What CBMC actually does.</b> It does not walk this tree. It translates the whole C program into a single <b>SAT formula</b>, one Boolean variable per bit of every value at every point, with <code>nondet_uint()</code> as unconstrained inputs, <code>__CPROVER_assume(c)</code> as a constraint, and the negation of every <code>__CPROVER_assert</code> as the goal. It then asks a SAT solver: <i>is there any assignment of the inputs that reaches a false assertion?</i></p>
     <ul>
       <li><b>No such assignment</b> (unsatisfiable): the property holds on every path. CBMC exits 0.</li>
       <li><b>An assignment exists</b>: the solver's answer is a concrete counterexample trace, the same kind of path you can step through here. CBMC exits 10.</li>
     </ul>
     <p>It is "bounded" because loops and recursion have to be unrolled to a fixed depth first. This model has no loops, and <code>--unwinding-assertions</code> makes CBMC confirm that no path was cut off, so here the check is exhaustive. The flags <code>--bounds-check --pointer-check --signed-overflow-check</code> and the rest add C safety assertions on top of the model's own.</p>
-    <p>The tree is small because the model is small, and that is deliberate. Everything that made polymorphing hard to test (which traps are where, which artifacts you carry, what the damage rolls are) has become a four-way choice.</p>
   </div>
   <details class="more"><summary>The CBMC harness: <code>verify_polymon_guards()</code> and <code>verify_break_armor_guards()</code></summary><div class="body"><div id="c-harness"></div></div></details>
-  <div class="pager"></div>
-</section>
-
-<!-- 5 -->
-<section class="view" id="v-controls" hidden>
-  <div class="nav"><a href="#">&larr; All explainers</a></div>
-  <h1>Breaking the fix on purpose <span>&middot; negative controls</span></h1>
-  <p class="quiz"><b>Question:</b> a proof that passes might be passing because the check can't see anything. How do you know it can?</p>
+  <h2 class="sub">Breaking the fix on purpose</h2>
   <p class="lede">A proof can pass for the wrong reason: an assumption that rules out every interesting path, or an assertion that can never fail. <code>run-cbmc.sh</code> protects against this by running some checks that are <b>supposed to fail</b>. For each one it breaks the fix in a specific way and requires CBMC to find a counterexample (exit 10). This table runs all 18 checks with the in-page model.</p>
   <div class="row"><span id="n-sum"></span></div>
   <div class="tablewrap"><table class="bt" id="n-table"></table></div>
@@ -338,7 +327,7 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
   <div id="a-src"></div>
   <div class="cap">
     <p><b>Why ABA matters here.</b> A same-form installation is a real event. The nested <code>polymon()</code> ran its own cleanup, including <code>retouch_equipment()</code>, for its own generation. When the outer call continues, it repeats that work, which is bug 06's double blast even though the form number never changed. The identity guard that PR #1681 first proposed (<code>if (u.umonnum != mntmp) return 1;</code>) cannot see this.</p>
-    <p><b>The fix</b> (<code>proof/generation-guard.patch</code>): a <code>static unsigned long uasmon_generation</code> that <code>note_uasmon_install()</code> increments right after every semantic <code>set_uasmon()</code>, in <code>polymon()</code> and <code>polyman()</code>. It is never reset, so a saved value can equal the current one only if nothing was installed in between. Wraparound would break that, so the patch calls <code>panic()</code> if the counter reaches 0 again. The counter is not saved to disk, because a re-entrant call chain cannot span a save and restore.</p>
+    <p><b>The fix</b> (<code>proof/generation-guard.patch</code>, the last commit of PR #1681): a <code>static unsigned long uasmon_generation</code> that <code>note_uasmon_install()</code> increments at the end of <code>set_uasmon()</code>, the function every form installation calls. It is never reset, so a saved value can equal the current one only if nothing was installed in between. Wraparound would break that, so the patch calls <code>panic()</code> if the counter reaches 0 again. The counter is not saved to disk, because a re-entrant call chain cannot span a save and restore.</p>
   </div>
   <div class="pager"></div>
 </section>
@@ -346,36 +335,36 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
 <!-- 7 -->
 <section class="view" id="v-wp" hidden>
   <div class="nav"><a href="#">&larr; All explainers</a></div>
-  <h1>Weakest preconditions <span>&middot; what Frama-C/WP does</span></h1>
-  <p class="quiz"><b>Question:</b> CBMC checked the paths of one small program. Can the boundary argument be proved as a general fact, for any starting generation?</p>
-  <p class="lede">Frama-C reads C annotated with <b>ACSL</b> contracts: <code>requires</code> (what the caller guarantees), <code>ensures</code> (what the function promises), <code>assigns</code> (what it may modify), and inline <code>assert</code>s. Its WP plugin works <b>backwards</b> from each promise, one statement at a time, to the condition that must hold at the start: the <i>weakest precondition</i>. Step through it for one boundary from <code>proof/polyself_acsl.c</code>.</p>
-  <div class="row">
-    <div class="seg" id="wp-mode"><button data-v="gen">generation guard</button><button data-v="id">identity guard</button><button data-v="noaba">identity + no-ABA contract</button></div>
-  </div>
-  <div class="row">
-    <button id="wp-prev" class="sm">&larr; Back</button><button id="wp-next" class="main">Step backward &uarr;</button>
-    <div class="stepdots" id="wp-dots"></div><span class="lg" id="wp-count"></span>
-  </div>
-  <div class="two">
-    <div><div class="panel-h">The annotated function (simplified from <code>generation_boundary_arbitrary_aba</code>)</div><div class="wpcode" id="wp-code"></div>
-      <p class="lg" id="wp-legend"></p></div>
-    <div><div class="panel-h">What must be true just before the highlighted line</div><div class="formula" id="wp-f"></div><div class="side" id="wp-side"></div><div class="rd" id="wp-x" style="margin-top:10px"></div></div>
-  </div>
+  <h1>What WP adds <span>&middot; a proof for every input, not every path</span></h1>
+  <p class="quiz"><b>Question:</b> CBMC checked every path of one small program, starting from generation 0, with one installation per callback. Does the lemma hold in general?</p>
+  <p class="lede">Frama-C/WP reads C annotated with ACSL contracts (<code>requires</code>, <code>ensures</code>, <code>assigns</code>, <code>assert</code>, loop invariants) and proves each function against its own contract for <b>every</b> input its <code>requires</code> allows. So the result does not depend on a starting state, and a loop with an invariant covers any number of iterations. <code>run-wp.sh</code> checks every function in <code>polyself_acsl.c</code> and fails if any property is left merely assumed.</p>
+  <div class="tablewrap"><table class="bt">
+    <tr><th>what WP proves</th><th>where</th></tr>
+    <tr><td>The boundary lemma: after any callback outcome, same-form reinstall included, the owner continues only if nothing was installed.</td><td><code>generation_boundary_arbitrary_aba()</code></td></tr>
+    <tr><td>The same with no limit on installations: a callback may install any number of forms in any order (A&rarr;B&rarr;A chains of any length), and the owner continues <b>if and only if</b> it installed none. A loop invariant carries "after <i>i</i> installs the generation is exactly <i>i</i> past the start".</td><td><code>generation_boundary_any_installs()</code></td></tr>
+    <tr><td>Every installation keeps the form and its light source in agreement (bug 07), and cleanup never runs twice for one generation (bug 06).</td><td><code>install_form()</code>, <code>epoch_boundary()</code>, entry points</td></tr>
+    <tr><td>Runtime safety of the model itself: no overflow of the counter, no out-of-bounds read.</td><td><code>-wp-rte</code></td></tr>
+  </table></div>
+  <div class="rd" style="margin-top:10px"><b>Result:</b> 488 of 488 goals proved (433 by Qed, WP's simplifier; 47 by the Alt-Ergo SMT solver; 8 trivially), and no property left assumed.</div>
   <div class="cap">
-    <p><b>Proof obligations.</b> WP does this for every promise in the file, and each result becomes a <i>goal</i>: an <code>ensures</code> checked against the body, an <code>assert</code>, a callee's <code>requires</code> at each call site, an <code>assigns</code> frame condition, and, with <code>-wp-rte</code>, a runtime-error check such as "<code>++w.form_epoch</code> doesn't overflow". That last one is why the contracts carry bounds like <code>0 &lt;= w.form_epoch &lt; 99</code>. The patched C code enforces the same thing with its <code>panic()</code> on wraparound.</p>
-    <p><b>Discharging them.</b> Each goal goes first to <b>Qed</b>, WP's built-in simplifier, which handles goals like the one above by rewriting and arithmetic. Anything left over goes to <b>Alt-Ergo</b>, an SMT solver. The recorded result is 76 of 76 goals proved.</p>
-    <p><b>How this differs from CBMC.</b> CBMC answered "is there a bad path in <i>this</i> program, starting from generation 0?" WP proves each function against its contract for <i>every</i> input satisfying its <code>requires</code>, and callers rely only on callees' contracts, never their bodies. That modularity makes the result independent of the starting state, and it is also where the gap noted in explainer 9 comes from.</p>
+    <p><b>The negative control.</b> WP cannot produce a counterexample, but it can fail to prove. <code>run-wp.sh</code> rebuilds the identity-guard model with <code>-DIDENTITY_MAX_CHOICE=3</code>, which allows a callback to reinstall the owner's form, and requires that exactly one goal then stays unproved: the identity boundary's <code>assert choice == 0</code>. Everything else still proves, which pins the failure on ABA and nothing else. (CBMC gives the concrete counterexample path; see part 3.)</p>
+    <p><b>Why "every function" matters.</b> WP is modular: a caller relies only on its callees' contracts. An earlier run restricted WP to the two top-level entry points (<code>-wp-fct</code>) and reported 76/76, but that assumed the boundary function's contract, which carries the whole lemma, without checking it. Checking every function also exposed a missing precondition in <code>epoch_boundary()</code>, now fixed.</p>
   </div>
-  <details class="more"><summary>The real ACSL: <code>install_form()</code>, <code>generation_boundary_arbitrary_aba()</code>, <code>verify_polymon_generation_arbitrary_aba()</code></summary><div class="body"><div id="wp-real"></div></div></details>
+  <details class="more"><summary>The ACSL: <code>install_form()</code>, <code>generation_boundary_any_installs()</code>, <code>generation_boundary_arbitrary_aba()</code></summary><div class="body"><div id="wp-real"></div></div></details>
   <div class="pager"></div>
 </section>
 
 <!-- 8 -->
 <section class="view" id="v-audits" hidden>
   <div class="nav"><a href="#">&larr; All explainers</a></div>
-  <h1>Tying the model to NetHack <span>&middot; the source audits</span></h1>
-  <p class="quiz"><b>Question:</b> the proofs are about a model. What connects the model to <code>src/polyself.c</code>?</p>
-  <p class="lede">Nothing formal. The model says "every installation bumps the counter" and "a check follows every boundary". Two Node scripts check that the real source still has the shape the model assumes. They are <b>drift detectors</b>: they list every place that writes the hero's form and fail if the list changes without review.</p>
+  <h1>What the proof rests on <span>&middot; three premises and the audits</span></h1>
+  <p class="quiz"><b>Question:</b> the provers checked a model. What makes the model a faithful picture of <code>src/polyself.c</code>?</p>
+  <p class="lede">Three premises, checked by source audits and review rather than by the provers:</p>
+  <ol class="prem">
+    <li><b>Every form installation goes through <code>set_uasmon()</code>, which bumps the counter.</b> <code>audit-form-transitions.mjs</code> lists every write to <code>u.umonnum</code> or <code>gy.youmonst.data</code> and every <code>set_uasmon()</code> call (the table below) and fails if one appears without review. <code>audit-patch.mjs</code> applies the PR's patches and checks the bump is in <code>set_uasmon()</code>.</li>
+    <li><b>Every bump inside the window belongs to an installer that finishes its own form's setup</b>: a nested <code>polymon()</code> or <code>rehumanize()</code>. The other <code>set_uasmon()</code> callers are refreshes (<code>set_ulycn()</code> when you eat, quaff, fight or pray; the were-change refresh between turns), game start, or restore, and none can run inside <code>polymon()</code> or <code>break_armor()</code>. This one is checked by review only.</li>
+    <li><b>A checkpoint follows every re-entrant call.</b> The model's eight boundaries come from reading the source; <code>audit-patch.mjs</code> checks all eight generation guards are in the patched code with no identity guard left, and part 3's negative controls show each is needed.</li>
+  </ol>
   <div class="panel-h">audit-form-transitions.mjs: every direct form write, and why it's accepted</div>
   <div class="tablewrap"><table class="bt" id="au-table"></table></div>
   <div class="rd" id="au-read" style="margin-top:8px"></div>
@@ -383,31 +372,12 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
   <div class="cap">
     <p><b>audit-form-transitions.mjs</b> strips comments and string literals from every <code>.c</code>/<code>.h</code> file, matches <code>u.umonnum =</code>, <code>gy.youmonst.data =</code> and <code>set_uasmon(</code>, and compares the result, as a multiset of normalized lines, to the 16 reviewed entries above. It includes a self-test showing that commented-out writes and <code>==</code> comparisons are not counted.</p>
     <p><b>audit-callgraph.mjs</b> repeats the form-write scan with the reviewed line numbers hard-coded, checks which files call <code>set_uasmon()</code>, and counts direct <code>polymon(</code> call sites. The manifest records 21. It requires that the list include <code>trap.c</code> (the ABA route) and <code>polyself.c</code> (recursion). It does not review the 21 callers one by one.</p>
-    <p>The last column matters most. The generation argument needs "every <i>semantic</i> form change bumps the counter", but the patch bumps it in only two places, <code>polymon()</code> and <code>polyman()</code>. Every other row is accepted because a reviewer judged it not to be a new form installed during the re-entrant window. That judgment is where the audit carries weight that the proofs can't.</p>
+    <p>The last column is premise 2. The audits are drift detectors: they cannot decide what a new site means, only that it is new, and <code>audit-callgraph.mjs</code> pins line numbers, so any upstream edit to those files makes it fail until someone re-reviews.</p>
+    <p><b>Out of scope by design.</b> What the callbacks do to state other than the form, its light and its cleanup; function pointers; and the rest of NetHack. The claim is modular: the re-entrancy protocol is right, and the source matches it at the reviewed sites.</p>
   </div>
   <div class="pager"></div>
 </section>
 
-<!-- 9 -->
-<section class="view" id="v-scope" hidden>
-  <div class="nav"><a href="#">&larr; All explainers</a></div>
-  <h1>What is proved, and what isn't</h1>
-  <p class="quiz"><b>Question:</b> after all this, how much should you trust the fix?</p>
-  <div class="cap" style="border-top:none;margin-top:0;padding-top:0">
-    <p><b>Solid.</b> Within the model, every choice at every boundary has been checked, with the <b>generation</b> guard: no stale effect, no repeated cleanup, and the form always agreeing with its light source. The negative controls show each of the eight guards is needed, and that the checks can fail. The ABA result is concrete: identity guards are unsound unless same-form reentry is ruled out, and the trap route shows NetHack does not rule it out.</p>
-    <p><b>Nearly true by construction.</b> Once the generation guard is in place, "if we continue, the generation hasn't changed" follows almost directly from the guard's own test. The real content is in two premises the proof doesn't establish: that <i>every</i> installation bumps the counter, and that a guard follows <i>every</i> boundary. The first rests on the audit's reviewed classification (explainer 8). The second rests on the model's list of boundaries matching the source, which is checked by reading and, for the identity version, by <code>audit-patch.mjs</code>.</p>
-    <p><b>Things I noticed while building this page</b> (worth checking; none of them is a bug in the fix itself):</p>
-    <ul>
-      <li><b>The 76/76 WP run proves less than the report implies.</b> <code>run-wp.sh</code> passes <code>-wp-fct verify_polymon_generation_arbitrary_aba,verify_break_armor_generation_arbitrary_aba</code>. As I understand <code>-wp-fct</code>, WP then generates goals only for those two functions. Callees such as <code>generation_boundary_arbitrary_aba()</code>, whose contract and <code>assert choice == 0</code> are the actual boundary argument, and <code>install_form()</code> are used as assumptions but never checked against their bodies. The earlier 344-goal run (<code>e90f8aa</code>) had no <code>-wp-fct</code>, but it predates <code>generation_boundary_arbitrary_aba</code>. The fix is to add the callees to <code>-wp-fct</code> or to drop the flag.</li>
-      <li><b><code>audit-patch.mjs</code> is not run by <code>verify.sh</code></b>, and it checks the identity-guard version (<code>proposed-fix.patch</code>: five <code>u.umonnum != mntmp</code> and three <code>gy.youmonst.data != uptr</code>). No script applies or checks the shape of <code>generation-guard.patch</code>.</li>
-      <li><b>One installation per boundary.</b> Both models allow at most one nested installation per boundary. A chain like <span class="gy">y</span>&rarr;<span class="ga">@</span>&rarr;<span class="gy">y</span> inside one callback is covered by the counter's monotonicity (k installs add k), but that step is argued, not modeled.</li>
-      <li><b>The cleanup-once property is checked only by CBMC.</b> The WP entry points in <code>run-wp.sh</code> prove light consistency but never call <code>cleanup_current_form()</code>.</li>
-      <li><b><code>audit-callgraph.mjs</code> hard-codes line numbers</b>, so any upstream edit to those files trips it even when no form write changed. That errs on the safe side, but it will need re-pinning.</li>
-    </ul>
-    <p><b>Out of scope by design</b> (as <code>REPORT.md</code> says): what the callbacks do to state other than the form, light and cleanup; function pointers; and everything else NetHack does. The claim is a modular one: the re-entrancy protocol is right, and the source matches it at the reviewed sites.</p>
-  </div>
-  <div class="pager"></div>
-</section>
 </div>
 
 <script>
@@ -431,22 +401,21 @@ const tagLabel = t => ({install:'form', cleanup:'clean', aba:'ABA', removed:'old
 
 /* ------------------------------------------------------------ Explainer list */
 const VIEWS = [
-  {id:'window', tag:'The bugs', title:'The window: a form change that isn’t atomic', what:'Three recorded bugs drawn as timelines of polymon() and break_armor(): a light source deleted before it exists, cleanup that runs twice, and a human stripped of boots by a newt’s rules. Switch between NetHack 5.0 and the fix, and click any step to see its source.'},
-  {id:'model', tag:'Abstraction', title:'From NetHack to a model', what:'The real polymon() side by side with polyself_model.c. Each re-entrant call becomes a four-way choice, and the world shrinks to five variables. Click a boundary on either side to find its counterpart.'},
-  {id:'path', tag:'Running the model', title:'One path, step by step', what:'Choose what each callback does and step through the model, with the world state and the matching NetHack line updating as you go. Compare no guard, the identity guard, and the generation guard on the same path.'},
-  {id:'cbmc', tag:'CBMC', title:'Every path at once', what:'The complete tree of callback outcomes, colored by result for each guard. Then what CBMC does in place of walking this tree: one SAT formula, and exit codes 0 and 10.'},
-  {id:'controls', tag:'Negative controls', title:'Breaking the fix on purpose', what:'All 18 checks from run-cbmc.sh, run live. Remove any one of the eight guards and the checker must find a counterexample, which shows the proof isn’t passing for lack of anything to find.'},
-  {id:'aba', tag:'ABA', title:'A→B→A: why a counter, not the form number', what:'Build a history of nested installations and watch the identity guard miss a same-form reinstall that the generation counter catches. Includes the real route through NetHack: invoked levitation, float_down(), polymorph trap.'},
-  {id:'wp', tag:'Frama-C/WP', title:'Weakest preconditions', what:'Step backward through an ACSL-annotated boundary, rewriting the postcondition line by line until it becomes a formula a solver can decide. The generation version proves; the identity version leaves an unprovable goal whose counterexample is ABA.'},
-  {id:'audits', tag:'Source audits', title:'Tying the model to NetHack', what:'The 16 reviewed form-write sites, each linked to the pinned source, and what the two audit scripts do and do not check.'},
-  {id:'scope', tag:'Scope', title:'What is proved, and what isn’t', what:'What the proof does and doesn’t establish, plus five things I noticed while building this, including a -wp-fct flag that narrows what the 76/76 WP result covers.'},
+  {id:'window', tag:'The bugs', title:'The window: a form change that isn’t atomic', what:'Three recorded bugs as timelines of polymon() and break_armor(): a light source deleted before it exists, cleanup that runs twice, and a human stripped of boots by a newt’s rules. Switch between NetHack 5.0 and the fix; click a step for its source.'},
+  {id:'model', tag:'Abstraction', title:'From NetHack to a model', what:'The real polymon() beside polyself_model.c. Each re-entrant call becomes a four-way choice, and the world shrinks to five variables.'},
+  {id:'cbmc', tag:'CBMC', title:'Every path, and breaking the fix on purpose', what:'The full tree of callback outcomes for each guard, then all 18 checks from run-cbmc.sh, including the controls that must fail: remove any one guard and CBMC finds a counterexample.'},
+  {id:'aba', tag:'ABA', title:'A→B→A: why a counter, not the form number', what:'Build a history of nested installations and watch the identity guard miss a same-form reinstall that the counter catches, with the real route through NetHack.'},
+  {id:'wp', tag:'Frama-C/WP', title:'What WP adds', what:'The lemma for every input and any number of nested installations, 488/488 goals with nothing assumed, and a negative control for the identity guard.'},
+  {id:'audits', tag:'Premises', title:'What the proof rests on', what:'The three premises that tie the model to NetHack, the 16 reviewed form-write sites, and what is out of scope.'},
+  {id:'path', sub:true, tag:'CBMC', title:'One path, step by step'},
 ];
-$('#qs').innerHTML = VIEWS.map(v => `<li><div class="qtag">${v.tag}</div><h2><a href="#${v.id}">${esc(v.title)}</a></h2><p class="what">${esc(v.what)}</p><a class="go" href="#${v.id}">Open the explainer &rarr;</a></li>`).join('');
-VIEWS.forEach((v, i) => {
+const MAIN = VIEWS.filter(v => !v.sub);
+$('#qs').innerHTML = MAIN.map(v => `<li><div class="qtag">${v.tag}</div><h2><a href="#${v.id}">${esc(v.title)}</a></h2><p class="what">${esc(v.what)}</p><a class="go" href="#${v.id}">Open the explainer &rarr;</a></li>`).join('');
+MAIN.forEach((v, i) => {
   const p = $(`#v-${v.id} .pager`);
-  const prev = VIEWS[i-1], next = VIEWS[i+1];
+  const prev = MAIN[i-1], next = MAIN[i+1];
   p.innerHTML = `<span>${prev ? `<a href="#${prev.id}">&larr; ${i}. ${esc(prev.title)}</a>` : '<a href="#">&larr; All explainers</a>'}</span><span>${next ? `<a href="#${next.id}">${i+2}. ${esc(next.title)} &rarr;</a>` : '<a href="#">All explainers &rarr;</a>'}</span>`;
-  const h = $(`#v-${v.id} h1`); h.insertAdjacentHTML('beforebegin', `<p class="eyebrow" style="margin:0 0 4px">${i+1} of 9 &middot; ${esc(v.tag)}</p>`);
+  const h = $(`#v-${v.id} h1`); h.insertAdjacentHTML('beforebegin', `<p class="eyebrow" style="margin:0 0 4px">${i+1} of ${MAIN.length} &middot; ${esc(v.tag)}</p>`);
 });
 const INIT = {};
 function route() {
@@ -931,6 +900,7 @@ INIT.cbmc = () => {
   $('#c-noaba').onchange = e => { CB.noaba = e.target.checked; drawTree(); };
   ModelView($('#c-harness'), { tall: true }).set(['verify_polymon_guards', 'verify_break_armor_guards', 'maybe_nested_change'].map(f => extractFn(MSRC.cbmc, f)).join('\n\n'));
   drawTree();
+  INIT.controls(); INIT.controls = null;
 };
 
 /* ------------------------------------------------------------ 5. Negative controls */
@@ -994,55 +964,8 @@ INIT.aba = () => {
 };
 
 /* ------------------------------------------------------------ 7. WP */
-const WPC = {
-  gen: { legend: 'E = w.form_epoch here, E₀ = its value on entry, O = owner_epoch, c = choice.',
-    code: ['/*@ requires owner_epoch == w.form_epoch;', '    requires 0 <= choice <= 3;', '    ensures \\result == 0 ==> w.form_epoch == owner_epoch;', '    ensures \\result == 1 ==> w.form_epoch != owner_epoch; */', 'int boundary(int choice, int owner_epoch)', '{', '    if (choice == 1)      install_form(FORM_HUMAN);', '    else if (choice == 2) install_form(FORM_OTHER);', '    else if (choice == 3) install_form(FORM_TARGET);', '    if (w.form_epoch != owner_epoch)', '        return 1;', '    //@ assert choice == 0;', '    return 0;', '}'],
-    steps: [
-      { hl: [2, 3], f: '(result = 0 ⇒ E = O)\n∧ (result = 1 ⇒ E ≠ O)', x: 'WP works <b>backwards</b>. Start at the end with the postcondition, the promise to the caller. At each line going up, ask: what must be true <i>before</i> this line for the promise to hold after it?' },
-      { hl: [12], f: 'E = O', x: '<code>return 0</code> sets result to 0. Substitute: the first clause becomes E = O, and the second (0 = 1 ⇒ …) is vacuously true.' },
-      { hl: [11], f: 'c = 0  ∧  E = O', x: 'An <code>assert</code> is a goal to prove at this point, and afterwards a fact. WP adds c = 0. This is the real claim: <b>if the guard lets us continue, no nested installation happened.</b>' },
-      { hl: [10], f: 'E ≠ O', x: 'On the other branch, <code>return 1</code> sets result to 1, and substituting gives E ≠ O.' },
-      { hl: [9], f: '(E ≠ O ⇒ E ≠ O) ∧ (E = O ⇒ c = 0 ∧ E = O)\n\n≡  E = O ⇒ c = 0', x: 'An <code>if</code> joins its two branches: when the test is true the "then" requirement must hold, and when it is false the "else" requirement must. The first half is trivially true. What remains says: if the generation is unchanged, the callback must have done nothing.' },
-      { hl: [6, 7, 8], f: '  c = 0     ⇒ (E₀ = O     ⇒ c = 0)\n∧ c ∈ {1,2,3} ⇒ (E₀ + 1 = O ⇒ c = 0)', side: 'side goals at each call: install_form requires valid_form(next), valid_form(w.form), 0 ≤ E₀ < 100, light_consistent', x: 'WP doesn’t look inside <code>install_form()</code>. It uses its contract, which promises <code>w.form_epoch == \\old(w.form_epoch) + 1</code>. So on the three install branches E becomes E₀ + 1. Each call also creates side goals: the callee’s <code>requires</code> must hold there.' },
-      { hl: [0, 1], f: 'O = E₀ ∧ 0 ≤ c ≤ 3  ⇒\n    (c = 0 ⇒ (E₀ = O ⇒ c = 0))\n  ∧ (c ≠ 0 ⇒ (E₀ + 1 = O ⇒ c = 0))', ok: true, v: '<b class="ok">Valid for all integers.</b>', x: 'Finally, the preconditions become hypotheses. With O = E₀, the first line is trivially true, and E₀ + 1 = E₀ is false, so the second implication holds for every c. That is the whole argument: <b>a counter that only increases can never equal its old value again.</b> A prover closes this by arithmetic, with no enumeration of cases or starting values.' },
-    ] },
-  id: { legend: 'F = w.form here, A = owner_form (y), E = w.form_epoch, E₀ = its value on entry, c = choice.',
-    code: ['/*@ requires w.form == owner_form;', '    requires 0 <= choice <= 3;', '    ensures \\result == 0 ==> w.form_epoch == \\old(w.form_epoch); */', 'int boundary(int choice, int owner_form)', '{', '    if (choice == 1)      install_form(FORM_HUMAN);', '    else if (choice == 2) install_form(FORM_OTHER);', '    else if (choice == 3) install_form(FORM_TARGET);', '    if (w.form != owner_form)', '        return 1;', '    //@ assert choice == 0;', '    return 0;', '}'],
-    steps: [
-      { hl: [2], f: 'result = 0 ⇒ E = E₀', x: 'The same promise, stated against the generation on entry: if the function says "continue", no new form was installed. The generation still exists as a <b>ghost</b> variable for stating the property; only the guard ignores it.' },
-      { hl: [11], f: 'E = E₀', x: 'Substitute result = 0.' },
-      { hl: [10], f: 'c = 0  ∧  E = E₀', x: 'The assertion adds c = 0.' },
-      { hl: [9], f: 'true', x: 'This version promises nothing when it returns 1, so that branch needs nothing.' },
-      { hl: [8], f: 'F = A  ⇒  c = 0 ∧ E = E₀', x: 'This guard tests the <b>form</b>, not the generation. The requirement becomes: if the form number looks unchanged, nothing must have happened.' },
-      { hl: [5, 6, 7], f: 'c = 0:  F₀ = A ⇒ 0 = 0 ∧ E₀ = E₀        ✓\nc = 1:  @ = A  ⇒ …   (@ ≠ y, vacuous)   ✓\nc = 2:  : = A  ⇒ …   (: ≠ y, vacuous)   ✓\nc = 3:  y = A  ⇒ 3 = 0 ∧ E₀+1 = E₀      ✕', x: '<code>install_form(X)</code> promises F = X and E = E₀ + 1. Split by case. Reverting to human or becoming a newt changes the form, so the guard returns and nothing is required. <b>Reinstalling the same form</b> leaves F = A, so the guard continues, and the goal asks for 3 = 0.' },
-      { hl: [0, 1], f: 'F₀ = A ∧ 0 ≤ c ≤ 3  ⇒  (c = 3 ⇒ false)  ∧ …', ok: false, v: '<b class="bad">Not provable.</b> c = 3 satisfies the precondition and falsifies the goal.', x: 'The solver can’t prove a false formula, so WP reports this goal as unknown or timed out and the run fails. The failing case is <b>ABA</b>: the same form, installed again.' },
-    ] },
-};
-WPC.noaba = JSON.parse(JSON.stringify(WPC.id));
-WPC.noaba.code[1] = '    requires 0 <= choice <= 2;   /* no-ABA contract */';
-WPC.noaba.steps[5].f = WPC.id.steps[5].f.replace(/c = 3:.*$/, 'c = 3:  excluded by requires 0 <= choice <= 2');
-WPC.noaba.steps[5].x = 'The same case split, but the precondition no longer allows c = 3, so the bad case never arises.';
-WPC.noaba.steps[6] = { hl: [0, 1], f: 'F₀ = A ∧ 0 ≤ c ≤ 2  ⇒  …', ok: true, v: '<b class="ok">Valid</b>, but only under the contract.', x: 'This is how the identity-guard version was proved first (344/344 goals in commit <code>e90f8aa</code>): by <b>assuming</b> callbacks never reinstall the same form. The source audit then found a route where NetHack does exactly that, the polymorph trap in explainer 6, so the assumption is false for the real game and the identity guards were replaced.' };
-const WPS = { mode: 'gen', step: 0 };
-function drawWp() {
-  const P = WPC[WPS.mode], st = P.steps[WPS.step];
-  $('#wp-code').innerHTML = P.code.map((l, i) => `<div class="${st.hl.includes(i) ? 'on' : ''}${/^\s*(\/\*@|\/\/@|requires|ensures)/.test(l) ? ' acsl' : ''}">${esc(l) || ' '}</div>`).join('');
-  $('#wp-legend').textContent = P.legend;
-  $('#wp-f').innerHTML = esc(st.f) + (st.v ? `\n\n${st.v}` : '');
-  $('#wp-f').style.borderColor = st.ok === true ? 'var(--green)' : st.ok === false ? 'var(--red)' : '';
-  $('#wp-side').textContent = st.side || '';
-  $('#wp-x').innerHTML = st.x;
-  $('#wp-dots').innerHTML = P.steps.map((_, i) => `<span class="${i <= WPS.step ? 'on' : ''}" data-s="${i}" title="step ${i + 1}"></span>`).join('');
-  $('#wp-count').textContent = `step ${WPS.step + 1} of ${P.steps.length}`;
-  $('#wp-prev').disabled = WPS.step === 0; $('#wp-next').disabled = WPS.step === P.steps.length - 1;
-}
 INIT.wp = () => {
-  segInit($('#wp-mode'), 'gen', v => { WPS.mode = v; drawWp(); });
-  $('#wp-prev').onclick = () => { WPS.step = Math.max(0, WPS.step - 1); drawWp(); };
-  $('#wp-next').onclick = () => { WPS.step = Math.min(WPC[WPS.mode].steps.length - 1, WPS.step + 1); drawWp(); };
-  $('#wp-dots').addEventListener('click', e => { const d = e.target.dataset.s; if (d != null) { WPS.step = +d; drawWp(); } });
-  ModelView($('#wp-real'), { tall: true }).set(['install_form', 'generation_boundary_arbitrary_aba', 'verify_polymon_generation_arbitrary_aba'].map(f => extractFn(MSRC.acsl, f)).join('\n\n'));
-  drawWp();
+  ModelView($('#wp-real'), { tall: true }).set(['install_form', 'generation_boundary_any_installs', 'generation_boundary_arbitrary_aba'].map(f => extractFn(MSRC.acsl, f)).join('\n\n'));
 };
 
 /* ------------------------------------------------------------ 8. Audits */
@@ -1052,23 +975,23 @@ const SITES = [
   ['src/invent.c', 5363, 'youmonst.data =', 'temporary display substitution, not a gameplay form transition', 'no: display only'],
   ['src/invent.c', 5374, 'youmonst.data =', 'restore after temporary display substitution', 'no: display only'],
   ['src/polyself.c', 38, 'set_uasmon', 'definition of the form/intrinsic installer', 'n/a'],
-  ['src/polyself.c', 210, 'umonnum =', 'polyman installs the base form', 'yes: note_uasmon_install()'],
-  ['src/polyself.c', 213, 'set_uasmon', 'polyman commits the base form', 'yes: note_uasmon_install()', 'light', 'install'],
+  ['src/polyself.c', 210, 'umonnum =', 'polyman installs the base form', 'yes: rehumanize() → polyman()'],
+  ['src/polyself.c', 213, 'set_uasmon', 'polyman commits the base form', 'yes: rehumanize() → polyman()', 'light', 'install'],
   ['src/polyself.c', 293, 'umonnum =', 'change_sex normal-form refresh', 'no: reviewed'],
   ['src/polyself.c', 299, 'umonnum =', 'disabled succubus/incubus form switch site retained in source', 'no: disabled code'],
   ['src/polyself.c', 301, 'set_uasmon', 'change_sex commits or refreshes form data', 'no: reviewed'],
-  ['src/polyself.c', 814, 'umonnum =', 'polymon installs its target form number', 'yes: note_uasmon_install()', 'polymon', 'install'],
-  ['src/polyself.c', 815, 'set_uasmon', 'polymon commits its target form', 'yes: note_uasmon_install()', 'polymon', 'install'],
+  ['src/polyself.c', 814, 'umonnum =', 'polymon installs its target form number', 'yes: nested polymon()', 'polymon', 'install'],
+  ['src/polyself.c', 815, 'set_uasmon', 'polymon commits its target form', 'yes: nested polymon()', 'polymon', 'install'],
   ['src/restore.c', 627, 'set_uasmon', 'restore rebuilds derived hero-monster state', 'no: outside any call chain'],
   ['src/u_init.c', 991, 'umonnum =', 'initial hero form', 'no: game start'],
   ['src/u_init.c', 993, 'set_uasmon', 'initial derived hero-monster state', 'no: game start'],
   ['src/were.c', 236, 'set_uasmon', 'lycanthropy intrinsic refresh without a form-number change', 'no: refresh'],
 ];
 INIT.audits = () => {
-  $('#au-table').innerHTML = '<tr><th>site</th><th>kind</th><th>reviewed purpose (from the audit)</th><th>bumps the generation?</th></tr>' + SITES.map((s, i) => `<tr data-i="${i}"><td class="mono" style="white-space:nowrap"><a href="${ghURL(s[0], s[1])}" target="_blank" rel="noopener">${s[0]}:${s[1]}</a>${s[5] ? ` <button class="sm" data-show="${i}">show</button>` : ''}</td><td><code>${esc(s[2])}</code></td><td>${esc(s[3])}</td><td class="${s[4].startsWith('yes') ? 'ok' : s[4] === 'n/a' ? 'mut' : ''}">${esc(s[4])}</td></tr>`).join('');
+  $('#au-table').innerHTML = '<tr><th>site</th><th>kind</th><th>reviewed purpose (from the audit)</th><th>premise 2: can it run inside the window?</th></tr>' + SITES.map((s, i) => `<tr data-i="${i}"><td class="mono" style="white-space:nowrap"><a href="${ghURL(s[0], s[1])}" target="_blank" rel="noopener">${s[0]}:${s[1]}</a>${s[5] ? ` <button class="sm" data-show="${i}">show</button>` : ''}</td><td><code>${esc(s[2])}</code></td><td>${esc(s[3])}</td><td class="${s[4].startsWith('yes') ? 'ok' : s[4] === 'n/a' ? 'mut' : ''}">${esc(s[4])}</td></tr>`).join('');
   const box = $('#au-src');
   let sv = null;
-  $('#au-read').innerHTML = `16 sites, two of which bump the counter. Rows with <b>show</b> open the annotated source here, and every file:line opens the pinned upstream file on GitHub.`;
+  $('#au-read').innerHTML = `16 sites. Every <code>set_uasmon()</code> call bumps the counter; only the installations in <code>polymon()</code> and <code>rehumanize()</code> can run inside the window. Rows with <b>show</b> open the annotated source here, and every file:line opens the pinned upstream file on GitHub.`;
   $('#au-table').addEventListener('click', e => {
     const b = e.target.closest('[data-show]'); if (!b) return;
     const s = SITES[+b.dataset.show];

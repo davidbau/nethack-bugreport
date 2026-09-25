@@ -201,6 +201,8 @@ hero's *current* form cannot wear.
 
 ## Verification
 
+The fix is also checked formally, together with bugs 06 and 07: the [interactive proof explainer](https://davidbau.github.io/nethack-bugreport/bugs/10-polyself-reentrant-form-changes/proof/explainer/) draws this bug as a timeline in its [first part](https://davidbau.github.io/nethack-bugreport/bugs/10-polyself-reentrant-form-changes/proof/explainer/#window) and walks through the model checking and proof behind the fix.
+
 Applied to the pinned upstream tree (`16ff59115`) and rebuilt. Same keystream:
 
 | | stock | patched |

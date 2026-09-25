@@ -67,9 +67,9 @@ files={}
 files['polymon']=excerpt('polyself.c',735,1075,[
  {'match':'polymon(int mntmp)','tag':'entry','note':'polymon(mntmp) installs form mntmp and then applies its consequences. In the model this is verify_polymon_guards(), with mntmp as FORM_TARGET (y).'},
  {'match':'Strcpy(buf, (u.umonnum != mntmp) ? "" : "new ");','tag':'aba','note':'Polymorphing into the form you already have is allowed ("You feel like a new yellow light!"). u.umonnum ends up unchanged, which is the A→A case an identity guard cannot see.'},
- {'match':'u.umonnum = mntmp;','tag':'install','note':'The form installation. The patch records the old light state first, then updates the light immediately after set_uasmon(). The generation patch also bumps the counter and saves it as my_generation. Model: install_form(FORM_TARGET).',
+ {'match':'u.umonnum = mntmp;','tag':'install','note':'The form installation. The patch records the old light state first, then updates the light immediately after set_uasmon(). set_uasmon() itself bumps the generation counter (see its excerpt under the light-ownership bug), and polymon() saves the value it just installed as my_generation. Model: install_form(FORM_TARGET).',
    'before':['    old_light = emits_light(gy.youmonst.data);'],
-   'after_line':'set_uasmon();','after':['    uasmon_light(old_light);','    note_uasmon_install();','    my_generation = uasmon_generation;']},
+   'after_line':'set_uasmon();','after':['    uasmon_light(old_light);','    my_generation = uasmon_generation;']},
  {'match':'drop_weapon(1);','tag':'B0','note':'Boundary B0, POLY_BREAK_ARMOR. break_armor() and drop_weapon() can drop an artifact whose invoked levitation is holding you up. You fall into water or lava, the damage reverts you with rehumanize(), or a polymorph trap re-polymorphs you.','after':GUARD(' 1')},
  {'match':'expels(u.ustuck, u.ustuck->data, expels_mesg);','tag':'B1','note':'Boundary B1, POLY_EXPELS. expels() ends in spoteffects(), which can land you on a trap or in lava.'},
  {'match':'/* FIXME? if expels() triggered rehumanize then we should','tag':'fixme','note':'The DevTeam already knew about this boundary. The patch replaces this FIXME with the guard below.','remove':2,'after_n':1,'after':GUARD(' 1')},
@@ -77,7 +77,7 @@ files['polymon']=excerpt('polyself.c',735,1075,[
  {'match':'find_ac();','nth':2,'tag':'B2g','note':'Guard for B2, placed after the whole steed block.','before':GUARD(' 1')},
  {'match':'spoteffects(TRUE);','tag':'B3','note':'Boundary B3, POLY_SPOTEFFECTS. Landing in water or lava while polymorphed damages u.mh; at zero you are reverted.'},
  {'match':'/* FIXME? if spoteffects() triggered rehumanize then we should','tag':'fixme','note':'The second DevTeam FIXME, replaced by the guard.','remove':2,'after_n':1,'after':GUARD(' 1')},
- {'match':'encumber_msg();','tag':'cleanup','note':'End-of-form-change cleanup. rehumanize() → polyman() also runs encumber_msg() and retouch_equipment(). When a nested revert has already done this, running it again here is bug 06. Model: cleanup_current_form(), which asserts it runs at most once per generation.'},
+ {'match':'encumber_msg();','tag':'cleanup','note':'End-of-form-change cleanup. rehumanize() runs its own encumber_msg() and retouch_equipment() (polyself.c:1410-1415) after polyman() reinstalls the base form. When a nested revert has already done this, running it again here is bug 06. Model: cleanup_current_form(), which asserts it runs at most once per generation.'},
  {'match':'retouch_equipment(2);','tag':'B4','note':'Boundary B4, POLY_RETOUCH. A cross-aligned artifact blasts you, and the damage can revert a frail form. Stone-to-flesh can also polymon() recursively.'},
  {'match':'if (!uarmg)','tag':'B4g','note':'Guard for B4. selftouch() below is left unguarded; the model checks only that the light stays consistent after it.','before':GUARD(' 1')},
  {'match':'return 1;','nth':1,'tag':'end','note':'Normal completion.'},
@@ -93,6 +93,9 @@ files['break_armor']=excerpt('polyself.c',1157,1300,[
 ])
 L=lines('polyself.c')
 files['light']={'parts':[
+ excerpt('polyself.c',118,127,[
+  {'match':'/* we can reset this now, having just done what it is meant to trigger */','tag':'install','note':'The end of set_uasmon(). The generation patch bumps the counter here, inside the one function every form installation calls, so each installation (a same-form one included) gets a new generation. note_uasmon_install() panics rather than let the counter wrap back to an old value.','before':['    note_uasmon_install();']},
+ ]),
  excerpt('polyself.c',688,731,[
   {'match':'(void) polymon(mntmp);','nth':1,'tag':'reent','note':'polymon() returns here. Any nested revert inside it has already happened.'},
   {'match':' made_change:','tag':'removed','note':'Before the patch, polyself() created the hero light source only here, after polymon() had returned. A rehumanize() nested inside polymon() therefore ran before any light source existed and tried to delete it: bug 07. The patch removes this block and calls uasmon_light() immediately after each set_uasmon().','remove':11},
@@ -104,7 +107,7 @@ files['light']={'parts':[
   {'match':'if (emits_light(gy.youmonst.data))','tag':'removed','note':'rehumanize() deletes the glowing form\'s light source. Called from inside polymon() (before made_change: has run), it deletes a source that was never created: del_light_source: not found, then "Program in disorder!".','remove':2},
  ]),
  excerpt('polyself.c',200,216,[
-  {'match':'set_uasmon();','tag':'install','note':'polyman(), the path back to human form. It now does its own light bookkeeping right after installing the form.','after':['    uasmon_light(old_light);','    note_uasmon_install();']},
+  {'match':'set_uasmon();','tag':'install','note':'polyman(), the path back to human form. It now does its own light bookkeeping right after installing the form; set_uasmon() has already bumped the generation.','after':['    uasmon_light(old_light);']},
  ]),
  excerpt('timeout.c',480,495,[
   {'match':'del_light_source(LS_MONSTER','tag':'removed','note':'Another manual workaround, now redundant because polymon() does the light bookkeeping itself.','remove':1,'back':1},
