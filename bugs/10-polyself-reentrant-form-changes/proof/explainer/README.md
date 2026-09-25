@@ -8,8 +8,8 @@ links into annotated excerpts of the NetHack source at the proof's pin
    `break_armor()`, stock and fixed.
 2. **The model**: the real `polymon()` beside `polyself_model.c`.
 3. **Every path**: the full tree of callback outcomes for each guard, and all
-   18 `run-cbmc.sh` checks, including the negative controls. Any leaf opens
-   that path step by step.
+   18 `run-cbmc.sh` checks, including the negative controls. Clicking a leaf
+   or a check shows that path's events, linked to the source.
 4. **ABA**: why a generation counter rather than the form number.
 5. **What WP adds**: the lemma for every input and any number of nested
    installations, and the WP negative control.
@@ -56,18 +56,11 @@ follow `../../proposed-fix.patch` followed by `../generation-guard.patch`
   site classifications (from `../audit-form-transitions.mjs` and a review of
   every `set_uasmon()` caller).
 
-## Still open
-
-- **Real CBMC traces.** Part 3 steps through the model's own trace. A
-  collapsible panel with CBMC's `--trace` output for one negative control
-  would show the tool's counterexample next to it.
-
 ## Editing notes
 
 - The views are one page with hash routing (`#window`, `#model`, `#cbmc`,
-  `#aba`, `#wp`, `#audits`, and the drill-down `#path`). Each view builds
-  itself on first visit through `INIT[id]`; `VIEWS` entries with `sub:true`
-  are routable but not listed in the index or pager.
+  `#aba`, `#wp`, `#audits`). Each view builds itself on first visit through
+  `INIT[id]`.
 - `SourceView(host, {key})` renders an annotated excerpt; `focus(tag)` opens
   a tagged line. Tags are `B0`–`B7` (boundaries), `B2g`/`B4g`/`B5g` (guards
   placed away from their boundary), `install`, `cleanup`, `aba`, `removed`,

@@ -121,34 +121,17 @@ a.no:hover{color:var(--blue-ink);text-decoration:underline}
 .note .nact{display:block;margin-top:4px;font-size:12.5px}
 .tag-B{color:var(--warm-ink)} .tag-install{color:var(--blue-ink)} .tag-cleanup{color:var(--violet-ink)} .tag-aba{color:var(--pink-ink)} .tag-removed,.tag-fixme{color:var(--orange-ink)} .tag-reent{color:var(--warm-ink)} .tag-entry,.tag-end{color:var(--text-muted)}
 
-/* playground */
-.pg{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr);gap:14px;align-items:start}
-@media (max-width:900px){.pg{grid-template-columns:1fr}}
-.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:8px 0}
-.slot{border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--surface)}
-.slot .sl{font-size:11.5px;color:var(--text-muted);font-family:ui-monospace,Menlo,monospace;display:block;margin-bottom:3px;overflow-wrap:anywhere}
-.slot select{width:100%;height:30px;font-size:13px;padding:0 6px}
-.slot.unused{opacity:.45}
+/* path trace */
 .trace{border:1px solid var(--border);border-radius:10px;background:var(--surface);max-height:420px;overflow:auto;font-size:13.5px}
-.ev{display:grid;grid-template-columns:30px 22px minmax(0,1fr) auto;gap:6px;padding:4px 10px;border-bottom:1px solid var(--border);cursor:pointer;align-items:baseline}
-.ev:hover{background:var(--surface-1)}
-.ev.future{opacity:.35}
-.ev.cur{background:var(--hi-bg);box-shadow:inset 3px 0 0 var(--warm)}
+.ev{display:grid;grid-template-columns:30px 22px minmax(0,1fr) auto;gap:6px;padding:4px 10px;border-bottom:1px solid var(--border);align-items:baseline}
 .ev .i{color:var(--text-muted);font-variant-numeric:tabular-nums;font-size:12px;text-align:right}
 .ev .k{font-weight:700;text-align:center}
 .ev.d1 .t{padding-left:18px;border-left:2px solid var(--border-strong)}
 .ev .srcl{font-size:12px;white-space:nowrap}
-.world{border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:12px 14px}
-.world .big{font-family:ui-monospace,Menlo,monospace;font-size:44px;line-height:1;font-weight:600}
-.wrow{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:14px}
-.wrow:last-child{border-bottom:none}
-.wrow span:first-child{color:var(--text-muted)}
-.wrow span:last-child{font-variant-numeric:tabular-nums;text-align:right}
 .verdict{margin-top:10px;padding:8px 11px;border-radius:8px;font-size:14px;border:1px solid var(--border)}
 .verdict.ok{border-color:var(--green);background:var(--add-bg);color:var(--text-primary)}
 .verdict.bad{border-color:var(--red);background:var(--rm-bg);color:var(--text-primary)}
 .verdict.stp{border-color:var(--violet);color:var(--text-primary)}
-.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;border:1px solid var(--pink);color:var(--pink-ink);padding:2px 9px;border-radius:999px}
 
 /* premises and sub-headings */
 .prem{margin:0 0 12px;padding-left:22px;max-width:84ch;font-size:15.5px;color:var(--text-secondary)}
@@ -248,39 +231,6 @@ h2.sub{font-size:19px;margin:28px 0 6px}
   <div class="pager"></div>
 </section>
 
-<!-- 3 -->
-<section class="view" id="v-path" hidden>
-  <div class="nav"><a href="#cbmc">&larr; Back to every path</a></div>
-  <h1>One path, step by step <span>&middot; running the model by hand</span></h1>
-  <p class="quiz"><b>Question:</b> pick an outcome for each boundary. Does the old form ever apply an effect after it has been replaced?</p>
-  <div class="row">
-    <span class="klab">function</span><div class="seg" id="p-h"><button data-v="polymon">polymon()</button><button data-v="break_armor">break_armor()</button></div>
-    <span class="klab">guard</span><div class="seg" id="p-mode"><button data-v="0">none</button><button data-v="1">identity (PR #1681)</button><button data-v="2">generation</button></div>
-  </div>
-  <div class="row"><span class="klab">presets</span><select id="p-preset"></select><span id="p-chips"></span></div>
-  <div class="slots" id="p-slots"></div>
-  <div class="row">
-    <button id="p-first" class="sm">&#x23EE; Start</button><button id="p-prev" class="sm">&larr; Back</button><button id="p-next" class="main">Step &rarr;</button><button id="p-end" class="sm">Run to end &#x23ED;</button>
-    <label class="cb"><input type="checkbox" id="p-follow" checked> follow in source</label>
-  </div>
-  <div class="pg">
-    <div><div class="trace" id="p-trace"></div></div>
-    <div><div class="world" id="p-world"></div></div>
-  </div>
-  <div class="panel-h" style="margin-top:14px">Where this step is in NetHack</div>
-  <div id="p-src"></div>
-  <div class="cap">
-    <p>Each boundary asks for one choice, as <code>nondet_uint()</code> does in the C model. The model checks three <b>assertions</b> as it runs:</p>
-    <ul>
-      <li><code>apply_owned_effect()</code>: <i>the old transformation never applies a stale-form effect</i>. If the code continues past a boundary, the generation must be the one it saved.</li>
-      <li><code>cleanup_current_form()</code>: <i>cleanup runs at most once for each form generation</i> (bug 06).</li>
-      <li><code>assert_light_consistent()</code>: <i>form and hero light source agree</i> (bug 07).</li>
-    </ul>
-    <p>Try the presets. With <b>no guard</b>, any revert fails the first assertion (the shape of bugs 06 and 08). The <b>identity guard</b> catches a revert, but not a same-form reinstall at <code>retouch_equipment</code>. The <b>generation guard</b> catches both. Keep a set of choices and switch guards to compare them on the same path.</p>
-  </div>
-  <div class="pager"></div>
-</section>
-
 <!-- 4 -->
 <section class="view" id="v-cbmc" hidden>
   <div class="nav"><a href="#">&larr; All explainers</a></div>
@@ -293,12 +243,13 @@ h2.sub{font-size:19px;margin:28px 0 6px}
   </div>
   <div class="fig" id="c-fig"></div>
   <div class="rd" id="c-read"></div>
+  <div id="c-path" hidden></div>
   <div class="cap">
-    <p><b>The tree.</b> Each level is a boundary, and each node branches four ways, one per outcome of <code>nondet_uint()</code>: <span class="mut">&middot;</span> nothing, <span class="ga mono">@</span> revert, <span class="gn mono">:</span> another form, <span class="gy mono">y</span> the same form again. A leaf is where a path ends: <span class="ok">&#9679; the function completed with every assertion true</span>, <span class="stp">&#9632; a guard returned early</span>, <span class="bad">&#10005; an assertion failed</span>, or <span class="mut">&#9675; the path was excluded by an <code>__CPROVER_assume</code></span>. Click a leaf to step through that path against the source. (This page draws a path as ending at its first failure. CBMC would carry on and report each violated property separately.)</p>
+    <p><b>The tree.</b> Each level is a boundary, and each node branches four ways, one per outcome of <code>nondet_uint()</code>: <span class="mut">&middot;</span> nothing, <span class="ga mono">@</span> revert, <span class="gn mono">:</span> another form, <span class="gy mono">y</span> the same form again. A leaf is where a path ends: <span class="ok">&#9679; the function completed with every assertion true</span>, <span class="stp">&#9632; a guard returned early</span>, <span class="bad">&#10005; an assertion failed</span>, or <span class="mut">&#9675; the path was excluded by an <code>__CPROVER_assume</code></span>. Click a leaf to see that path event by event, with links into the source. (This page draws a path as ending at its first failure. CBMC would carry on and report each violated property separately.)</p>
     <p><b>What CBMC actually does.</b> It does not walk this tree. It translates the whole C program into a single <b>SAT formula</b>, one Boolean variable per bit of every value at every point, with <code>nondet_uint()</code> as unconstrained inputs, <code>__CPROVER_assume(c)</code> as a constraint, and the negation of every <code>__CPROVER_assert</code> as the goal. It then asks a SAT solver: <i>is there any assignment of the inputs that reaches a false assertion?</i></p>
     <ul>
       <li><b>No such assignment</b> (unsatisfiable): the property holds on every path. CBMC exits 0.</li>
-      <li><b>An assignment exists</b>: the solver's answer is a concrete counterexample trace, the same kind of path you can step through here. CBMC exits 10.</li>
+      <li><b>An assignment exists</b>: the solver's answer is a concrete counterexample trace, the same kind of path this page shows for a leaf. CBMC exits 10.</li>
     </ul>
     <p>It is "bounded" because loops and recursion have to be unrolled to a fixed depth first. This model has no loops, and <code>--unwinding-assertions</code> makes CBMC confirm that no path was cut off, so here the check is exhaustive. The flags <code>--bounds-check --pointer-check --signed-overflow-check</code> and the rest add C safety assertions on top of the model's own.</p>
   </div>
@@ -594,13 +545,12 @@ const tagLabel = t => ({install:'form', cleanup:'clean', aba:'ABA', removed:'old
 const VIEWS = [
   {id:'window', tag:'The bugs', title:'The window: a form change that isn’t atomic', what:'Three recorded bugs as timelines of polymon() and break_armor(): a light source deleted before it exists, cleanup that runs twice, and a human stripped of boots by a newt’s rules. Switch between NetHack 5.0 and the fix; click a step for its source.'},
   {id:'model', tag:'Abstraction', title:'From NetHack to a model', what:'The real polymon() beside polyself_model.c. Each re-entrant call becomes a four-way choice, and the world shrinks to five variables.'},
-  {id:'cbmc', tag:'CBMC', title:'Every path, and breaking the fix on purpose', what:'The full tree of callback outcomes for each guard, then all 18 checks from run-cbmc.sh, including the controls that must fail: remove any one guard and CBMC finds a counterexample.'},
+  {id:'cbmc', tag:'CBMC', title:'Every path, and breaking the fix on purpose', what:'The full tree of callback outcomes for each guard, then all 18 checks from run-cbmc.sh, including the controls that must fail. Click any path to read it event by event.'},
   {id:'aba', tag:'ABA', title:'A→B→A: why a counter, not the form number', what:'Build a history of nested installations and watch the identity guard miss a same-form reinstall that the counter catches, with the real route through NetHack.'},
   {id:'wp', tag:'Frama-C/WP', title:'What WP adds', what:'The lemma for every input and any number of nested installations, 488/488 goals with nothing assumed, and a negative control for the identity guard.'},
   {id:'audits', tag:'Premises', title:'What the proof rests on', what:'The three premises that tie the model to NetHack, the 16 reviewed form-write sites, and what is out of scope.'},
-  {id:'path', sub:true, tag:'CBMC', title:'One path, step by step'},
 ];
-const MAIN = VIEWS.filter(v => !v.sub);
+const MAIN = VIEWS;
 $('#qs').innerHTML = MAIN.map(v => `<li><div class="qtag">${v.tag}</div><h2><a href="#${v.id}">${esc(v.title)}</a></h2><p class="what">${esc(v.what)}</p><a class="go" href="#${v.id}">Open the explainer &rarr;</a></li>`).join('');
 MAIN.forEach((v, i) => {
   const p = $(`#v-${v.id} .pager`);
@@ -928,35 +878,8 @@ INIT.model = () => {
   $('#m-map').innerHTML = '<tr><th>tag</th><th>model boundary</th><th>NetHack 5.0 operation</th></tr>' + map.map(([a, t, b]) => `<tr><td><span class="pill tag-B">${t}</span></td><td><code>${a}</code></td><td><code>${esc(b)}</code></td></tr>`).join('');
 };
 
-/* ------------------------------------------------------------ 3. Playground */
+/* ------------------------------------------------------------ Path panel (a tree leaf or a check) */
 const SLOT_NAMES = { polymon: ['B0 break_armor', 'B1 expels', 'B2 dismount', 'B3 spoteffects', 'B4 retouch', 'selftouch (after cleanup)'], break_armor: ['B5 after gloves', 'B6 before boots', 'B7 before eyewear'] };
-const SLOT_AT = { polymon: [0, 1, 2, 3, 4, 4], break_armor: [5, 6, 7] };
-const CH_OPTS = ['· nothing happens', '@ revert to human', ': another form', 'y same form again'];
-const PG = { h: 'polymon', mode: 2, choices: [0, 0, 0, 0, 0, 0], omit: -1, force: -1, allowSame: true, step: 0, label: null };
-const PRESETS = [
-  ['Quiet path: nothing re-enters', { h: 'polymon', mode: 2, choices: [0, 0, 0, 0, 0, 0] }],
-  ['Bug 06 shape, no guard: revert at spoteffects', { h: 'polymon', mode: 0, choices: [0, 0, 0, 1, 0, 0] }],
-  ['Same path, generation guard', { h: 'polymon', mode: 2, choices: [0, 0, 0, 1, 0, 0] }],
-  ['ABA at retouch vs identity guard', { h: 'polymon', mode: 1, choices: [0, 0, 0, 0, 3, 0] }],
-  ['ABA at retouch vs generation guard', { h: 'polymon', mode: 2, choices: [0, 0, 0, 0, 3, 0] }],
-  ['Bug 08 shape, no guard: revert after gloves', { h: 'break_armor', mode: 0, choices: [1, 0, 0] }],
-  ['Bug 08 shape, generation guard', { h: 'break_armor', mode: 2, choices: [1, 0, 0] }],
-];
-let pgSrc, pgRun, setPgH, setPgMode;
-function pgLoad(cfg) {
-  Object.assign(PG, { omit: -1, force: -1, allowSame: true, label: null }, cfg);
-  const k = SLOT_NAMES[PG.h].length;
-  PG.choices = (PG.choices || []).slice(0, k); while (PG.choices.length < k) PG.choices.push(0);
-  PG.step = 0;
-  if (setPgH) { setPgH(PG.h); setPgMode(PG.mode); pgSrc.load(PG.h); }
-  pgCompute();
-}
-function pgCompute() {
-  pgRun = M.run(PG.h, { mode: +PG.mode, choices: PG.choices.slice(), omit: PG.omit, force: PG.force, allowSame: PG.allowSame });
-  PG.step = PG.jumpEnd ? pgRun.log.length - 1 : Math.min(PG.step, pgRun.log.length - 1);
-  PG.jumpEnd = false;
-  pgRender();
-}
 function evTag(e) {
   if (e.kind === 'install' && !e.depth) return 'install';
   if (e.kind === 'cleanup' && !e.depth) return 'cleanup';
@@ -964,68 +887,25 @@ function evTag(e) {
   return null;
 }
 const EV_ICON = { start: ['▶', 'mut'], install: ['◆', 'ga'], note: ['✎', 'mut'], callback: ['↘', 'gy'], cleanup: ['✓', 'stp'], guard: ['▷', 'mut'], stop: ['■', 'stp'], effect: ['●', 'ok'], ok: ['✓', 'ok'], fail: ['✕', 'bad'], prune: ['○', 'mut'], done: ['⏎', 'ok'] };
-function pgRender() {
-  const log = pgRun.log, used = PG.force >= 0 ? 0 : pgRun.used;
-  $('#p-slots').innerHTML = SLOT_NAMES[PG.h].map((nm, i) => `<div class="slot${i >= used ? ' unused' : ''}"><span class="sl">${esc(nm)}</span><select data-slot="${i}" id="p-slot-${i}" aria-label="${esc(nm)}" ${PG.force >= 0 ? 'disabled' : ''}>${CH_OPTS.map((o, c) => `<option value="${c}" ${PG.choices[i] === c ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('');
-  const chips = [];
-  if (PG.label) chips.push(`<span class="chip">${esc(PG.label)}</span>`);
-  if (PG.force >= 0) chips.push(`<span class="chip">forced revert at ${M.BOUNDARY[PG.force].name}</span>`);
-  if (PG.omit >= 0) chips.push(`<span class="chip">guard ${M.BOUNDARY[PG.omit].name} removed</span>`);
-  if (!PG.allowSame) chips.push(`<span class="chip">assume no same-form reentry</span>`);
-  if (chips.length) chips.push(`<button class="sm" id="p-clear">Clear</button>`);
-  $('#p-chips').innerHTML = chips.join(' ');
-  const cl = $('#p-clear'); if (cl) cl.onclick = () => pgLoad({ h: PG.h, mode: PG.mode, choices: PG.choices });
-  $('#p-trace').innerHTML = log.map((e, i) => {
+function showPath(h, cfg, title) {
+  const r = M.run(h, Object.assign({ mode: 2, choices: [], omit: -1, force: -1, allowSame: true }, cfg));
+  const verdict = r.failed ? `<div class="verdict bad"><b>Counterexample.</b> Assertion violated: <i>${esc(r.failed)}</i>. CBMC reports a path like this one when it exits 10.</div>`
+    : r.pruned ? `<div class="verdict">Excluded by <code>__CPROVER_assume(choice != 3)</code>, so CBMC never considers it.</div>`
+    : r.log.some(x => x.kind === 'stop') ? `<div class="verdict stp"><b>A guard returned early.</b> Every assertion on this path held.</div>`
+    : `<div class="verdict ok"><b>Completed.</b> Every assertion on this path held.</div>`;
+  const box = $('#c-path');
+  box.hidden = false;
+  box.innerHTML = `<div class="panel-h" style="margin-top:14px">${esc(title)}</div><div class="trace">${r.log.map((e, i) => {
     const [ic, cls] = EV_ICON[e.kind] || ['·', 'mut'];
     const t = evTag(e);
-    return `<div class="ev${i > PG.step ? ' future' : ''}${i === PG.step ? ' cur' : ''}${e.depth ? ' d1' : ''}" data-i="${i}"><span class="i">${i + 1}</span><span class="k ${cls}">${ic}</span><span class="t ${e.kind === 'fail' ? 'bad' : ''}">${glyphs(e.text)}</span><span class="srcl">${t ? `<a href="javascript:void 0" data-src="${t}">source</a>` : ''}</span></div>`;
-  }).join('');
-  const cur = $('#p-trace .ev.cur'); if (cur) { const tr = $('#p-trace'); if (cur.offsetTop < tr.scrollTop || cur.offsetTop > tr.scrollTop + tr.clientHeight - 30) tr.scrollTop = cur.offsetTop - tr.clientHeight / 2; }
-  const e = log[PG.step], w = e.w;
-  const saved = log.slice(0, PG.step + 1).find(x => x.kind === 'note' && /my_generation/.test(x.text));
-  const savedGen = saved ? saved.w.epoch : null;
-  const light = w.light, glows = w.form === M.FORM.TARGET;
-  let verdict = '';
-  if (PG.step === log.length - 1) {
-    if (pgRun.failed) verdict = `<div class="verdict bad"><b>Counterexample.</b> Assertion violated: <i>${esc(pgRun.failed)}</i>. CBMC would print this path as its trace and exit 10.</div>`;
-    else if (pgRun.pruned) verdict = `<div class="verdict">This path is excluded by <code>__CPROVER_assume(choice != 3)</code>, so CBMC never considers it.</div>`;
-    else if (log.some(x => x.kind === 'stop')) verdict = `<div class="verdict stp"><b>Guard returned early.</b> Every assertion on this path held.</div>`;
-    else verdict = `<div class="verdict ok"><b>Completed.</b> Every assertion on this path held.</div>`;
-  }
-  $('#p-world').innerHTML = `<div class="panel-h">world at step ${PG.step + 1} of ${log.length}</div>
-    <div style="display:flex;gap:14px;align-items:center;margin:6px 0 8px"><div class="big ${GLYPH_CLS[M.FORM_GLYPH[w.form]]}">${M.FORM_GLYPH[w.form]}</div><div class="lg">hero form<br><b style="color:var(--text-primary)">${M.FORM_NAME[w.form]}</b></div></div>
-    <div class="wrow"><span>generation (<code>uasmon_generation</code>)</span><span class="mono">${w.epoch}</span></div>
-    <div class="wrow"><span>saved <code>my_generation</code></span><span class="mono">${savedGen == null ? '—' : savedGen}${savedGen != null ? (savedGen === w.epoch ? ' <span class="ok">= now</span>' : ' <span class="bad">≠ now</span>') : ''}</span></div>
-    <div class="wrow"><span>light source</span><span>${light ? 'exists' : 'none'} ${light === glows ? '<span class="ok">✓ agrees with form</span>' : '<span class="bad">✕ disagrees</span>'}</span></div>
-    <div class="wrow"><span>last cleanup</span><span>${w.cleanupSeen ? 'for generation ' + w.cleanupEpoch : 'not yet'}</span></div>
-    ${verdict}`;
-  $('#p-prev').disabled = $('#p-first').disabled = PG.step === 0;
-  $('#p-next').disabled = $('#p-end').disabled = PG.step === log.length - 1;
-  if (pgSrc && $('#p-follow').checked) { const t = evTag(e); if (t) pgSrc.focus(t); }
-}
-INIT.path = () => {
-  pgSrc = SourceView($('#p-src'), { key: PG.h });
-  setPgH = segInit($('#p-h'), PG.h, v => { pgLoad({ h: v, mode: PG.mode, choices: [] }); });
-  setPgMode = segInit($('#p-mode'), PG.mode, v => { PG.mode = +v; PG.step = 0; pgCompute(); });
-  $('#p-preset').innerHTML = '<option value="">choose a preset…</option>' + PRESETS.map((p, i) => `<option value="${i}">${esc(p[0])}</option>`).join('');
-  $('#p-preset').onchange = e => { const p = PRESETS[e.target.value]; if (p) pgLoad(Object.assign({}, p[1], { choices: p[1].choices.slice() })); e.target.value = ''; };
-  $('#p-slots').addEventListener('change', e => { const s = e.target.dataset.slot; if (s != null) { PG.choices[+s] = +e.target.value; PG.step = 0; pgCompute(); } });
-  $('#p-trace').addEventListener('click', e => {
-    const a = e.target.closest('[data-src]'); if (a) { pgSrc.load(PG.h); pgSrc.focus(a.dataset.src); $('#p-src').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
-    const r = e.target.closest('.ev'); if (r) { PG.step = +r.dataset.i; pgRender(); }
-  });
-  $('#p-first').onclick = () => { PG.step = 0; pgRender(); };
-  $('#p-prev').onclick = () => { PG.step = Math.max(0, PG.step - 1); pgRender(); };
-  $('#p-next').onclick = () => { PG.step = Math.min(pgRun.log.length - 1, PG.step + 1); pgRender(); };
-  $('#p-end').onclick = () => { PG.step = pgRun.log.length - 1; pgRender(); };
-  $('#p-follow').onchange = pgRender;
-  pgSrc.load(PG.h);
-  pgCompute();
-};
-function openInPlayground(cfg) {
-  pgLoad(Object.assign({ jumpEnd: true }, cfg));
-  PG.jumpEnd = !setPgH; /* INIT.path will compute again and jump to the end */
-  location.hash = 'path';
+    return `<div class="ev${e.depth ? ' d1' : ''}"><span class="i">${i + 1}</span><span class="k ${cls}">${ic}</span><span class="t ${e.kind === 'fail' ? 'bad' : ''}">${glyphs(e.text)}</span><span class="srcl">${t ? `<a href="javascript:void 0" data-src="${t}">source</a>` : ''}</span></div>`;
+  }).join('')}</div>${verdict}<div id="c-path-src" style="margin-top:8px"></div>`;
+  const src = SourceView($('#c-path-src'), { key: h });
+  src.load(h);
+  const last = [...r.log].reverse().find(evTag);
+  if (last) src.focus(evTag(last));
+  box.querySelector('.trace').addEventListener('click', e => { const a = e.target.closest('[data-src]'); if (a) src.focus(a.dataset.src); });
+  box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 /* ------------------------------------------------------------ 4. CBMC tree */
@@ -1078,7 +958,7 @@ function drawTree() {
   s += '</svg>';
   $('#c-fig').innerHTML = s;
   $$('#c-fig [data-leaf]').forEach(g => {
-    const go = () => { const ch = g.dataset.leaf === '' ? [] : g.dataset.leaf.split(',').map(Number); openInPlayground({ h: CB.h, mode: CB.mode, choices: ch, allowSame: !CB.noaba }); };
+    const go = () => { const ch = g.dataset.leaf === '' ? [] : g.dataset.leaf.split(',').map(Number); showPath(CB.h, { mode: CB.mode, choices: ch, allowSame: !CB.noaba }, `${CB.h}() with ${['no guard', 'the identity guard', 'the generation guard'][CB.mode]}: ${ch.map(c => CH_G[c]).join(' ') || '(no choices)'}`); };
     g.addEventListener('click', go); g.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   });
   const gname = ['no guard', 'the identity guard', 'the generation guard'][CB.mode];
@@ -1117,15 +997,15 @@ INIT.controls = () => {
     const ce = v.counterexample;
     const path = ce ? (ce.choices.length ? ce.choices.map(c => CH_G[c]).join(' ') : (o.force >= 0 ? `forced @ at B${o.force}` : 'fixed path')) : '';
     const canOpen = ['polymon', 'break_armor'].includes(h);
-    return `<tr><td>${esc(name)}<div class="lg"><code>${esc(fn)}</code> ${esc(flags)}</div></td><td>${expPass ? '<span class="pill ok">proof</span>' : '<span class="pill bad">counterexample</span>'}</td><td>${v.pass ? '<span class="ok">✓ holds</span>' : `<span class="bad">✕ found</span> <span class="mono">${glyphs(path)}</span><div class="lg">${esc(ce.result.failed)}</div>`} <div class="lg">${v.paths} path${v.paths > 1 ? 's' : ''}</div></td><td>${ok ? '<span class="ok">match</span>' : '<span class="bad">MISMATCH</span>'}</td><td>${canOpen ? `<button class="sm" data-open="${i}">${v.pass ? 'explore' : 'step through'}</button>` : ''}</td></tr>`;
+    return `<tr><td>${esc(name)}<div class="lg"><code>${esc(fn)}</code> ${esc(flags)}</div></td><td>${expPass ? '<span class="pill ok">proof</span>' : '<span class="pill bad">counterexample</span>'}</td><td>${v.pass ? '<span class="ok">✓ holds</span>' : `<span class="bad">✕ found</span> <span class="mono">${glyphs(path)}</span><div class="lg">${esc(ce.result.failed)}</div>`} <div class="lg">${v.paths} path${v.paths > 1 ? 's' : ''}</div></td><td>${ok ? '<span class="ok">match</span>' : '<span class="bad">MISMATCH</span>'}</td><td>${canOpen ? `<button class="sm" data-open="${i}">show path</button>` : ''}</td></tr>`;
   });
   $('#n-table').innerHTML = '<tr><th>check</th><th>run-cbmc.sh expects</th><th>in-page model finds</th><th></th><th></th></tr>' + rows.join('');
-  $('#n-sum').innerHTML = `<b>${match} of ${CHECKS.length}</b> results match what <code>run-cbmc.sh</code> expects: 8 proofs, 10 counterexamples.`;
+  $('#n-sum').innerHTML = `<b>${match} of ${CHECKS.length}</b> results match what <code>run-cbmc.sh</code> expects: ${CHECKS.filter(c => c[3]).length} proofs, ${CHECKS.filter(c => !c[3]).length} counterexamples.`;
   $('#n-table').addEventListener('click', e => {
     const b = e.target.closest('[data-open]'); if (!b) return;
     const [name, h, o] = CHECKS[+b.dataset.open];
     const v = M.verdict(h, o);
-    openInPlayground(Object.assign({ h, choices: v.counterexample ? v.counterexample.choices : [], label: name }, o, { mode: o.mode ?? 2 }));
+    showPath(h, Object.assign({ choices: v.counterexample ? v.counterexample.choices : [] }, o, { mode: o.mode ?? 2 }), name);
   });
   $('#n-script').textContent = MSRC.runcbmc;
 };
