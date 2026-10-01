@@ -403,6 +403,22 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
             <td>still present<br>upstream</td>
         </tr>
         <tr>
+            <td class="num">15</td>
+            <td>
+                <div class="bug-title">
+                    Two Lua callbacks on one event run in an order that changes from run to run
+                </div>
+                <span class="bug-meta">latent · <code>pairs()</code> order follows Lua's per-process hash seed · standalone Lua reproducer</span>
+                <div class="actions">
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/15-lua-callback-order/repro.sh">view repro.sh</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/15-lua-callback-order">README + patch</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/15-lua-callback-order/proposed-fix.patch">fix.patch</a>
+                </div>
+            </td>
+            <td>low<br>(latent)</td>
+            <td>unreported<br>upstream</td>
+        </tr>
+        <tr>
             <td class="num">16</td>
             <td>
                 <div class="bug-title">
@@ -574,6 +590,22 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
             </td>
             <td>low</td>
             <td>still present<br>upstream</td>
+        </tr>
+        <tr>
+            <td class="num">26</td>
+            <td>
+                <div class="bug-title">
+                    A Delete-key binding written by <code>#saveoptions</code> (<code>BIND=&lt;del&gt;:...</code>) is rejected when read back
+                </div>
+                <span class="bug-meta"><code>key2txt()</code> writes a name <code>txt2key()</code> does not read · config-file reproducer</span>
+                <div class="actions">
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/26-del-key-binding-roundtrip/repro.sh">view repro.sh</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/26-del-key-binding-roundtrip">README + patch</a>
+                    <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/26-del-key-binding-roundtrip/proposed-fix.patch">fix.patch</a>
+                </div>
+            </td>
+            <td>low</td>
+            <td>unreported<br>upstream</td>
         </tr>
     </tbody>
 </table>

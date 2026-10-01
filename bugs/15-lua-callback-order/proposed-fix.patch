@@ -1,0 +1,77 @@
+From 12a444cb7188cc8acf10f7f4e7b956c130637ba7 Mon Sep 17 00:00:00 2001
+From: David Bau <david.bau@gmail.com>
+Date: Thu, 1 Oct 2026 13:38:33 +0000
+Subject: [PATCH] Lua callbacks on one event run in an order that changes
+ between runs
+
+nh_callback_run() keeps an event's callbacks in a table keyed by
+function name and runs them with pairs().  Lua seeds its string hashing
+per state (luai_makeseed: the time and some addresses), and NetHack does
+not override that, so pairs() visits the same set of string keys in a
+different order on each run of the same binary.  With two or more
+callbacks on one event, which runs first -- and so which can stop the
+rest by returning false -- is not reproducible.  table_stringify(), which
+writes nh_lua_variables into the save file, has the same pairs() loop,
+so the bytes saved for Lua variables vary too.
+
+This is latent in the shipped game, where the only registrant (the
+tutorial) puts one callback on each event, but anything that adds a
+second one gets a run order that varies.
+
+Run the callbacks in sorted order of their names, and have
+table_stringify() write keys in sorted order.  The stored form (name ->
+true) is unchanged, so existing saves read back the same.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/15-lua-callback-order
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+---
+ dat/nhcore.lua |  8 ++++++++
+ dat/nhlib.lua  | 10 +++++++++-
+ 2 files changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/dat/nhcore.lua b/dat/nhcore.lua
+index 41c718dc0..091ca645c 100644
+--- a/dat/nhcore.lua
++++ b/dat/nhcore.lua
+@@ -45,7 +45,15 @@ function nh_callback_run(cb, ...)
+    if (type(nh_lua_variables[cbname]) ~= "table") then
+       nh_lua_variables[cbname] = {};
+    end
++   -- run the callbacks in a fixed order (by name): pairs() visits string
++   -- keys in an order that depends on Lua's per-process hash seed, so
++   -- which callback ran first, and could stop the others, varied by run
++   local names = {};
+    for k, v in pairs(nh_lua_variables[cbname]) do
++      names[#names + 1] = k;
++   end
++   table.sort(names);
++   for _, k in ipairs(names) do
+       if (not _G[k](table.unpack{...})) then
+          return false;
+       end
+diff --git a/dat/nhlib.lua b/dat/nhlib.lua
+index f8fc93072..5f4c66cf9 100644
+--- a/dat/nhlib.lua
++++ b/dat/nhlib.lua
+@@ -156,7 +156,15 @@ end
+ -- return the (simple) table tbl converted into a string
+ function table_stringify(tbl)
+    local str = "";
+-   for key, value in pairs(tbl) do
++   -- visit keys in sorted order so that the same table always produces
++   -- the same string; pairs() order depends on Lua's per-process seed
++   local keys = {};
++   for key in pairs(tbl) do
++      keys[#keys + 1] = key;
++   end
++   table.sort(keys, function(a, b) return tostring(a) < tostring(b) end);
++   for _, key in ipairs(keys) do
++      local value = tbl[key];
+       local typ = type(value);
+       if (typ == "table") then
+          str = str .. "[\"" .. key .. "\"]=" .. table_stringify(value);
+-- 
+2.43.0
+
