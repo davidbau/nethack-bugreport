@@ -38,6 +38,19 @@ built clean from git with the stock Linux hints. **Introduced by:**
 shop_keeper() readiness", 2026-05-31), so it is not in the base this
 repository's other reports were recorded against.
 
+## Watch it happen
+
+Recorded from the `NetHack-5.0` head (`193d5396a`), seed 1, a new game that
+answers **y** to the tutorial question:
+
+- [**The head**: four times through the three messages, steps 4 to 15](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/27-shkready-null-room/session.json#step=4)
+- [**The head with the patch**: straight into the tutorial at step 4](https://davidbau.github.io/nethack-bugreport/tools/session-viewer/?session=bugs/27-shkready-null-room/session-fixed.json#step=4)
+
+The two recordings draw the same 3,493 random numbers in the same order; the
+patch changes only the messages.  The recorder is the head with the four
+recording patches this repository uses (deterministic seed and clock, the RNG
+log, and screen capture), rebuilt for the head; they do not touch game logic.
+
 ## Reproducing it
 
 By hand, on Linux:
