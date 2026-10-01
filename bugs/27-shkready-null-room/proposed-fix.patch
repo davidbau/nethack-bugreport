@@ -1,0 +1,72 @@
+From cbfa9c08f1e70ff7404d054f4cb3b86361694778 Mon Sep 17 00:00:00 2001
+From: David Bau <david.bau@gmail.com>
+Date: Thu, 1 Oct 2026 14:27:45 +0000
+Subject: [PATCH] shop_keeper(): "untrustworthy null shkp" for a lookup of no
+ room
+
+055caaffb ("revisit shop_keeper() readiness") added a development-build
+check to shop_keeper(): a null result while the level is not yet
+shkready triggers impossible("untrustworthy null shkp; ...").  But the
+check runs for any null result, including when rmno names no room at
+all (rmno < ROOMOFFSET), where null is the right answer however far
+along the level is.
+
+obfree() makes exactly that call, shkp = shop_keeper(*u.ushops), and
+u.ushops is empty whenever the hero is not in a shop.  While a special
+level is being made, create_object() empties each container it is told
+to fill (delete_contents() -> obfree() on every randomly generated
+item), so each such item triggers the impossible().  The tutorial's
+level has a large box with scripted contents, so starting the tutorial
+in a development build shows
+
+    untrustworthy null shkp; level_status.shkready is FALSE (1, 0, 0, 0)
+    Program in disorder! ...
+
+once for each random item the box got (about three games in four).  The
+castle's chest and Vlad's Tower's chests do the same when their random
+contents are not empty.
+
+Only check readiness when rmno names a room.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/27-shkready-null-room
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+---
+ doc/fixes5-0-1.txt | 3 +++
+ src/shk.c          | 5 ++++-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/doc/fixes5-0-1.txt b/doc/fixes5-0-1.txt
+index 9d89eb0fc..e02e0171f 100644
+--- a/doc/fixes5-0-1.txt
++++ b/doc/fixes5-0-1.txt
+@@ -92,6 +92,9 @@ alias rings of constitution, strength, and damage, spellbook/scroll of
+ 	identification
+ pets left on another level no longer have their hunger postponed by the
+ 	time spent away
++shop_keeper()'s readiness check reported "untrustworthy null shkp" when
++	asked about no room at all, e.g. obfree() with the hero outside any shop
++	while a special level emptied a container (the tutorial's large box)
+ 
+ 
+ Platform- and/or Interface-Specific Fixes
+diff --git a/src/shk.c b/src/shk.c
+index 435a99a06..680c8e382 100644
+--- a/src/shk.c
++++ b/src/shk.c
+@@ -1075,7 +1075,10 @@ shop_keeper(char rmno)
+                correct the underlying svr.rooms[].resident issue but... */
+             return (struct monst *) 0;
+         }
+-    } else {
++    } else if (rmno >= ROOMOFFSET) {
++        /* only a lookup of an actual room can be premature; for rmno
++           that names no room (0 from an empty u.ushops or in_rooms()),
++           a null result is correct no matter how far along the level is */
+         if (!level_status.shkready) {
+             int hmm UNUSED = 1;
+ #if (NH_DEVEL_STATUS != NH_STATUS_RELEASED \
+-- 
+2.43.0
+
