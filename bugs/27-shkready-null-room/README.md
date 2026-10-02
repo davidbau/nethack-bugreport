@@ -177,14 +177,16 @@ level's progress and is always correct. While a level is being made
 [`proposed-fix.patch`](proposed-fix.patch): only check readiness when `rmno`
 names a room.
 
-```c
+```diff
 -    } else {
-+    } else if (rmno >= ROOMOFFSET) {
+-        if (!level_status.shkready) {
++    } else if (rmno >= ROOMOFFSET && !level_status.shkready) {
 +        /* only a lookup of an actual room can be premature; for rmno
 +           that names no room (0 from an empty u.ushops or in_rooms()),
 +           a null result is correct no matter how far along the level is */
-         if (!level_status.shkready) {
 ```
+
+(the body of the old inner `if` moves out one level, unchanged)
 
 This keeps the check for the case it was added for, and fixes every caller that
 can pass a non-room (`*u.ushops`, `*in_rooms(...)`), rather than only

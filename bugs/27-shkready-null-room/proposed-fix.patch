@@ -1,4 +1,4 @@
-From cbfa9c08f1e70ff7404d054f4cb3b86361694778 Mon Sep 17 00:00:00 2001
+From a0b1052413d46c44b22b3d6c2215208152fb37bf Mon Sep 17 00:00:00 2001
 From: David Bau <david.bau@gmail.com>
 Date: Thu, 1 Oct 2026 14:27:45 +0000
 Subject: [PATCH] shop_keeper(): "untrustworthy null shkp" for a lookup of no
@@ -33,9 +33,9 @@ https://github.com/davidbau/nethack-bugreport/tree/main/bugs/27-shkready-null-ro
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
 ---
- doc/fixes5-0-1.txt | 3 +++
- src/shk.c          | 5 ++++-
- 2 files changed, 7 insertions(+), 1 deletion(-)
+ doc/fixes5-0-1.txt |  3 +++
+ src/shk.c          | 19 ++++++++++---------
+ 2 files changed, 13 insertions(+), 9 deletions(-)
 
 diff --git a/doc/fixes5-0-1.txt b/doc/fixes5-0-1.txt
 index 9d89eb0fc..e02e0171f 100644
@@ -52,21 +52,38 @@ index 9d89eb0fc..e02e0171f 100644
  
  Platform- and/or Interface-Specific Fixes
 diff --git a/src/shk.c b/src/shk.c
-index 435a99a06..680c8e382 100644
+index 435a99a06..d27246045 100644
 --- a/src/shk.c
 +++ b/src/shk.c
-@@ -1075,7 +1075,10 @@ shop_keeper(char rmno)
+@@ -1075,18 +1075,19 @@ shop_keeper(char rmno)
                 correct the underlying svr.rooms[].resident issue but... */
              return (struct monst *) 0;
          }
 -    } else {
-+    } else if (rmno >= ROOMOFFSET) {
+-        if (!level_status.shkready) {
+-            int hmm UNUSED = 1;
++    } else if (rmno >= ROOMOFFSET && !level_status.shkready) {
 +        /* only a lookup of an actual room can be premature; for rmno
 +           that names no room (0 from an empty u.ushops or in_rooms()),
 +           a null result is correct no matter how far along the level is */
-         if (!level_status.shkready) {
-             int hmm UNUSED = 1;
++        int hmm UNUSED = 1;
  #if (NH_DEVEL_STATUS != NH_STATUS_RELEASED \
+      && NH_DEVEL_STATUS != NH_STATUS_POSTRELEASE)
+-            impossible("untrustworthy null shkp; level_status.shkready"
+-                        " is FALSE (%d, %d, %d, %d)",
+-                        level_status.making, level_status.loading,
+-                        level_status.shkready, level_status.ready);
++        impossible("untrustworthy null shkp; level_status.shkready"
++                    " is FALSE (%d, %d, %d, %d)",
++                    level_status.making, level_status.loading,
++                    level_status.shkready, level_status.ready);
+ #endif
+-            nhUse(hmm);
+-        }
++        nhUse(hmm);
+     }
+     return shkp;
+ }
 -- 
 2.43.0
 

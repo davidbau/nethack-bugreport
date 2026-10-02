@@ -20,16 +20,18 @@ Here it is `obfree()`, which looks for the shopkeeper of the hero's current shop
 
 `shop_keeper` <- `obfree` <- `delete_contents` <- `create_object` <- `lspo_object` <- (tut-1.lua) <- `makelevel` <- `goto_level` <- `deferred_goto` <- `maybe_do_tutorial`
 
-**Fix** (src/shk.c, `shop_keeper()`): apply the readiness check only when `rmno` names a room.
+**Fix** (src/shk.c, `shop_keeper()`): apply the readiness check only when `rmno` names a room, i.e. `rmno >= ROOMOFFSET && !level_status.shkready`.
 
 ```diff
 -    } else {
-+    } else if (rmno >= ROOMOFFSET) {
+-        if (!level_status.shkready) {
++    } else if (rmno >= ROOMOFFSET && !level_status.shkready) {
 +        /* only a lookup of an actual room can be premature; for rmno
 +           that names no room (0 from an empty u.ushops or in_rooms()),
 +           a null result is correct no matter how far along the level is */
-         if (!level_status.shkready) {
 ```
+
+(the body of the old inner `if` moves out one level, unchanged)
 
 This keeps the diagnostic for the case it was written for, a room whose `resident` is not set yet. It also fixes every caller that can pass a non-room, not just `obfree()`. Making `obfree()` skip the call when `*u.ushops` is 0 would hide this one instance but leave the others. With the patch, 0 of 8 tutorial starts show the message (6 of 8 without it), and the random numbers drawn are unchanged.
 
