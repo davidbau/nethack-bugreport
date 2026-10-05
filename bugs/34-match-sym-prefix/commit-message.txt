@@ -1,0 +1,20 @@
+S_lava, S_ant, S_human and S_mimic set a different symbol
+
+match_sym() looks names up with search_loadsyms(), a bsearch() over a
+sorted index of loadsyms[].  Its comparator, symparse_find(), compares
+the first bstr->len characters and returns 0 without checking that the
+table name ends there, so any name that begins with the key matches.
+S_lava finds S_lavawall, S_ant S_anti_magic_trap, S_human S_HUMANOID
+and S_mimic S_MIMIC_DEF.  The S_lava lines of DECgraphics, IBMgraphics
+and AmigaFont set the lava wall and leave lava as '}', RogueEpyx's
+S_human sets the humanoid class instead of the hero, and SYMBOLS= lines
+for those names change the wrong symbol.
+
+Return a negative result when the table name continues past the key,
+matching how symparse_compare() orders a name before a longer name it
+prefixes, so only the exact name compares equal.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/34-match-sym-prefix
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>

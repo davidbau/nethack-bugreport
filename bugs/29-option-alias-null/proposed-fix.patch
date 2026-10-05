@@ -1,0 +1,34 @@
+diff --git a/doc/fixes5-0-1.txt b/doc/fixes5-0-1.txt
+index 796522f61..562dd2c31 100644
+--- a/doc/fixes5-0-1.txt
++++ b/doc/fixes5-0-1.txt
+@@ -92,6 +92,8 @@ alias rings of constitution, strength, and damage, spellbook/scroll of
+ 	identification, amulet of flight
+ pets left on another level no longer have their hunger postponed by the
+ 	time spent away
++duplicate option complaint for an element of a comma-separated OPTIONS list
++	reported "via alias: (null)" when a later element used an alias
+ 
+ 
+ Platform- and/or Interface-Specific Fixes
+diff --git a/src/options.c b/src/options.c
+index fad5f5236..00e98c2c4 100644
+--- a/src/options.c
++++ b/src/options.c
+@@ -500,7 +500,6 @@ parseoptions(
+     boolean retval = TRUE;
+ 
+     duplicate = FALSE;
+-    using_alias = FALSE;
+     go.opt_initial = tinitial;
+     go.opt_from_file = tfrom_file;
+     /*
+@@ -519,6 +518,8 @@ parseoptions(
+         if (!parseoptions(op, go.opt_initial, go.opt_from_file))
+             retval = FALSE;
+     }
++    /* reset after the recursion; a later element may have used an alias */
++    using_alias = FALSE;
+     if (strlen(opts) > BUFSZ / 2) {
+         config_error_add("Option too long, max length is %i characters",
+                          (BUFSZ / 2));

@@ -1,0 +1,19 @@
+tutorial's OPTIONS=mention_decor is ignored
+
+tut-1.lua turns on mention_walls, mention_decor and lit_corridor for
+new players, but mention_decor stays off in the tutorial.
+initoptions_finish() marks mention_decor disregarded so that the
+stairs message is deferred until the tutorial question is answered,
+and the mark is only cleared by rcfile_only_this_option() in
+moveloop(), which runs after maybe_do_tutorial() has created tut-1.
+parseoptions() skips a disregarded option silently, so the script's
+setting is dropped.
+
+Heed mention_decor as soon as the tutorial is chosen; the hero is
+leaving the first level, so the deferral is no longer needed, and
+moveloop() still applies the player's own config value afterwards.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/31-tutorial-mention-decor-ignored
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>

@@ -1,0 +1,6 @@
+-- (b) value -1 is stored as byte 0; clone copies the map with dupstr()
+local w = selection.new()
+w:set(0,0,-1)
+local c = w:clone()
+c:set(70,15)
+nh.pline("SELBUG b clone=" .. c:numpoints())

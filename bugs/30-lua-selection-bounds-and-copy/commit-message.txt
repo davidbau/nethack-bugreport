@@ -1,0 +1,23 @@
+Lua selections drop points after a clear; cloning one with -1 overflows
+
+selection_setpoint() widened the cached bounds only while bounds_dirty
+was clear, so once any point had been cleared, points set afterwards
+lay outside the bounds. The &, |, ~ and - operators loop over the
+union of the operands' cached bounds and skipped those points. The
+test meant to avoid dirtying the bounds when clearing an unset point
+read the raw map byte, which is value + 1, so it never did;
+selection.filter_mapchar() with lit -1 dirtied its result this way.
+
+A point with value -1 is stored as a 0 byte, and selections were
+copied with dupstr(), which stopped there; the copy's map was shorter
+than COLNO * ROWNO and later reads and writes ran past its end.
+
+Widen the bounds on every set, so they always contain every point and
+bounds_dirty only means they may be too large, and test the point's
+value rather than its raw byte. Copy maps with a new
+selection_dupmap(), which copies the whole map.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/30-lua-selection-bounds-and-copy
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>

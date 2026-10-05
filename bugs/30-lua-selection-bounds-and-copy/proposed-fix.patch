@@ -1,0 +1,108 @@
+diff --git a/doc/fixes5-0-1.txt b/doc/fixes5-0-1.txt
+index 796522f61..afc237edc 100644
+--- a/doc/fixes5-0-1.txt
++++ b/doc/fixes5-0-1.txt
+@@ -92,6 +92,8 @@ alias rings of constitution, strength, and damage, spellbook/scroll of
+ 	identification, amulet of flight
+ pets left on another level no longer have their hunger postponed by the
+ 	time spent away
++Lua selections: points set after a point was cleared were dropped by the
++	&, |, ~ and - operators; cloning a selection holding -1 overflowed
+ 
+ 
+ Platform- and/or Interface-Specific Fixes
+diff --git a/include/extern.h b/include/extern.h
+index e7fd7aace..de0862bee 100644
+--- a/include/extern.h
++++ b/include/extern.h
+@@ -2885,6 +2885,7 @@ extern void closelog(NHFILE *);
+ extern struct selectionvar *selection_new(void);
+ extern void selection_free(struct selectionvar *, boolean) NO_NNARGS;
+ extern void selection_clear(struct selectionvar *, int) NONNULLARG1;
++extern char *selection_dupmap(struct selectionvar *) NONNULLARG1;
+ extern struct selectionvar *selection_clone(struct selectionvar *) NONNULLARG1;
+ extern void selection_getbounds(struct selectionvar *, NhRect *) NO_NNARGS;
+ extern void selection_recalc_bounds(struct selectionvar *) NONNULLARG1;
+diff --git a/src/nhlsel.c b/src/nhlsel.c
+index 817cb775a..a4acdabc5 100644
+--- a/src/nhlsel.c
++++ b/src/nhlsel.c
+@@ -101,7 +101,7 @@ l_selection_push_new(lua_State *L)
+     lua_setmetatable(L, -2);
+ 
+     *sel = *tmp;
+-    sel->map = dupstr(tmp->map);
++    sel->map = selection_dupmap(tmp);
+     selection_free(tmp, TRUE);
+ 
+     return sel;
+@@ -118,7 +118,7 @@ l_selection_push_copy(lua_State *L, struct selectionvar *tmp)
+     lua_setmetatable(L, -2);
+ 
+     *sel = *tmp;
+-    sel->map = dupstr(tmp->map);
++    sel->map = selection_dupmap(tmp);
+ }
+ 
+ 
+@@ -143,7 +143,7 @@ l_selection_clone(lua_State *L)
+     if (tmp->map)
+         free(tmp->map);
+     *tmp = *sel;
+-    tmp->map = dupstr(sel->map);
++    tmp->map = selection_dupmap(sel);
+     return 1;
+ }
+ 
+diff --git a/src/selvar.c b/src/selvar.c
+index 1b9296415..2c84b4497 100644
+--- a/src/selvar.c
++++ b/src/selvar.c
+@@ -61,13 +61,24 @@ selection_clear(struct selectionvar *sel, int val)
+     sel->bounds_dirty = FALSE;
+ }
+ 
++/* copy the map of selection sel; a point with value -1 is stored as
++   a 0 byte, so dupstr() can stop short */
++char *
++selection_dupmap(struct selectionvar *sel)
++{
++    char *map = (char *) alloc((COLNO * ROWNO) + 1);
++
++    (void) memcpy(map, sel->map, (COLNO * ROWNO) + 1);
++    return map;
++}
++
+ struct selectionvar *
+ selection_clone(struct selectionvar *sel)
+ {
+     struct selectionvar *tmps = (struct selectionvar *) alloc(sizeof *tmps);
+ 
+     *tmps = *sel;
+-    tmps->map = dupstr(sel->map);
++    tmps->map = selection_dupmap(sel);
+ 
+     return tmps;
+ }
+@@ -188,7 +199,7 @@ selection_setpoint(
+     if (x < 0 || y < 0 || x >= sel->wid || y >= sel->hei)
+         return;
+ 
+-    if (c && !sel->bounds_dirty) {
++    if (c) {
+         if (sel->bounds.lx > x)
+             sel->bounds.lx = x;
+         if (sel->bounds.ly > y)
+@@ -198,9 +209,9 @@ selection_setpoint(
+         if (sel->bounds.hy < y)
+             sel->bounds.hy = y;
+ 
+-    /* only set bounds_dirty if changing a point from 1 to 0; if changing
+-       a point from 0 to 0, nothing has really changed with the bounds */
+-    } else if (sel->map[sel->wid * y + x] != 0) {
++    /* only set bounds_dirty if clearing a point that was set; the bounds
++       are widened even when dirty, so they always contain every point */
++    } else if (selection_getpoint(x, y, sel)) {
+         sel->bounds_dirty = TRUE;
+     }
+ 

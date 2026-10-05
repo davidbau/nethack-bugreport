@@ -1,0 +1,26 @@
+diff --git a/doc/fixes5-0-1.txt b/doc/fixes5-0-1.txt
+index 796522f61..48a4c7abf 100644
+--- a/doc/fixes5-0-1.txt
++++ b/doc/fixes5-0-1.txt
+@@ -92,6 +92,8 @@ alias rings of constitution, strength, and damage, spellbook/scroll of
+ 	identification, amulet of flight
+ pets left on another level no longer have their hunger postponed by the
+ 	time spent away
++tut-1.lua's OPTIONS=mention_decor was ignored because mention_decor was
++	still being deferred when the tutorial level was created
+ 
+ 
+ Platform- and/or Interface-Specific Fixes
+diff --git a/src/allmain.c b/src/allmain.c
+index 0ca4d41d3..dacfd009e 100644
+--- a/src/allmain.c
++++ b/src/allmain.c
+@@ -573,6 +573,8 @@ maybe_do_tutorial(void)
+         return;
+ 
+     if (ask_do_tutorial()) {
++        /* tut-1.lua turns on mention_decor; let that take effect */
++        heed_this_option(opt_mention_decor);
+         assign_level(&u.ucamefrom, &u.uz);
+         iflags.nofollowers = TRUE;
+         schedule_goto(&sp->dlevel, UTOTYPE_NONE,

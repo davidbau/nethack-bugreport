@@ -1,0 +1,17 @@
+Lua boolean options given as strings are inverted
+
+get_table_boolean() accepts "true", "false", "yes" and "no" as well as
+Lua booleans, but it returns the index luaL_checkoption() finds in
+{ "true", "false", "yes", "no" }: "true" gives 0, "false" 1, "yes" 2
+and "no" 3. So des.object({ id = "chest", locked = "true" }) makes an
+unlocked chest and locked = "false" a locked one, and the other boolean
+fields of des.monster(), des.object(), des.trap() and the rest are
+likewise wrong when given a string. The table that maps the index to
+TRUE or FALSE was declared but never used, and was later commented out.
+
+Map the index through that table.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/33-lua-boolean-strings-inverted
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>

@@ -1,0 +1,20 @@
+tty: message after a no-history message can run past column 80
+
+A message shown with ATR_NOHISTORY goes through remember_topl(), which
+empties gt.toplines, and show_topl(), which leaves the text on the top
+line with toplin == TOPLINE_NEED_MORE.  If another message arrives
+before a key is read from the terminal (debug fuzzer, keys queued with
+nh.pushkey()), update_topl() appends it, but its room check counts only
+gt.toplines, not the text already on the line.  The line can then pass
+the right edge; when cw->curx goes from 78 to 80, topl_putsym()'s
+'curx == CO - 1' wrap test never fires and the cursor is addressed past
+column 80.
+
+Only append to the top line when gt.toplines holds what is on it;
+otherwise give the earlier text --More-- and start a new line, as when
+there is no room.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/32-topline-runs-past-column-80
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>

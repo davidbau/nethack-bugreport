@@ -1,0 +1,17 @@
+des.map with rows of different lengths reads past the map string
+
+mapfrag_fromstr() keeps a map as the string it was given and takes its
+width from the widest row, while mapfrag_get() reads cell (x, y) at
+data[y * (wid + 1) + x], as if every row were wid characters plus a
+newline.  When a row is shorter than the widest, every later row is read
+shifted, and cells in the last rows are read from heap bytes past the end
+of the string, which can put stray terrain on the level.
+
+Pad each short row with spaces in mapfrag_fromstr(), so the fragment is
+hei rows of wid characters and newline.  That covers des.map,
+des.replace_terrain and selection.match.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/35-mapfrag-ragged-overread
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>

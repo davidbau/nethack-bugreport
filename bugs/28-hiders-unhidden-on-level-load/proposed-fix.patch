@@ -1,0 +1,48 @@
+diff --git a/doc/fixes5-0-1.txt b/doc/fixes5-0-1.txt
+index 796522f61..5090c863f 100644
+--- a/doc/fixes5-0-1.txt
++++ b/doc/fixes5-0-1.txt
+@@ -92,6 +92,8 @@ alias rings of constitution, strength, and damage, spellbook/scroll of
+ 	identification, amulet of flight
+ pets left on another level no longer have their hunger postponed by the
+ 	time spent away
++monsters hidden under objects became unhidden whenever their level was
++	reloaded (changing levels, restore, bones)
+ 
+ 
+ Platform- and/or Interface-Specific Fixes
+diff --git a/src/restore.c b/src/restore.c
+index ddf13907b..2ffcfba81 100644
+--- a/src/restore.c
++++ b/src/restore.c
+@@ -1212,11 +1212,16 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
+     for (x = 0; x < COLNO; x++)
+         for (y = 0; y < ROWNO; y++)
+             svl.level.monsters[x][y] = (struct monst *) 0;
++    /* find_lev_obj() needs set_residency() for shop_keeper(), and the
++       monster loop below needs svl.level.objects[][] for hideunder() */
++    for (mtmp = fmon; mtmp; mtmp = mtmp->nmon)
++        if (mtmp->isshk)
++            set_residency(mtmp, FALSE);
++    level_status.shkready = 1;
++    find_lev_obj();
+     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
+         if ((mtmp->mstate & TERRAIN_FALLOUT_MASK) != 0)
+             gp.pending_terrain_effects |= (mtmp->mstate & TERRAIN_FALLOUT_MASK);
+-        if (mtmp->isshk)
+-            set_residency(mtmp, FALSE);
+         /* set some monst fields to sane values when coming from a bones file */
+         if (ghostly) {
+             mtmp->movement = 0;
+@@ -1260,11 +1265,6 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
+         if (ghostly || (elapsed > 0L && elapsed > (long) rnd(10)))
+             hide_monst(mtmp);
+     }
+-    level_status.shkready = 1;
+-    /* post-5.0.0: this is now postponed until here so that it takes place
+-       after set_residency() has been called */
+-    find_lev_obj();
+-
+ #endif /* !SFCTOOL */
+ 
+     restdamage(nhfp);

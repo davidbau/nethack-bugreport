@@ -1,0 +1,27 @@
+diff --git a/doc/fixes5-0-1.txt b/doc/fixes5-0-1.txt
+index 796522f61..82018992f 100644
+--- a/doc/fixes5-0-1.txt
++++ b/doc/fixes5-0-1.txt
+@@ -92,6 +92,8 @@ alias rings of constitution, strength, and damage, spellbook/scroll of
+ 	identification, amulet of flight
+ pets left on another level no longer have their hunger postponed by the
+ 	time spent away
++symbol lookup matched a name that is a prefix of another name to the longer
++	one, so S_lava, S_ant, S_human and S_mimic set S_lavawall and others
+ 
+ 
+ Platform- and/or Interface-Specific Fixes
+diff --git a/src/symbols.c b/src/symbols.c
+index 99382b721..d68387ee8 100644
+--- a/src/symbols.c
++++ b/src/symbols.c
+@@ -976,7 +976,8 @@ symparse_find(const void *bstr_, const void *rec_)
+         }
+     }
+ 
+-    return 0;
++    /* a table name that continues past bstr->len sorts after bstr */
++    return -(int) (*rec)->name[i];
+ }
+ 
+ /*

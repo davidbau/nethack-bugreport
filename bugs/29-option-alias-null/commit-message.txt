@@ -1,0 +1,19 @@
+duplicate option reported "via alias: (null)"
+
+parseoptions() processes a comma-separated OPTIONS list right to left by
+recursing on the rest of the line before handling the first element. It
+cleared using_alias at entry, before the recursion, so when an element to
+the right matched through an alias (such as "align" for "alignment") the
+flag stayed set while elements to its left were processed. A duplicate
+among those was then reported with " (via alias: %s)" formatted from
+allopt[].alias, which is NULL for most options:
+
+    compound option specified multiple times: name (via alias: (null)).
+
+Clear using_alias after the recursion, so it describes only the element
+the current call matches.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/29-option-alias-null
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>

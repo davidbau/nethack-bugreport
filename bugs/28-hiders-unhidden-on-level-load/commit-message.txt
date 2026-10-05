@@ -1,0 +1,19 @@
+hidden monsters are unhidden whenever their level is reloaded
+
+Commit 055caaffb moved find_lev_obj() in getlev() to after the monster
+loop, so that it follows the loop's set_residency() calls.  But the
+same loop calls hideunder() and hide_monst() for monsters that hide
+under objects, and they look at svl.level.objects[][], which is still
+empty there.  hideunder() finds no object and clears mundetected, so a
+snake hiding under an object is out in the open after changing levels
+and coming back, after save and restore, and on bones levels.
+
+Call set_residency() for shopkeepers in a loop of its own, then
+find_lev_obj(), then the monster loop.  find_lev_obj() still follows
+set_residency(), and the objects are on the map again when the hiding
+code runs.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/28-hiders-unhidden-on-level-load
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>

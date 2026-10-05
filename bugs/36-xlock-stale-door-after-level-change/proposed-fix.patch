@@ -1,0 +1,25 @@
+diff --git a/doc/fixes5-0-1.txt b/doc/fixes5-0-1.txt
+index 796522f61..bb17bd312 100644
+--- a/doc/fixes5-0-1.txt
++++ b/doc/fixes5-0-1.txt
+@@ -92,6 +92,8 @@ alias rings of constitution, strength, and damage, spellbook/scroll of
+ 	identification, amulet of flight
+ pets left on another level no longer have their hunger postponed by the
+ 	time spent away
++#force on a box kept the door of an earlier lock-picking attempt, so a later
++	resumed attempt could lock or unlock that door, even on another level
+ 
+ 
+ Platform- and/or Interface-Specific Fixes
+diff --git a/src/lock.c b/src/lock.c
+index 89378d088..332bff383 100644
+--- a/src/lock.c
++++ b/src/lock.c
+@@ -741,6 +741,7 @@ doforce(void)
+             else
+                 You("start bashing it with %s.", yname(uwep));
+             gx.xlock.box = otmp;
++            gx.xlock.door = (struct rm *) 0;
+             gx.xlock.chance = objects[uwep->otyp].oc_wldam * 2;
+             gx.xlock.picktyp = picktyp;
+             gx.xlock.magic_key = FALSE;

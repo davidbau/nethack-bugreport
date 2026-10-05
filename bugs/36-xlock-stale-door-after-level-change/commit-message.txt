@@ -1,0 +1,18 @@
+#loot can lock a far-away door after an interrupted #force
+
+doforce() sets xlock.box but leaves xlock.door from an earlier lock-pick,
+so the context can hold both.  If the box is carried to another level,
+maybe_reset_pick() keeps the context, and xlock.door, a pointer into
+levl[][], names the same x,y on the new level.  #loot with
+autounlock:untrap calls pick_lock() with no tool, whose otyp 0 matches a
+blunt #force's picktyp, so it resumes picklock(); picklock() checks the
+box's position and then locks or unlocks xlock.door, wherever that is,
+and sets door flags on a non-door spot there.
+
+Clear xlock.door when #force picks a box, as pick_lock() does when it
+picks a box.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/36-xlock-stale-door-after-level-change
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
