@@ -1,7 +1,7 @@
 #!/bin/bash
 # repro.sh — Compile and run repro.c.  Exits 0 if the bit collision is
 # present (which it is in vanilla NetHack 5.0); exits 1 if absent
-# (e.g., the proposed patch has been applied to your tree).
+# (the constants hard-coded from include/ have changed).
 #
 # Self-contained: needs only a C compiler.  No NetHack build required.
 # The bug is in pure bit math involving header-defined constants, so
@@ -32,8 +32,7 @@ if [ "$RC" -eq 0 ]; then
     exit 0
 else
     echo
-    echo "BUG NOT REPRODUCED — the two derivations agree.  Either the"
-    echo "proposed patch has been applied, or the constants this repro"
-    echo "hard-codes from nethack-c/upstream/include/ have changed."
+    echo "BUG NOT REPRODUCED — the two derivations agree.  The constants"
+    echo "this repro hard-codes from nethack-c/upstream/include/ have changed."
     exit 1
 fi

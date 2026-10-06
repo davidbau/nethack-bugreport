@@ -1,100 +1,63 @@
-**Title:** `init_level()` treats every `UNCONNECTED` dungeon as chaotic (the Tutorial gets `AM_CHAOTIC`)
+**Title:** Dungeon alignment: Tutorial levels are chaotic by a bit collision, and no other dungeon's alignment reaches its levels
 
-**Version:** NetHack 5.0.0 (also in the 3.7 line). Re-checked 2026-09-18:
-still present at the `NetHack-5.0` tip
-[`c63ee6ac7`](https://github.com/NetHack/NetHack/tree/c63ee6ac7ef78639db31660c52aaa2e60cb6afd0);
-`dgn_file.h` still has `UNCONNECTED 0x10` and
-`D_ALIGN_CHAOTIC (AM_CHAOTIC << 4)`, also `0x10`.
+**Version:** `NetHack-5.0` tip
+[`8898570da`](https://github.com/NetHack/NetHack/tree/8898570da). The
+dungeon alignment was lost in `9cd928027` (2019, "Lua: remove dgn_comp");
+the collision came with `UNCONNECTED` in `fc7a32b86` (2023, the Tutorial).
+This is a design question more than a bug report.
 
-### Symptom
+**Symptom**
 
-Every Tutorial level gets `flags.align = AM_CHAOTIC` instead of `AM_NONE`.
-The Tutorial is the only stock dungeon with `unconnected` and no `alignment`
-key (Sokoban has `alignment = "lawful"`).
+In shipped NetHack, `align_shift()` (src/makemon.c:1611-1636) and
+`induced_align()` (src/dungeon.c:2010) see an alignment only on special
+levels that declare their own (Oracle, Medusa) and on the Tutorial's levels,
+which are chaotic. `alignment` on a dungeon in `dat/dungeon.lua` (Mines
+lawful, Sokoban neutral, Vlad's Tower chaotic) has no effect. In 3.6.x it
+biased monster generation on every level of that dungeon.
 
-There is no in-game symptom today, because nothing on the Tutorial levels
-reads `flags.align`:
+In the Tutorial nothing reads the alignment today: `tut-1.lua` and
+`tut-2.lua` set `nomongen`, every corpse has a `montype`, and there is no
+random altar.
 
-1. `tut-1.lua:30-31` and `tut-2.lua:3-4` set `nomongen`, so `makemon.c:1168`
-   returns before `rndmonst()` and `align_shift()` run.
-2. Every Tutorial corpse has an explicit `montype` (`sp_lev.c:2262`), so
-   `rndmonnum()` does not run either.
-3. There is no `des.altar` or `AM_SPLEV_RANDOM` placement, the callers of
-   `induced_align()` (`dungeon.c:2004`).
+**Cause**
 
-A new `UNCONNECTED` dungeon without an `alignment` key, or removing one of
-these gates, would expose it: under `AM_CHAOTIC`, `align_shift()`
-(`makemon.c:1621`) adds +1 to +3 to the spawn weight of every monster with
-`maligntyp` below +15. It was found by calling `rndmonst_adj()` directly on a
-Tutorial level: cumulative weights `5,8,11,...,39` in C against
-`3,4,5,...,21` for `AM_NONE`. `peace_minded()` is unaffected.
+Two defects. `get_dgn_align()` (dungeon.c:781-794) returns `D_ALIGN_*`,
+which is `AM_* << 4` (0x10, 0x20, 0x40).
 
-### Cause
+1. `svd.dungeons[].flags.align` is `Bitfield(align, 3)` (include/dungeon.h:21),
+   and dungeon.c:1103 stores the unshifted value in it, so it is 0 for every
+   dungeon.
+2. `init_level()`'s fallback (dungeon.c:588-591) reads alignment bits from
+   `tmpdungeon[].flags`, which since `9cd928027` holds no alignment, only
+   flags. `UNCONNECTED` is 0x10, equal to `D_ALIGN_CHAOTIC`
+   (include/dgn_file.h:60, 63), so the fallback makes every level of the
+   Tutorial (`flags = { "mazelike", "unconnected" }`) chaotic.
 
-`include/dgn_file.h`:
+**Fix**
 
-```c
-#define UNCONNECTED     0x10                /* bit 4 */
-#define D_ALIGN_CHAOTIC (AM_CHAOTIC << 4)   /* also 0x10 */
-#define D_ALIGN_MASK    0x70
-```
+There are two choices:
 
-`dat/dungeon.lua` gives the Tutorial `flags = { "mazelike", "unconnected" }`
-and no `alignment`. `init_dungeon_set_dungeon()` stores `.flags = 0x14` and
-`.align = D_ALIGN_NONE` (`dungeon.c:1056-1057`). The fallback in
-`init_level()` (`dungeon.c:583-591`) reads alignment from `.flags` instead
-of `.align`:
+1. Keep today's behavior everywhere except the Tutorial: drop the fallback
+   (or mask out `UNCONNECTED`). `proposed-fix.patch` drops it; checked with
+   `clang -fsyntax-only`.
+2. Restore the 3.6.x design: store `dgn_align >> 4` at dungeon.c:1103 and
+   read `tmpdungeon[dgn].align >> 4` in the fallback. This changes monster
+   generation and random altar alignment throughout the Mines, Sokoban and
+   Vlad's Tower, so it is a balance decision.
 
-```c
-new_level->flags.align = ((tlevel->flags & D_ALIGN_MASK) >> 4);
-if (!new_level->flags.align)
-    new_level->flags.align =
-        ((pd->tmpdungeon[dgn].flags & D_ALIGN_MASK) >> 4);   /* 0x14 -> 1 */
-```
+An earlier version of this bundle proposed only the fallback change of (2).
+That makes special levels inherit their dungeon's alignment (Minetown and
+Mines' End lawful, Sokoban neutral, Vlad's Tower chaotic) while filler levels
+stay unaligned, which matches neither 3.6.x nor 5.0.
 
-### Fix
+**Repro**
 
-Read the parsed `.align` field:
+`bash repro.sh` compiles `repro.c`, which copies the macros from `align.h`
+and `dgn_file.h`. It prints the fallback's result for the Tutorial's flags
+(0x14 gives `AM_CHAOTIC`) against its parsed alignment (`AM_NONE`), and what
+a 3-bit field keeps of 0x10, 0x20 and 0x40 (0 each). It exits 0 while the
+constants collide.
 
-```diff
-     if (!new_level->flags.align)
--        new_level->flags.align =
--            ((pd->tmpdungeon[dgn].flags & D_ALIGN_MASK) >> 4);
-+        new_level->flags.align = pd->tmpdungeon[dgn].align >> 4;
-```
-
-`D_ALIGN_{NONE,CHAOTIC,NEUTRAL,LAWFUL} >> 4` gives exactly
-`AM_{NONE,CHAOTIC,NEUTRAL,LAWFUL}`. The per-level `tlevel->flags` line is
-left as is. Moving `D_ALIGN_*` out of bits 4-6 would also work but changes
-the save format. Full diff: `proposed-fix.patch`.
-
-### Repro
-
-```bash
-bash bugs/03-tutorial-alignment-collision/repro.sh
-```
-
-No setup. `repro.sh` compiles `repro.c`, a standalone program that copies
-the macros from `align.h` and `dgn_file.h` and evaluates both the
-`init_level()` fallback and the fixed expression. It exits 0 on the tip:
-
-```
-    (tutorial_flags & D_ALIGN_MASK)       = 0x10
-    >> 4                                   = 0x01   (AM_CHAOTIC)
-...
-Proposed fix (read the parsed .align instead):
-    tmpdungeon[dgn].align >> 4             = 0x00   (AM_NONE)
-
-BUG REPRODUCED: init_level fallback yields AM_CHAOTIC, but the
-Lua-parsed alignment is AM_NONE.
-```
-
-There is no `session.json`: the effect is not visible on screen.
-
-### Status
-
-Unreported upstream as of 2026-06-19 (searched
+Unreported upstream (searched
 [issues](https://github.com/NetHack/NetHack/issues) and
-[PRs](https://github.com/NetHack/NetHack/pulls) for `Tutorial alignment`,
-`UNCONNECTED chaotic`, `init_level align`, `D_ALIGN_MASK`,
-`dungeon flags collision`, `align_shift Tutorial`).
+[PRs](https://github.com/NetHack/NetHack/pulls)).

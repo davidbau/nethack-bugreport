@@ -1,0 +1,22 @@
+Tourist quest home and locate levels fail to load
+
+Tou-loca.lua closes an if with "end=" and Tou-strt.lua has four statues
+written as `montype="wumpus" x=34`, without a comma.  Both are Lua syntax
+errors, so luaL_loadbuffer() fails when the hero reaches either level;
+the game reports the error with impossible() and builds a random maze
+instead.
+
+Tou-strt.lua also writes six named monsters as
+`des.monster({"watchman", 35, 08, name="Sergeant Colon", ...})`.  In its
+table form des.monster() reads the species only from "id" and the place
+only from x/y or coord, so the positional entries are ignored and each
+becomes a random monster at a random spot carrying the name.
+
+Remove the stray "=", add the commas, and name the species (and the two
+watchmen's positions) with id, x and y.  Every dat/*.lua now compiles.
+
+Report:
+https://github.com/davidbau/nethack-bugreport/tree/main/bugs/37-tourist-quest-lua-syntax
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+

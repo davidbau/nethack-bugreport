@@ -176,18 +176,18 @@ td.num { font-family: var(--font-mono); white-space: nowrap; }
             <td class="num">03</td>
             <td>
                 <div class="bug-title">
-                    Tutorial dungeon silently inherits <code>AM_CHAOTIC</code>
-                    via <code>UNCONNECTED</code> ↔ <code>D_ALIGN_CHAOTIC</code>
-                    bit collision
+                    Dungeon alignment: Tutorial levels are chaotic by an
+                    <code>UNCONNECTED</code> ↔ <code>D_ALIGN_CHAOTIC</code>
+                    bit collision, and no other dungeon's alignment reaches its levels
                 </div>
-                <span class="bug-meta">latent · suppressed downstream by tut-1.lua's <code>nomongen</code> · static C reproducer</span>
+                <span class="bug-meta">design question · the Tutorial only today · static C reproducer</span>
                 <div class="actions">
                     <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/03-tutorial-alignment-collision/repro.c">view repro.c</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/tree/main/bugs/03-tutorial-alignment-collision">README + patch</a>
                     <a href="https://github.com/davidbau/nethack-bugreport/blob/main/bugs/03-tutorial-alignment-collision/proposed-fix.patch">fix.patch</a>
                 </div>
             </td>
-            <td>low<br>(latent)</td>
+            <td>low<br>(design)</td>
             <td>unreported<br>upstream</td>
         </tr>
         <tr>

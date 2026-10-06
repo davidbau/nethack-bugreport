@@ -6,10 +6,10 @@
  * Self-contained: no NetHack headers, no linking. Just compile and run:
  *   cc -o repro repro.c && ./repro
  *
- * Exits 0 if the bug is present (the parsed alignment disagrees with
- * what init_level's bit-extraction produces); 1 if the bug is absent
- * (e.g., the proposed patch has been applied to your tree and the
- * fields agree).
+ * Exits 0 if the collision is present (the parsed alignment disagrees
+ * with what init_level's bit-extraction produces); 1 if it is absent.
+ * Also prints how the 3-bit dungeons[].flags.align field truncates the
+ * D_ALIGN_* values stored in it.
  */
 
 #include <stdio.h>
@@ -74,11 +74,10 @@ main(void)
      */
     int init_level_fallback = (tutorial_flags & D_ALIGN_MASK) >> 4;
 
-    /* The correct expression — use the already-parsed .align field
-     * that the Lua loader stored at dungeon.c:1057, just shifted to
-     * the raw AM_* layout flags.align expects.
+    /* The alignment the Lua loader stored at dungeon.c:1057, shifted
+     * to the AM_* layout flags.align uses.
      */
-    int proposed_fix = tutorial_parsed_align >> 4;
+    int parsed_align = tutorial_parsed_align >> 4;
 
     printf("Tutorial dungeon definition:\n");
     printf("    dat/dungeon.lua flags = { mazelike, unconnected }\n");
@@ -103,26 +102,41 @@ main(void)
     printf("    UNCONNECTED flag set is silently treated as chaotic-aligned.\n");
     printf("\n");
 
-    printf("Proposed fix (read the parsed .align instead):\n");
+    printf("The parsed alignment (what the Lua table says):\n");
     printf("    tmpdungeon[dgn].align >> 4             = 0x%02x   (%s)\n",
-           proposed_fix, align_name(proposed_fix));
+           parsed_align, align_name(parsed_align));
     printf("\n");
 
-    if (init_level_fallback != proposed_fix) {
+    /* svd.dungeons[].flags.align is Bitfield(align, 3) (include/dungeon.h)
+     * and dungeon.c:1103 stores the unshifted D_ALIGN_* value in it. */
+    {
+        static const int dal[] = { D_ALIGN_CHAOTIC, D_ALIGN_NEUTRAL,
+                                   D_ALIGN_LAWFUL };
+        struct { unsigned align : 3; } df;
+        int i;
+
+        printf("Dungeon-wide alignment, stored in a 3-bit bitfield:\n");
+        for (i = 0; i < 3; i++) {
+            df.align = (unsigned) dal[i] & 7U; /* what the bitfield keeps */
+            printf("    D_ALIGN 0x%02x -> svd.dungeons[].flags.align = %u   (%s)\n",
+                   dal[i], df.align, align_name((int) df.align));
+        }
+        printf("\n");
+    }
+
+    if (init_level_fallback != parsed_align) {
         printf("BUG REPRODUCED: init_level fallback yields %s, but the\n",
                align_name(init_level_fallback));
-        printf("Lua-parsed alignment is %s.\n", align_name(proposed_fix));
+        printf("Lua-parsed alignment is %s.\n", align_name(parsed_align));
         printf("\n");
         printf("Downstream effect: align_shift() (makemon.c:1611) reads\n");
-        printf("flags.align and returns +2 for most difficulty-1 monsters\n");
-        printf("under AM_CHAOTIC, biasing the Tutorial's monster spawn\n");
-        printf("weights uniformly upward.  See the README for full impact.\n");
+        printf("flags.align and biases monster generation toward chaotic\n");
+        printf("monsters on Tutorial levels.  See the README.\n");
         return 0;
     }
 
     printf("BUG NOT REPRODUCED: init_level fallback agrees with the\n");
-    printf("parsed alignment.  Either the proposed patch has been applied\n");
-    printf("to your tree, or the Tutorial's flags no longer include\n");
-    printf("UNCONNECTED.\n");
+    printf("parsed alignment.  The constants copied above no longer\n");
+    printf("collide.\n");
     return 1;
 }

@@ -1,0 +1,68 @@
+diff --git a/dat/Tou-loca.lua b/dat/Tou-loca.lua
+index 8debface1..106f69375 100644
+--- a/dat/Tou-loca.lua
++++ b/dat/Tou-loca.lua
+@@ -163,7 +163,7 @@ if percent(10) then
+ end
+ if percent(10) then
+ 	des.monster({id="wizard", name="Ridcully", male=1, peaceful=1, keep_default_invent=false})
+-end=
++end
+ if percent(10) then
+ 	des.monster({id="wizard", name="the Bursar", male=1, peaceful=1, keep_default_invent=false})
+ end
+diff --git a/dat/Tou-strt.lua b/dat/Tou-strt.lua
+index d21a3d9ae..e654f0891 100644
+--- a/dat/Tou-strt.lua
++++ b/dat/Tou-strt.lua
+@@ -114,8 +114,8 @@ des.monster("guide", 57, 03)
+ des.monster("guide", 62, 04)
+ des.monster("guide", 66, 04)
+ -- path guards
+-des.monster({"watchman", 35, 08, name="Sergeant Colon", male=1})
+-des.monster({"watchman", 36, 08, name="Corporal Nobbs", male=1})
++des.monster({id="watchman", x=35, y=08, name="Sergeant Colon", male=1})
++des.monster({id="watchman", x=36, y=08, name="Corporal Nobbs", male=1})
+ -- river monsters
+ des.monster("giant eel", 62, 12)
+ des.monster("piranha", 47, 10)
+@@ -123,15 +123,15 @@ des.monster("piranha", 29, 11)
+ des.monster("kraken", 34, 09)
+ des.monster("kraken", 37, 09)
+ -- a few more Discworld NPCs for flavour
+-des.monster({"barbarian", peaceful=1, name="Bravd", male=1, keep_default_invent=false})
+-des.monster({"rogue", peaceful=1, name="the Weasel", male=1, keep_default_invent=false})
+-des.monster({"werewolf", peaceful=1, name="Angua", female=1})
+-des.monster({"rock troll", peaceful=1, name="Detritus", male=1})
++des.monster({id="barbarian", peaceful=1, name="Bravd", male=1, keep_default_invent=false})
++des.monster({id="rogue", peaceful=1, name="the Weasel", male=1, keep_default_invent=false})
++des.monster({id="werewolf", peaceful=1, name="Angua", female=1})
++des.monster({id="rock troll", peaceful=1, name="Detritus", male=1})
+ -- the Brass Bridge is lined with statues of 'hippos'
+-des.object({id="statue", montype="wumpus" x=34,y=8, historic=1, contents=0})
+-des.object({id="statue", montype="wumpus" x=37,y=8, historic=1, contents=0})
+-des.object({id="statue", montype="wumpus" x=34,y=10, historic=1, contents=0})
+-des.object({id="statue", montype="wumpus" x=37,y=10, historic=1, contents=0})
++des.object({id="statue", montype="wumpus", x=34,y=8, historic=1, contents=0})
++des.object({id="statue", montype="wumpus", x=37,y=8, historic=1, contents=0})
++des.object({id="statue", montype="wumpus", x=34,y=10, historic=1, contents=0})
++des.object({id="statue", montype="wumpus", x=37,y=10, historic=1, contents=0})
+ -- Random traps
+ des.trap()
+ des.trap()
+diff --git a/doc/fixes5-0-1.txt b/doc/fixes5-0-1.txt
+index 796522f61..7a3d5164e 100644
+--- a/doc/fixes5-0-1.txt
++++ b/doc/fixes5-0-1.txt
+@@ -92,6 +92,11 @@ alias rings of constitution, strength, and damage, spellbook/scroll of
+ 	identification, amulet of flight
+ pets left on another level no longer have their hunger postponed by the
+ 	time spent away
++Tou-loca.lua and Tou-strt.lua had Lua syntax errors (a stray "end=", missing
++	commas before x=), so the Tourist quest home and locate levels failed to
++	load and were replaced by random mazes; Tou-strt.lua also gave six named
++	monsters their species and position as table entries des.monster()
++	does not read, so they were random monsters at random spots
+ 
+ 
+ Platform- and/or Interface-Specific Fixes
