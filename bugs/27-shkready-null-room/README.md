@@ -8,6 +8,8 @@ shop_keeper() readiness", 2026-05-31), so it is not in the base the other
 reports here were recorded against. Bug 28 ([28-hiders-unhidden-on-level-load](../28-hiders-unhidden-on-level-load/))
 is another consequence of the same commit.
 
+**Update 2026-10-06:** upstream [`bda23ae0d`](https://github.com/NetHack/NetHack/commit/bda23ae0d) ("adjust a debug message") now prints this only in wizard mode, as "debug: untrustworthy null shkp ...". The check is still too wide: in wizard mode the tutorial start still reports it. The fix below still applies, keeping that `if (wizard)`.
+
 The ready-to-file issue text, with the symptom, cause and fix, is in
 [`ISSUE.md`](ISSUE.md). This page adds the recordings, repro details and
 supporting facts.

@@ -2,6 +2,8 @@
 
 **Version:** `NetHack-5.0` head `193d5396a` (5.0.1-0 WIP, built from git with `hints/linux.501`). Introduced by 055caaffb ("revisit shop_keeper() readiness").
 
+**Update 2026-10-06:** upstream [`bda23ae0d`](https://github.com/NetHack/NetHack/commit/bda23ae0d) ("adjust a debug message") now prints this only in wizard mode, as "debug: untrustworthy null shkp ...". The check is still too wide: in wizard mode the tutorial start still reports it. The fix below still applies, keeping that `if (wizard)`.
+
 **Symptom.** Answering `y` to "Do you want a tutorial?" in a new game usually gives, before the tutorial starts:
 
 ```
