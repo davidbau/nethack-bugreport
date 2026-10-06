@@ -6,8 +6,8 @@ index 796522f61..dd6c0599c 100644
  	identification, amulet of flight
  pets left on another level no longer have their hunger postponed by the
  	time spent away
-+lua boolean options given as strings were inverted: "true" and "yes" meant
-+	false, "false" and "no" meant true, in des.monster(), des.object(), etc.
++lua boolean options given as strings got the string's position in a list
++	rather than its value, so "true" meant false and "false" meant true
  
  
  Platform- and/or Interface-Specific Fixes
