@@ -1,0 +1,11 @@
+--- a/src/iactions.c
++++ b/src/iactions.c
+@@ -197,6 +197,8 @@
+         cmdq_add_key(CQ_CANNED, otmp->invlet);
+         break;
+     case IA_SACRIFICE:
++        /* The selected corpse or amulet is in inventory. */
++        cmdq_add_ec(CQ_CANNED, do_reqmenu);
+         cmdq_add_ec(CQ_CANNED, dosacrifice);
+         cmdq_add_key(CQ_CANNED, otmp->invlet);
+         break;

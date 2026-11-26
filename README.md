@@ -72,6 +72,7 @@ infrastructure.
 | [35](bugs/35-mapfrag-ragged-overread/) | `des.map` with rows of different lengths reads past the end of the map string | low (custom level scripts only; heap over-read under ASan) | present at the `NetHack-5.0` tip [`8898570da`](https://github.com/NetHack/NetHack/tree/8898570da), checked 2026-10-06 |
 | [36](bugs/36-xlock-stale-door-after-level-change/) | `#loot` can lock or unlock a far-away door, even on another level, after an interrupted `#force`: `doforce()` leaves the earlier door in the lock context | low (needs `autounlock:untrap` and a contrived sequence; can rewrite a wall's flags) | present at the `NetHack-5.0` tip [`8898570da`](https://github.com/NetHack/NetHack/tree/8898570da), checked 2026-10-06 |
 | [37](bugs/37-tourist-quest-lua-syntax/) | The Tourist quest home and locate levels fail to load (`end=` in `Tou-loca.lua`, missing commas in `Tou-strt.lua`) and become random mazes; six named monsters on the home level are random monsters (since the `993c80183` merge) | medium (every Tourist's quest: home and locate levels become random mazes, and with no Twoflower the quest cannot be started) | present at the `NetHack-5.0` tip [`8898570da`](https://github.com/NetHack/NetHack/tree/8898570da), checked 2026-10-06 |
+| [38](bugs/38-inventory-offer-floor-corpse/) | Offering a carried corpse through inventory sends its slot letter to the floor-corpse question | low (recoverable command error) | documented here; no matching public upstream report found |
 
 ## Setup (once)
 
