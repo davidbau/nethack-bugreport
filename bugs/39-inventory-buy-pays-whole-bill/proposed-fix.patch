@@ -98,14 +98,28 @@
 +    struct obj *purchase) /* inventory action, or null for #pay */
  {
      struct bill_x *bp;
-@@ -2091,5 +2130,12 @@
+@@ -2071,5 +2110,5 @@
+                         we can deduce that it is ibill[0] */
+                      || ibill[0].usedup == UndisclosedContainer);
+-    if ((umoney + eshkp->credit) < cheapest_item(ibillct, ibill)) {
++    if (!purchase && (umoney + eshkp->credit) < cheapest_item(ibillct, ibill)) {
+         You("don't have enough gold to buy%s the item%s %s.",
+             more_than_one ? " any of" : "", plur(more_than_one ? 2 : 1),
+@@ -2091,5 +2130,19 @@
         menu and player answers 'm' at custom ynq prompt */
      do {
 -        if (via_menu /*&& more_than_one*/ ) {
 +        if (purchase) {
 +            /* A partly used stack can have two bill lines. */
++            long price = 0L;
++
 +            for (indx = 0; indx < ibillct; ++indx)
-+                ibill[indx].queuedpay = (ibill[indx].obj == purchase);
++                if (ibill[indx].obj == purchase) {
++                    ibill[indx].queuedpay = TRUE;
++                    price += ibill[indx].cost;
++                }
++            if (insufficient_funds(shkp, purchase, price))
++                return FALSE;
 +            queuedpay = TRUE;
 +            itemize = FALSE;
 +            via_menu = FALSE;
