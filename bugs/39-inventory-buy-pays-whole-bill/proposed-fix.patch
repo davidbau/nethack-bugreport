@@ -1,0 +1,114 @@
+--- a/src/iactions.c
++++ b/src/iactions.c
+@@ -204,5 +204,5 @@
+         break;
+     case IA_BUY_OBJ:
+-        cmdq_add_ec(CQ_CANNED, dopay);
++        cmdq_add_ec(CQ_CANNED, ia_buy);
+         cmdq_add_key(CQ_CANNED, otmp->invlet);
+         break;
+--- a/src/cmd.c
++++ b/src/cmd.c
+@@ -2062,4 +2062,5 @@
+     { '\0', "altadjust", NULL, adjust_split, INTERNALCMD, NULL },
+     { '\0', "altdip", NULL, dip_into, INTERNALCMD, NULL },
++    { '\0', "altbuy", NULL, ia_buy, INTERNALCMD, NULL },
+     { '\0', "alttakeoff", NULL, ia_dotakeoff, INTERNALCMD, NULL },
+     { '\0', "altunwield", NULL, remarm_swapwep, INTERNALCMD, NULL },
+--- a/include/extern.h
++++ b/include/extern.h
+@@ -2931,4 +2931,5 @@
+ extern void make_angry_shk(struct monst *, coordxy, coordxy) NONNULLARG1;
+ extern int dopay(void);
++extern int ia_buy(void);
+ extern boolean paybill(int, boolean);
+ extern void finish_paybill(void);
+--- a/src/shk.c
++++ b/src/shk.c
+@@ -89,5 +89,6 @@
+ staticfn int menu_pick_pay_items(int, Bill *) NONNULLPTRS;
+ staticfn boolean pay_billed_items(struct monst *, int, Bill *, boolean,
+-                                  boolean *) NONNULLPTRS;
++                                  boolean *, struct obj *);
++staticfn int pay_for(struct obj *);
+ staticfn void update_bill(int, int, Bill *, struct eshk *, struct bill_x *,
+                           struct obj *) NONNULLPTRS;
+@@ -1739,7 +1740,28 @@
+ }
+ 
++staticfn int
++buy_ok(struct obj *obj)
++{
++    return (obj && obj->unpaid) ? GETOBJ_SUGGEST : GETOBJ_EXCLUDE;
++}
++
++/* Consume the inventory action's selection before any billing prompts. */
++int
++ia_buy(void)
++{
++    struct obj *obj = getobj("buy", buy_ok, GETOBJ_NOFLAGS);
++
++    return (obj && obj->unpaid) ? pay_for(obj) : ECMD_CANCEL;
++}
++
+ /* the #pay command */
+ int
+ dopay(void)
++{
++    return pay_for((struct obj *) 0);
++}
++
++staticfn int
++pay_for(struct obj *purchase)
+ {
+     struct eshk *eshkp;
+@@ -1775,4 +1797,20 @@
+     }
+ 
++    if (purchase) {
++        if (!resident || !onbill(purchase, resident, TRUE)) {
++            pline("This item is not on this shop's bill.");
++            return ECMD_OK;
++        }
++        if (!m_next2u(resident) && !canspotmon(resident)) {
++            You("cannot see the shopkeeper to pay.");
++            return ECMD_OK;
++        }
++        if (ESHK(resident)->debit) {
++            You("must settle your shop debt first.");
++            return ECMD_OK;
++        }
++        shkp = resident;
++        goto proceed;
++    }
+     if (nxtm && nexttosk == 1) {
+         shkp = nxtm;
+@@ -2004,5 +2042,5 @@
+         int ibillct = make_itemized_bill(shkp, &ibill);
+ 
+-        if (!pay_billed_items(shkp, ibillct, ibill, stashed_gold, &paid))
++        if (!pay_billed_items(shkp, ibillct, ibill, stashed_gold, &paid, purchase))
+             pay_done = FALSE; /* skip thank you message */
+     }
+@@ -2048,5 +2086,6 @@
+     Bill *ibill,
+     boolean stashed_gold,
+-    boolean *paid_p) /* output */
++    boolean *paid_p, /* output */
++    struct obj *purchase) /* inventory action, or null for #pay */
+ {
+     struct bill_x *bp;
+@@ -2091,5 +2130,12 @@
+        menu and player answers 'm' at custom ynq prompt */
+     do {
+-        if (via_menu /*&& more_than_one*/ ) {
++        if (purchase) {
++            /* A partly used stack can have two bill lines. */
++            for (indx = 0; indx < ibillct; ++indx)
++                ibill[indx].queuedpay = (ibill[indx].obj == purchase);
++            queuedpay = TRUE;
++            itemize = FALSE;
++            via_menu = FALSE;
++        } else if (via_menu /*&& more_than_one*/ ) {
+             if (!menu_pick_pay_items(ibillct, ibill))
+                 return TRUE;

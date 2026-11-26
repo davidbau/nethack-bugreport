@@ -39,6 +39,10 @@ an ordinary `#offer` can still select a corpse on the altar.
 [Upstream floor selection](https://github.com/NetHack/NetHack/blob/968eedd06392f431dce5b0f3e1a5d3348d04261b/src/eat.c) ·
 [Proposed patch](proposed-fix.patch)
 
+## A valid answer silently selects the wrong corpse
+
+Adjust the carried jackal corpse to slot `y` before choosing **Offer**. The floor question accepts that letter as “yes” and sacrifices the newt. The success message is identical with and without the patch. Opening inventory afterward shows that the jackal remains in the original build and is gone in the patched build. [The related billing report](../39-inventory-buy-pays-whole-bill/) demonstrates the same problem with slot `n` and a real gold charge.
+
 ## Upstream status
 
 The DevTeam added the invalid-answer diagnostic in 2024 while investigating
